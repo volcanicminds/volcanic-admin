@@ -1,0 +1,12 @@
+/* https://stackoverflow.com/questions/37112218/css3-100vh-not-constant-in-mobile-browser#comment108735456_55003985 */
+body
+	height 100vh
+
+	@supports (padding unquote('max(0px)'))
+		max-height -webkit-fill-available
+
+.w100
+	width 100%
+
+.default-input-group
+	width 100%
