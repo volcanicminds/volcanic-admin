@@ -12,6 +12,7 @@
 import { useConfigurationStore } from '@/stores/configuration'
 import { THEMES } from '@/utils/constants'
 import { defineComponent } from 'vue'
+
 export default defineComponent({
 	name: 'PageHeader',
 	methods: {
