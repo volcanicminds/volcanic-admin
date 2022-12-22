@@ -97,6 +97,11 @@ const model: ConfigSourceModel = {
 						methods: ['required']
 					}
 				}
+			},
+			table: {
+				cell: {
+					format: 'DD/MM/YYYY'
+				}
 			}
 		},
 		residenceCountry: {
