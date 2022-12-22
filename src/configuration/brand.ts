@@ -1,7 +1,7 @@
 const company = {
 	name: 'Volcanic Minds',
-	logo: 'src/assets/logo-light.png',
-	logo_alt: 'src/assets/logo.png'
+	logo: '/logo-light.png',
+	logo_alt: '/logo.png'
 } as ConfigurationCompany
 
 export default company

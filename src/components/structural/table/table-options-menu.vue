@@ -11,7 +11,7 @@
 	</v-menu>
 </template>
 <script setup lang="ts">
-import { defineProps, toRef } from 'vue'
+import { toRef } from 'vue'
 
 interface TableOptionsMenuProps {
 	rowMenu: TableOptionsMenuItems
