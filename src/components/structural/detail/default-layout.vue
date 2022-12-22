@@ -56,9 +56,7 @@ export default defineComponent({
 	},
 	methods: {
 		generateInitialValue: function (key: string) {
-			const value = getInitialValue(this.data[key], this.model, key)
-
-			return value
+			return getInitialValue(this.data[key], this.model, key)
 		}
 	}
 })
