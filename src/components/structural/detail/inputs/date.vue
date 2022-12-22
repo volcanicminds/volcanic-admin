@@ -2,7 +2,13 @@
 	<ValidationProvider v-slot="{ errors }" :name="name" :rules="getModelRules(options?.validation)">
 		<v-dialog ref="dialog" v-model="modal" :return-value.sync="internalValue" persistent width="300px">
 			<template #activator="{ on, attrs }">
-				<v-text-field :value="value" prepend-icon="mdi-calendar" readonly v-bind="attrs" v-on="on"></v-text-field>
+				<v-text-field
+					:value="formattedValue"
+					prepend-icon="mdi-calendar"
+					readonly
+					v-bind="attrs"
+					v-on="on"
+				></v-text-field>
 			</template>
 			<v-date-picker v-model="internalValue" scrollable>
 				<v-spacer></v-spacer>
@@ -41,7 +47,7 @@ export default defineComponent({
 		disabled: { type: Boolean }
 	},
 	data() {
-		return { modal: false, internalValue: '' }
+		return { modal: false, internalValue: '', formattedValue: '' }
 	},
 	computed: {
 		styling: function () {
@@ -49,8 +55,8 @@ export default defineComponent({
 		}
 	},
 	watch: {
-		value: function () {
-			this.internalValue = this.formatInput()
+		value: function (newValue) {
+			this.formattedValue = this.formatInput(newValue)
 		}
 	},
 	methods: {
@@ -60,14 +66,10 @@ export default defineComponent({
 			this.$emit('input', { value: formattedVal, key: this.name })
 		},
 		formatOuput: function () {
-			return this.internalValue
-				? dayjs(this.internalValue, DEFAULT_INPUT_DATE_FORMAT).format(this.options?.format || DEFAULT_DATE_FORMAT)
-				: ''
+			return this.internalValue ? dayjs(this.internalValue, DEFAULT_INPUT_DATE_FORMAT).toISOString() : ''
 		},
-		formatInput: function () {
-			return this.value
-				? dayjs(this.value as string, this.options?.format || DEFAULT_DATE_FORMAT).format(DEFAULT_INPUT_DATE_FORMAT)
-				: ''
+		formatInput: function (newValue: string) {
+			return newValue ? dayjs(newValue).format(this.options?.format || DEFAULT_DATE_FORMAT) : ''
 		},
 		getModelRules
 	}
