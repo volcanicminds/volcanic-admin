@@ -101,6 +101,7 @@ export default defineComponent({
 		AutocompleteInput
 	},
 	props: {
+		//The generic empty string passed as dafault is cast as boolean where the initialValue props type is a boolean
 		initialValue: { type: [String, Number, Boolean, Array<string>], default: '', required: true },
 		model: {
 			type: Object,
