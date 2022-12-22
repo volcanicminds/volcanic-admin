@@ -2,6 +2,7 @@ import 'material-design-icons-iconfont/dist/material-design-icons.css'
 import Vue from 'vue'
 import Vuetify, {
 	VTabs,
+	VMenu,
 	VTab,
 	VTextField,
 	VTabsItems,
@@ -72,7 +73,8 @@ Vue.use(Vuetify, {
 		VAppBarNavIcon,
 		VApp,
 		VTextarea,
-		VSelect
+		VSelect,
+		VMenu
 	}
 })
 

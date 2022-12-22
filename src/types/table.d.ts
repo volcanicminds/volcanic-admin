@@ -65,3 +65,12 @@ interface TableRoutingParams {
 	sorting: TableSortingParams
 	pagination: TablePaginationParams
 }
+
+type TableOptionsMenuItems = [
+	{
+		title: string
+		requiresConfirmation: boolean
+		delete?: boolean
+		operation?: () => void
+	}
+]

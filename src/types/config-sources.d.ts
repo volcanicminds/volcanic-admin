@@ -3,10 +3,10 @@ type ConfigSourceModelColumns = { [key: string]: FieldModel }
 interface ConfigSourceModel {
 	columns: ConfigSourceModelColumns
 	table?: {
-		pagination: {
+		pagination?: {
 			pageSize: number
 		}
-		deletable: boolean
+		rowMenu?: TableOptionsMenuItems
 	}
 }
 

@@ -76,7 +76,7 @@ The fields _label_, _name_ and _source_ are the bare minimum for the menu.
 
 ### Additional menu item fields
 
-**icon** is the name of the [MUI Icon](https://mui.com/material-ui/material-icons/) you want to pair with the menu item, the name must be written so that is compatible with Vuetify specifications.
+**icon** is the name of the [Material Design](https://fonts.google.com/icons?selected=Material+Icons) you want to pair with the menu item, the name must be written so that is compatible with Vuetify specifications.
 **isDefault** sets the page linked by that menu item as the default landing page.
 **filters** lets you pre-filter the data source, the structure is:
 
@@ -329,7 +329,12 @@ interface ConfigSourceModel {
 		pagination: {
 			pageSize: number
 		}
-		deletable: boolean
+		rowMenu: {
+			title: string
+			requiresConfirmation: boolean
+			delete?: boolean
+			operation?: () => void
+		}
 	}
 }
 ```
@@ -341,7 +346,8 @@ There are 2 levels of configuration:
 - **configured** in which you have to set a sources/<my-source>.ts file.
 
 **columns** is an Object, every Key should be equal to the **source** which is the name of the file and value of the **source** field of the menu.ts .
-For every _column_ you set the _type_ and _input_. The _table_ configuration could be set to configure globally the table, for pagination and to disable the _delete_ button on every row.
+For every _column_ you set the _type_ and _input_. The _table_ configuration could be set to configure globally the table, for pagination and to configure the _menu_ button on every row.
+The _menu_ button can be configured with a **title**, a **requiresConfirmation** to request the user a confirmation before executing the operation and an **operation** custom function, if the **delete** is set to "true", the **operation** function is ignored and the standard "delete" endpoint is called passing the row id.
 
 The _input_ field is the most complex and it lets you set both the behavior of the single input inside the detail page and the column and cell inside the table.
 Many sub-fields are self explicable, we are going to explain the most peculiar ones:

@@ -195,6 +195,15 @@ const model: ConfigSourceModel = {
 				visible: false
 			}
 		}
+	},
+	table: {
+		rowMenu: [
+			{
+				title: 'Delete',
+				requiresConfirmation: true,
+				delete: true
+			}
+		]
 	}
 }
 

@@ -30,6 +30,7 @@ import _ from 'lodash'
 import * as api from '@/utils/apiInternalInterface'
 import TableFilter from '@/components/default/table-filter.vue'
 import TableHeader from '@/components/structural/table/table-header.vue'
+import TableOptionsMenu from '@/components/structural/table/table-options-menu.vue'
 import { useTablesStore } from '@/stores/tables'
 import { useConfigurationStore } from '@/stores/configuration'
 import { DEFAULT_PAGE_SIZE, START_PAGE_INDEX } from '@/utils/constants'
@@ -272,29 +273,22 @@ export default defineComponent({
 					}
 				})
 
-				if (modelConfiguration?.table?.deletable) {
+				if (modelConfiguration?.table?.rowMenu) {
+					const menu = (modelConfiguration?.table?.rowMenu || []) as TableOptionsMenuItems
+
+					//Setting the standard operation on case of delete
+					menu.forEach((m, index) => {
+						if (m.delete) {
+							menu[index].operation = this.deleteRow
+						}
+					})
+
 					this.columnDefs.push({
 						field: '',
 						title: '',
-						key: 'delete',
+						key: 'row-menu',
 						renderBodyCell: ({ row, column, rowIndex }: { row: any; column: any; rowIndex: number }, h: any) => {
-							return (
-								<v-btn
-									title="Cancella"
-									rounded
-									color="error"
-									onClick={(e) => {
-										e.stopPropagation()
-										const confirmed = window.confirm(`Vuoi veramente cancellare la riga ${row.id}?`)
-
-										if (confirmed) {
-											this.deleteRow(row)
-										}
-									}}
-								>
-									<v-icon>clear</v-icon>
-								</v-btn>
-							)
+							return <TableOptionsMenu row={row} column={column} rowMenu={menu} />
 						}
 					})
 				}
@@ -468,10 +462,20 @@ export default defineComponent({
 			closeFn()
 		},
 		deleteRow: async function (row: any) {
-			await api.del(this.source, row.id)
+			const id = row?.value?.id
+			if (id) {
+				await api.del(this.source, id)
 
-			//refresh
-			this.find()
+				//refresh
+				this.find()
+			} else {
+				console.warn('Cannot delete, no id found')
+				Vue.$toast.open({
+					message: `Impossibile recuperare cancellare l'elemento selezionato`,
+					type: 'error',
+					position: 'bottom'
+				})
+			}
 		}
 	}
 })
