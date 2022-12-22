@@ -1,7 +1,7 @@
 <template>
 	<ValidationProvider v-slot="{ errors }" :name="name" :rules="getModelRules(options?.validation)">
 		<v-checkbox
-			:checked="value"
+			v-model="internalValue"
 			:name="name"
 			:style="styling"
 			:readonly="readonly"
@@ -32,9 +32,19 @@ export default defineComponent({
 		readonly: { type: Boolean },
 		disabled: { type: Boolean }
 	},
+	data() {
+		return {
+			internalValue: this.value
+		}
+	},
 	computed: {
 		styling: function () {
 			return this.options?.style
+		}
+	},
+	watch: {
+		value(newValue) {
+			this.internalValue = newValue
 		}
 	},
 	methods: {
