@@ -1,24 +1,28 @@
 <template>
 	<div class="flex justify-center" style="height: 100%">
 		<div class="self-center">
-			<h1 class="h1">Login a {{ companyName }}</h1>
+			<h1 class="h1">{{ $t('login.login') }} - {{ companyName }}</h1>
 			<ValidationObserver ref="login" v-slot="{ invalid }">
 				<form @submit.prevent="onSubmit">
 					<div>
 						<ValidationProvider v-slot="{ errors }" name="Email" rules="required|email">
-							<div><label :for="email">Email</label></div>
+							<div>
+								<label :for="email">{{ $t('login.email') }}</label>
+							</div>
 							<v-text-field v-model="email" name="email" type="email" placeholder="Email" />
 							<p>{{ errors[0] }}</p>
 						</ValidationProvider>
 					</div>
 					<div>
 						<ValidationProvider v-slot="{ errors }" name="Password" rules="required">
-							<div><label :for="password">Password</label></div>
+							<div>
+								<label :for="password">{{ $t('login.password') }}</label>
+							</div>
 							<v-text-field v-model="password" name="password" type="password" placeholder="Password" />
 							<p>{{ errors[0] }}</p>
 						</ValidationProvider>
 					</div>
-					<v-btn type="submit" :disabled="invalid">Conferma</v-btn>
+					<v-btn type="submit" :disabled="invalid">{{ $t('general.confirm') }}</v-btn>
 				</form>
 			</ValidationObserver>
 		</div>
