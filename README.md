@@ -53,7 +53,7 @@ But you would miss all the fun!
 
 ## Localization
 
-The project is localized for 3 languages: English, Italian and German.
+The project is localized in 3 languages: English, Italian and German.
 The configuration files can be optionally localized as described for every specific section.
 
 ## menu.ts
