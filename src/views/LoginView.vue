@@ -1,13 +1,13 @@
 <template>
 	<div class="flex justify-center" style="height: 100%">
 		<div class="self-center">
-			<h1 class="h1">{{ $t('login.login') }} - {{ companyName }}</h1>
+			<h1 class="h1">{{ $t('authentication.login') }} - {{ companyName }}</h1>
 			<ValidationObserver ref="login" v-slot="{ invalid }">
 				<form @submit.prevent="onSubmit">
 					<div>
 						<ValidationProvider v-slot="{ errors }" name="Email" rules="required|email">
 							<div>
-								<label :for="email">{{ $t('login.email') }}</label>
+								<label :for="email">{{ $t('authentication.email') }}</label>
 							</div>
 							<v-text-field v-model="email" name="email" type="email" placeholder="Email" />
 							<p>{{ errors[0] }}</p>
@@ -16,7 +16,7 @@
 					<div>
 						<ValidationProvider v-slot="{ errors }" name="Password" rules="required">
 							<div>
-								<label :for="password">{{ $t('login.password') }}</label>
+								<label :for="password">{{ $t('authentication.password') }}</label>
 							</div>
 							<v-text-field v-model="password" name="password" type="password" placeholder="Password" />
 							<p>{{ errors[0] }}</p>

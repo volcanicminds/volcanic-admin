@@ -1,40 +1,46 @@
 <template>
 	<div class="py0 px3">
-		<h1>Configurazione utente</h1>
+		<h1>{{ $t('authentication.userViewTitle') }}</h1>
 
 		<ValidationObserver v-slot="{ invalid }">
 			<form @submit.prevent="onSubmit">
 				<div>
 					<ValidationProvider v-slot="{ errors }" name="Email" rules="required|email">
-						<div><label :for="email">Email</label></div>
+						<div>
+							<label :for="email">{{ $t('authentication.email') }}</label>
+						</div>
 						<v-text-field v-model="email" name="email" type="email" placeholder="Email" />
 						<p>{{ errors[0] }}</p>
 					</ValidationProvider>
 				</div>
 				<div>
 					<ValidationProvider v-slot="{ errors }" vid="password" name="Password" rules="required">
-						<div><label :for="password">Password</label></div>
+						<div>
+							<label :for="password">{{ $t('authentication.password') }}</label>
+						</div>
 						<v-text-field v-model="password" name="password" type="password" placeholder="Password" />
 						<p>{{ errors[0] }}</p>
 					</ValidationProvider>
 				</div>
 				<div>
-					<ValidationProvider v-slot="{ errors }" name="Ripeti la password" rules="required|confirmed:password">
-						<div><label :for="confirmation">Ripeti la password</label></div>
+					<ValidationProvider v-slot="{ errors }" name="password_confirmation" rules="required|confirmed:password">
+						<div>
+							<label :for="confirmation">{{ $t('authentication.repeatPassword') }}</label>
+						</div>
 						<v-text-field
 							v-model="confirmation"
 							name="password_confirmation"
 							type="password"
-							placeholder="Ripeti la password"
+							:placeholder="$t('authentication.repeatPassword')"
 						/>
 						<p>{{ errors[0] }}</p>
 					</ValidationProvider>
 				</div>
-				<v-btn type="submit" :disabled="invalid" color="primary">Aggiorna</v-btn>
+				<v-btn type="submit" :disabled="invalid" color="primary">{{ $t('general.update') }}</v-btn>
 			</form>
 		</ValidationObserver>
 		<br />
-		<v-btn color="error" @click="logout()">Logout</v-btn>
+		<v-btn color="error" @click="logout()">{{ $t('authentication.logout') }}</v-btn>
 	</div>
 </template>
 
