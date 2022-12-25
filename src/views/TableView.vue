@@ -45,6 +45,7 @@ import {
 	extendSorting,
 	extendSingleSortKey
 } from '@/utils/table'
+import { getTranslatedItem } from '@/utils/locale'
 
 export default defineComponent({
 	components: { TableHeader },
@@ -200,12 +201,12 @@ export default defineComponent({
 			const sourceOfTableData = isConfigured ? this.model : this.table
 			this.columnDefs = Object.keys(sourceOfTableData).map((key, index) => {
 				const rowModel = this.model[key] || {}
-
+				const title = getTranslatedItem(this.model[key].input.label) || key.toUpperCase()
 				const sortBy = this.params.sorting ? this.params.sorting[extendSingleSortKey(key, rowModel)] : undefined
 
 				return {
 					field: key,
-					title: key.toUpperCase(),
+					title,
 					key,
 					width: rowModel?.table?.width,
 					sortBy,

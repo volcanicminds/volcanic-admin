@@ -27,7 +27,7 @@
 			</v-list-item-content>
 		</v-list-item>
 		<v-list dense nav>
-			<Fragment v-for="item in menu" :key="item.label">
+			<Fragment v-for="(item, index) in menu" :key="index">
 				<router-link
 					v-if="item.name"
 					:to="{
