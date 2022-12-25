@@ -8,6 +8,8 @@ type UpdatesStrategies = 'synced' | 'optimistic'
 type BaseThemes = 'light' | 'dark'
 type Themes = BaseThemes | string
 
-interface LocaleLabel {
-	[language: string]: string
+interface LocalizedField {
+	[language: string]: string | number | boolean
 }
+
+type LocalizedItemField = string | number | boolean | LocalizedField

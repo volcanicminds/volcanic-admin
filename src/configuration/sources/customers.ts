@@ -15,7 +15,11 @@ const model: ConfigSourceModel = {
 			type: 'text',
 			input: {
 				type: 'input',
-				label: 'Name',
+				label: {
+					en: 'Name',
+					it: 'Nome',
+					de: 'Vorname'
+				},
 				options: {
 					validation: {
 						methods: ['required']
@@ -58,7 +62,11 @@ const model: ConfigSourceModel = {
 			input: {
 				type: 'input',
 				label: 'Prefix',
-				defaultValue: '+39',
+				defaultValue: {
+					en: '+1',
+					it: '+39',
+					de: '+49'
+				},
 				options: {
 					validation: {
 						methods: ['required']

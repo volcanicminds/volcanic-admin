@@ -12,7 +12,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
-import { getLocaleLanguage } from '@/utils/locale'
+import { getTranslatedItem } from '@/utils/locale'
 
 export default defineComponent({
 	name: 'PageMenuItem',
@@ -26,13 +26,8 @@ export default defineComponent({
 		}
 	},
 	methods: {
-		translateLabel: function (label: MenuItemLabel) {
-			if (typeof label === 'string') {
-				return label
-			}
-
-			const locale = getLocaleLanguage()
-			return label[locale]
+		translateLabel: function (label: LocalizedItemField) {
+			return getTranslatedItem(label)
 		}
 	}
 })

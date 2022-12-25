@@ -72,8 +72,8 @@ interface Input {
 		operator: 'eq' | 'neq' | 'lt' | 'lte' | 'mt' | 'mte'
 		value: string | number | boolean
 	}
-	label?: string
-	defaultValue?: string | boolean | number
+	label?: LocalizedItemField
+	defaultValue?: LocalizedItemField
 	readonly?: boolean
 	disabled?: boolean
 	scope?: 'create' | 'update' | 'all'
