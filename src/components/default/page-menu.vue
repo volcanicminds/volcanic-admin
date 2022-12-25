@@ -23,7 +23,7 @@
 						/>
 					</router-link>
 				</v-list-item-title>
-				<v-list-item-subtitle> Amministrazione </v-list-item-subtitle>
+				<v-list-item-subtitle> {{ $t('general.adminTitle') }} </v-list-item-subtitle>
 			</v-list-item-content>
 		</v-list-item>
 		<v-list dense nav>

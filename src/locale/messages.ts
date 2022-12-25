@@ -20,7 +20,10 @@ const messages = {
 		general: {
 			back: 'Back',
 			confirm: 'Confirm',
-			update: 'Update'
+			update: 'Update',
+			user: 'User',
+			adminTitle: 'Administration',
+			theme: 'Theme'
 		},
 		toasts: {
 			missingDataSource: 'Missing information: data source',
@@ -53,7 +56,10 @@ const messages = {
 		general: {
 			back: 'Indietro',
 			confirm: 'Conferma',
-			update: 'Aggiorna'
+			update: 'Aggiorna',
+			user: 'Utente',
+			adminTitle: 'Amministrazione',
+			theme: 'Tema'
 		},
 		toasts: {
 			missingDataSource: 'Informazione mancante: sorgente dati',
@@ -86,7 +92,10 @@ const messages = {
 		general: {
 			back: 'Zurück',
 			confirm: 'Bestätigung',
-			update: 'Aktualisieren'
+			update: 'Aktualisieren',
+			user: 'Benutzer',
+			adminTitle: 'Verwaltung',
+			theme: 'Thema'
 		},
 		toasts: {
 			missingDataSource: 'Fehlende Informationen: Datenquelle',
