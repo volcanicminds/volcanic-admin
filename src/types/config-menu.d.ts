@@ -1,6 +1,9 @@
 type Menu = Array<MenuItem>
+
+type MenuItemLabel = string | LocaleLabel
+
 interface MenuItem {
-	label: string
+	label: MenuItemLabel
 	name: string | null
 	source: string | null
 	icon?: string

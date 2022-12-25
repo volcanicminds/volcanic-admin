@@ -22,11 +22,12 @@ import itIT from '@/locale/table_itIT.js'
 import deDE from '@/locale/table_deDE.js'
 import enUS from 'vue-easytable/libs/locale/lang/en-US.js'
 import messages from '@/locale/messages'
+import { getLocaleLanguage } from '@/utils/locale'
 
 /*
 Localization EN, IT, DE
 */
-const localeLanguage = navigator.language.slice(0, 2).toLowerCase()
+const localeLanguage = getLocaleLanguage()
 
 Vue.use(VueI18n)
 const i18n = new VueI18n({

@@ -51,12 +51,21 @@ There is also a user page to change the user password.
 
 But you would miss all the fun!
 
+## Localization
+
+The project is localized for 3 languages: English, Italian and German.
+The configuration files can be optionally localized as described for every specific section.
+
 ## menu.ts
 
 ```ts
 type Menu = Array<MenuItem>
 interface MenuItem {
-	label: string
+	label:
+		| string
+		| {
+				[language: string]: string
+		  }
 	name: string | null
 	source: string | null
 	icon?: string
@@ -70,7 +79,7 @@ interface MenuItem {
 
 The fields _label_, _name_ and _source_ are the bare minimum for the menu.
 
-- **label** is the string that the user will see in the menu.
+- **label** is the string that the user will see in the menu. The label can be localized, ex: { en: 'My Label', it: 'La mia etichetta'}
 - **name** is the identifier for the scope, as we will see, you can have more menu items for a single data source
 - **source** describes the name of the data source. If your api is GET: <server url>/cocktails -> to get all the cocktails on the DB, then the _source_ you have to set is "cocktails".
 

@@ -7,3 +7,7 @@ type UpdatesStrategies = 'synced' | 'optimistic'
 //For now only light theme is supported
 type BaseThemes = 'light' | 'dark'
 type Themes = BaseThemes | string
+
+interface LocaleLabel {
+	[language: string]: string
+}
