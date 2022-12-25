@@ -1,10 +1,10 @@
 <template>
 	<v-app-bar app dense elevation="4">
 		<v-spacer></v-spacer>
-		<a style="width: 36px" class="mx2" title="Tema" href="#" @click="toggleDarkMode"
+		<a style="width: 36px" class="mx2" :title="$t('general.theme')" href="#" @click="toggleDarkMode"
 			><v-icon large>brightness_4_icon</v-icon></a
 		>
-		<router-link title="Utente" to="/user"><v-icon large>person</v-icon></router-link>
+		<router-link :title="$t('general.user')" to="/user"><v-icon large>person</v-icon></router-link>
 	</v-app-bar>
 </template>
 

@@ -1,6 +1,7 @@
 type Menu = Array<MenuItem>
+
 interface MenuItem {
-	label: string
+	label: LocalizedItemField
 	name: string | null
 	source: string | null
 	icon?: string

@@ -1,6 +1,6 @@
 <template>
 	<div class="mb1">
-		<v-btn elevation="2" @click="create"><v-icon left dark> add </v-icon>Crea</v-btn>
+		<v-btn elevation="2" @click="create"><v-icon left dark> add </v-icon>{{ $t('table.createButton') }}</v-btn>
 	</div>
 </template>
 

@@ -5,13 +5,14 @@
 		</v-list-item-icon>
 
 		<v-list-item-content>
-			<v-list-item-title>{{ item.label }}</v-list-item-title>
+			<v-list-item-title>{{ translateLabel(item.label) }}</v-list-item-title>
 		</v-list-item-content>
 	</v-list-item>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { getTranslatedItem } from '@/utils/locale'
 
 export default defineComponent({
 	name: 'PageMenuItem',
@@ -22,6 +23,11 @@ export default defineComponent({
 				return {}
 			},
 			required: true
+		}
+	},
+	methods: {
+		translateLabel: function (label: LocalizedItemField) {
+			return getTranslatedItem(label)
 		}
 	}
 })

@@ -7,3 +7,9 @@ type UpdatesStrategies = 'synced' | 'optimistic'
 //For now only light theme is supported
 type BaseThemes = 'light' | 'dark'
 type Themes = BaseThemes | string
+
+interface LocalizedField {
+	[language: string]: string | number | boolean
+}
+
+type LocalizedItemField = string | number | boolean | LocalizedField

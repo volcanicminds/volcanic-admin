@@ -41,7 +41,7 @@ export const useUserStore = defineStore('user', () => {
 			})
 		} catch (e) {
 			console.error('Error during login', e)
-			Vue.$toast.open({ message: 'Errore durante la login', type: 'error', position: 'bottom' })
+			Vue.$toast.open({ message: Vue.$t('toasts.errorLogin'), type: 'error', position: 'bottom' })
 			throw e
 		}
 

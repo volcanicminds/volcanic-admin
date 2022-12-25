@@ -2,7 +2,8 @@
 <template>
 	<Fragment>
 		<TableHeader :source="routeSource" />
-		<p v-if="tableTotalLength === 0">Dati mancanti per la sorgente {{ routeSource }} o con i filtri impostati</p>
+		<p v-if="tableTotalLength === 0">{{ $t('table.missingData', { routeSource }) }}</p>
+
 		<ve-table
 			:event-custom-option="eventCustomOption"
 			:fixed-header="true"
@@ -120,7 +121,7 @@ export default defineComponent({
 			const indexSource = menuItem?.source
 			if (!menuItem || !indexSource) {
 				Vue.$toast.open({
-					message: 'Configurazione menu errata',
+					message: this.$t('toasts.wrongMenu'),
 					type: 'warning',
 					position: 'bottom'
 				})
@@ -485,7 +486,7 @@ export default defineComponent({
 			closeFn()
 		},
 		deleteRow: async function (row: any) {
-			const id = row?.value?.id
+			const id = row?.id
 			if (id) {
 				await api.del(this.source, id)
 
@@ -494,7 +495,7 @@ export default defineComponent({
 			} else {
 				console.warn('Cannot delete, no id found')
 				Vue.$toast.open({
-					message: `Impossibile recuperare cancellare l'elemento selezionato`,
+					message: this.$t('toasts.cannotDelete'),
 					type: 'error',
 					position: 'bottom'
 				})

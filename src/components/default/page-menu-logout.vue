@@ -1,7 +1,7 @@
 <template>
 	<Fragment>
 		<div class="pa-2">
-			<v-btn block @click="logout"> Logout </v-btn>
+			<v-btn block @click="logout"> {{ $t('authentication.logout') }} </v-btn>
 		</div>
 	</Fragment>
 </template>

@@ -1,6 +1,10 @@
 const menu: Menu = [
 	{
-		label: 'All Customers',
+		label: {
+			en: 'All Customers',
+			it: 'Tutti i clienti',
+			de: 'Alle Kunden'
+		},
 		icon: 'people',
 		name: 'customers_default',
 		source: 'customers',

@@ -4,7 +4,9 @@
 			<HiddenInput :value="initialValue" :name="modelKey" />
 		</template>
 		<template v-else>
-			<label :for="modelKey">{{ model.input.label || capitalize(modelKey) }}{{ getRequiredAsterics(modelKey) }}</label>
+			<label :for="modelKey"
+				>{{ translateLabel(model.input.label || capitalize(modelKey)) }}{{ getRequiredAsterics(modelKey) }}</label
+			>
 			<DefaultInput
 				v-if="model.input.type === 'input' && !['date', 'boolean'].includes(model?.type)"
 				:value="initialValue"
@@ -87,6 +89,7 @@ import SelectInput from '@/components/structural/detail/inputs/selectInput.vue'
 import BooleanInput from '@/components/structural/detail/inputs/booleanInput.vue'
 import HiddenInput from '@/components/structural/detail/inputs/hiddenInput.vue'
 import AutocompleteInput from '@/components/structural/detail/inputs/autocompleteInput.vue'
+import { getTranslatedItem } from '@/utils/locale'
 import { getModelRules } from '@/utils/validationHelpers'
 
 export default defineComponent({
@@ -130,6 +133,9 @@ export default defineComponent({
 			const modelRules = getModelRules(this.model?.input?.options?.validation) //|| 'required'
 
 			return modelRules?.includes('required') ? '*' : ''
+		},
+		translateLabel: function (label: LocalizedItemField) {
+			return getTranslatedItem(label)
 		}
 	}
 })

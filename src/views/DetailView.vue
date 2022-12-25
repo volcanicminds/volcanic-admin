@@ -1,7 +1,9 @@
 <template>
 	<div id="detail-container">
-		<h3 v-show="mode === 'update'">Dettaglio {{ source }} con id {{ id }}</h3>
-		<h3 v-show="mode === 'create'">Crea nuovo {{ source }}</h3>
+		<h3 v-show="mode === 'update'">{{ $t('detail.update', { source, id }) }}</h3>
+		<!-- <h3 v-show="mode === 'update'">Dettaglio {{ source }} con id {{ id }}</h3> -->
+		<h3 v-show="mode === 'create'">{{ $t('detail.create', [source]) }}</h3>
+		<!-- <h3 v-show="mode === 'create'">Crea nuovo {{ source }}</h3> -->
 		<ValidationObserver ref="detail" v-slot="{ invalid }">
 			<form @submit.prevent="onSubmit">
 				<!-- Not configured with a model -->
@@ -37,8 +39,10 @@
 						/>
 					</template>
 				</template>
-				<v-btn class="mr2" @click="backToTable"><v-icon dark left>chevron_left</v-icon>Indietro</v-btn>
-				<v-btn type="submit" :disabled="invalid" color="primary"><v-icon dark left>check</v-icon>Conferma</v-btn>
+				<v-btn class="mr2" @click="backToTable"><v-icon dark left>chevron_left</v-icon>{{ $t('general.back') }}</v-btn>
+				<v-btn type="submit" :disabled="invalid" color="primary"
+					><v-icon dark left>check</v-icon>{{ $t('general.confirm') }}</v-btn
+				>
 			</form>
 		</ValidationObserver>
 	</div>
@@ -147,7 +151,7 @@ export default defineComponent({
 
 		if (!this.source) {
 			Vue.$toast.open({
-				message: 'Informazione mancante: sorgente dati',
+				message: this.$t('toasts.missingDataSource'),
 				type: 'warning',
 				position: 'bottom'
 			})
@@ -262,7 +266,7 @@ export default defineComponent({
 			}
 			this.observer.reset()
 			Vue.$toast.open({
-				message: this.mode === 'create' ? 'Elemento creato con successo' : 'Elemento aggiornato con successo',
+				message: this.mode === 'create' ? this.$t('toasts.confirmCreate') : this.$t('toasts.confirmUpdate'),
 				type: 'success',
 				position: 'bottom'
 			})
