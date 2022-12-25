@@ -5,7 +5,9 @@ const messages = {
 			create: 'Create a new {source}'
 		},
 		table: {
-			missingData: 'Missing data for the source {routeSource} or with the configured filters'
+			missingData: 'Missing data for the source {routeSource} or with the configured filters',
+			createButton: 'Create',
+			confirmDeleteRow: 'Do you really want to delete the row {rowId}?'
 		},
 		authentication: {
 			login: 'Login',
@@ -25,7 +27,9 @@ const messages = {
 			confirmUpdate: 'Item updated successfully',
 			confirmCreate: 'Item created successfully',
 			wrongMenu: 'Wrong menu configuration',
-			cannotDelete: 'Cannot delete the selected item'
+			cannotDelete: 'Cannot delete the selected item',
+			cannotUpdateUser: 'Unable to update user',
+			errorLogin: 'Error logging in'
 		}
 	},
 	it: {
@@ -34,7 +38,9 @@ const messages = {
 			create: 'Crea nuovo {source}'
 		},
 		table: {
-			missingData: 'Dati mancanti per la sorgente {routeSource} o con i filtri impostati'
+			missingData: 'Dati mancanti per la sorgente {routeSource} o con i filtri impostati',
+			createButton: 'Crea',
+			confirmDeleteRow: 'Vuoi veramente cancellare la riga {rowId}?'
 		},
 		authentication: {
 			login: 'Login',
@@ -54,16 +60,20 @@ const messages = {
 			confirmUpdate: 'Elemento aggiornato con successo',
 			confirmCreate: 'Elemento creato con successo',
 			wrongMenu: 'Configurazione menu errata',
-			cannotDelete: "Impossibile recuperare cancellare l'elemento selezionato"
+			cannotDelete: "Impossibile recuperare cancellare l'elemento selezionato",
+			cannotUpdateUser: "Impossibile aggiornare l'utente",
+			errorLogin: 'Errore durante la login'
 		}
 	},
 	de: {
 		detail: {
 			update: 'Detail {source} mit ID {id}',
-			create: 'Neu erstellen {source}'
+			create: 'Neu erstellen {source}',
+			confirmDeleteRow: 'Möchten Sie die Zeile {rowId} wirklich löschen?'
 		},
 		table: {
-			missingData: 'Fehlende Daten für Quelle {routeSource} oder mit eingestellten Filtern'
+			missingData: 'Fehlende Daten für Quelle {routeSource} oder mit eingestellten Filtern',
+			createButton: 'Schaffen'
 		},
 		authentication: {
 			login: 'Anmeldung',
@@ -83,7 +93,9 @@ const messages = {
 			confirmUpdate: 'Artikel erfolgreich aktualisiert',
 			confirmCreate: 'Artikel erfolgreich erstellt',
 			wrongMenu: 'Falsche Menükonfiguration',
-			cannotDelete: 'Ausgewähltes Element kann nicht abgerufen werden'
+			cannotDelete: 'Ausgewähltes Element kann nicht abgerufen werden',
+			cannotUpdateUser: 'Benutzer kann nicht aktualisiert werden',
+			errorLogin: 'Fehler bei der Anmeldung'
 		}
 	}
 }

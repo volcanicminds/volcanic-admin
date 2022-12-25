@@ -486,7 +486,7 @@ export default defineComponent({
 			closeFn()
 		},
 		deleteRow: async function (row: any) {
-			const id = row?.value?.id
+			const id = row?.id
 			if (id) {
 				await api.del(this.source, id)
 

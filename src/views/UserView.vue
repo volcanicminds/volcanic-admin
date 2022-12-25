@@ -79,7 +79,7 @@ export default defineComponent({
 				console.error('Error during users update', e)
 
 				Vue.$toast.open({
-					message: "Impossibile aggiornare l'utente",
+					message: this.$t('toasts.cannotUpdateUser'),
 					type: 'error',
 					position: 'bottom'
 				})
