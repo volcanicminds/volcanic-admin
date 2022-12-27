@@ -7,7 +7,8 @@
 			"@/*": ["./src/*"]
 		},
 		"types": ["jest", "node", "axios", "vuetify"],
-		"noImplicitThis": false
+		"isolatedModules":true,
+		"strict": true
 	},
 	"vueCompilerOptions": {
 		"target": 2.7
