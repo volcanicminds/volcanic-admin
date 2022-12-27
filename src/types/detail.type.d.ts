@@ -1,7 +1,3 @@
-interface DetailData {
-	[key: string]: any
-}
-
 type RenderingStrategy = 'default' | 'configured'
 
 type UrlsFromInputWithSources = {

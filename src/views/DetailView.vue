@@ -78,7 +78,7 @@ export default defineComponent({
 			// renderingStrategy: 'default' as RenderingStrategy,
 			model: {} as ConfigSourceModelColumns,
 			modelSourceData: {} as ModelSouceData,
-			data: {} as DetailData,
+			data: {} as ApiBody,
 			source: '',
 			id: '',
 			mode: 'update',
@@ -220,7 +220,7 @@ export default defineComponent({
 		loadDetail: async function () {
 			if (this.mode === 'update') {
 				try {
-					this.data = await findOne(this.source, this.id)
+					this.data = (await findOne(this.source, this.id)) as ApiBody
 				} catch (e) {
 					console.error(e)
 				}
