@@ -87,14 +87,6 @@ export default defineComponent({
 
 	watch: {
 		$route(to, from) {
-			// this.params = {
-			// 	sorting: {},
-			// 	filters: [],
-			// 	pagination: {
-			// 		pageIndex: START_PAGE_INDEX,
-			// 		pageSize: DEFAULT_PAGE_SIZE
-			// 	}
-			// }
 			this.initialize()
 		}
 	},
