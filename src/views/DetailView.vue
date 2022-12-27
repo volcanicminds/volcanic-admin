@@ -1,9 +1,7 @@
 <template>
 	<div id="detail-container">
 		<h3 v-show="mode === 'update'">{{ $t('detail.update', { source, id }) }}</h3>
-		<!-- <h3 v-show="mode === 'update'">Dettaglio {{ source }} con id {{ id }}</h3> -->
 		<h3 v-show="mode === 'create'">{{ $t('detail.create', [source]) }}</h3>
-		<!-- <h3 v-show="mode === 'create'">Crea nuovo {{ source }}</h3> -->
 		<ValidationObserver ref="detail" v-slot="{ invalid }">
 			<form @submit.prevent="onSubmit">
 				<!-- Not configured with a model -->
@@ -162,10 +160,9 @@ export default defineComponent({
 			name: 'grid',
 			tip: 'Sto caricando...'
 		})
-		// this.loader.show()
+
 		this.loadModel()
 		this.loadDetail()
-		// this.loader.close()
 	},
 
 	methods: {
@@ -246,7 +243,11 @@ export default defineComponent({
 				const storeColumnDefinitions = tableStore.tables.columnDefinitions[this.source] || []
 
 				if (storeColumnDefinitions.length === 0) {
-					alert('Impossibile visualizzare la form di creazione')
+					Vue.$toast.open({
+						message: this.$t('toasts.cannotShowCreateForm'),
+						type: 'error',
+						position: 'bottom'
+					})
 					throw new Error('Cannot show create form')
 				}
 				storeColumnDefinitions.forEach((def) => {
