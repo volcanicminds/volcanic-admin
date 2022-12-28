@@ -1,9 +1,7 @@
 <template>
 	<div id="detail-container">
 		<h3 v-show="mode === 'update'">{{ $t('detail.update', { source, id }) }}</h3>
-		<!-- <h3 v-show="mode === 'update'">Dettaglio {{ source }} con id {{ id }}</h3> -->
 		<h3 v-show="mode === 'create'">{{ $t('detail.create', [source]) }}</h3>
-		<!-- <h3 v-show="mode === 'create'">Crea nuovo {{ source }}</h3> -->
 		<ValidationObserver ref="detail" v-slot="{ invalid }">
 			<form @submit.prevent="onSubmit">
 				<!-- Not configured with a model -->
@@ -23,7 +21,7 @@
 						<TabsLayout
 							:data="data"
 							:layout="layout"
-							:model="model"
+							:model="model.columns"
 							:is-visible="isVisible"
 							:update-data="updateData"
 						/>
@@ -33,7 +31,7 @@
 						<DefaultLayout
 							:data="data"
 							:layout="layout"
-							:model="model"
+							:model="model.columns"
 							:is-visible="isVisible"
 							:update-data="updateData"
 						/>
@@ -54,13 +52,14 @@ import { capitalize } from 'lodash'
 import { ValidationObserver, extend, ValidationProvider } from 'vee-validate'
 import * as api from '@/utils/apiInternalInterface'
 import * as rules from 'vee-validate/dist/rules'
-import { normalizeDetailTabName } from '@/utils/normalization'
+import { normalizeDetailTabKey } from '@/utils/normalization'
 import { defineComponent } from 'vue'
 import TabsLayout from '@/components/structural/detail/tabs-layout.vue'
 import DefaultLayout from '@/components/structural/detail/default-layout.vue'
 import { useTablesStore } from '@/stores/tables'
 import { DEFAULT_SCOPE, SCOPE_CREATE, SCOPE_UPDATE } from '@/utils/constants'
 import { useConfigurationStore } from '@/stores/configuration'
+import { getTranslatedItem } from '@/utils/locale'
 
 Object.keys(rules).forEach((ruleKey) => {
 	const rule = (rules as { [key: string]: any })[ruleKey]
@@ -78,9 +77,9 @@ export default defineComponent({
 	data: () => {
 		return {
 			// renderingStrategy: 'default' as RenderingStrategy,
-			model: {} as ConfigSourceModelColumns,
+			model: {} as ConfigSourceModel,
 			modelSourceData: {} as ModelSouceData,
-			data: {} as DetailData,
+			data: {} as ApiBody,
 			source: '',
 			id: '',
 			mode: 'update',
@@ -91,46 +90,51 @@ export default defineComponent({
 
 	computed: {
 		renderingStrategy: function () {
-			return this.model && Object.keys(this.model).length > 0 ? 'configured' : 'default'
+			return this.model && this.model.columns && Object.keys(this.model.columns).length > 0 ? 'configured' : 'default'
 		},
 		layout: function () {
 			const layout = { type: 'default' } as DetailLayout
 			if (this.model) {
 				const model = this.model
+				const modelLayout = model.layout
 
 				//For now there only is the TABS layout
-				const layoutType = Object.keys(model).find((key) => model[key].input.options?.layout?.tab != null)
-					? 'tabs'
-					: 'default'
+				const layoutType = modelLayout?.tabs ? 'tabs' : 'default'
 
 				if (layoutType === 'default') {
 					return layout
 				}
 
 				//For now there only is the TABS layout
-				layout.type = layoutType
-				layout.tabs = {}
-				const uncategorizedInputs = [] as Array<string>
-				Object.keys(model).forEach((key) => {
-					const tab = model[key].input.options?.layout?.tab
-					if (!tab) {
-						uncategorizedInputs.push(key)
-					} else {
-						const tabName = normalizeDetailTabName(tab?.title || '')
-						if (!layout.tabs[tabName]) {
-							layout.tabs[tabName] = {
-								title: tab?.title || '',
-								inputNames: []
+				const tabs = modelLayout?.tabs
+				if (tabs) {
+					layout.type = layoutType
+					layout.tabs = {}
+					const uncategorizedInputs = [] as Array<string>
+					Object.keys(model.columns).forEach((key, index) => {
+						const fieldTab = model.columns[key].input.options?.layout?.tab
+						const modelLayoutTabKey = Object.keys(tabs).find((t) => t === fieldTab?.name)
+						if (!modelLayoutTabKey) {
+							uncategorizedInputs.push(key)
+						} else {
+							const modelLayoutTab = tabs[modelLayoutTabKey]
+							const tabTitle = `${getTranslatedItem(modelLayoutTab.title || `Tab ${index}`)}`
+							const tabKey = normalizeDetailTabKey(tabTitle)
+							if (!layout.tabs[tabKey]) {
+								layout.tabs[tabKey] = {
+									title: tabTitle,
+									inputNames: []
+								}
 							}
+							layout.tabs[tabKey].inputNames.push(key)
 						}
-						layout.tabs[tabName].inputNames.push(key)
-					}
-				})
+					})
 
-				//Every inputs without a tab layout goes in the first tab
-				const firstTab = Object.keys(layout.tabs)[0]
-				const firstTabeInputNamsWithUncategorized = layout.tabs[firstTab].inputNames.concat(uncategorizedInputs)
-				layout.tabs[firstTab].inputNames = firstTabeInputNamsWithUncategorized
+					//Every inputs without a tab layout goes in the first tab
+					const firstTab = Object.keys(layout.tabs)[0]
+					const firstTabeInputNamsWithUncategorized = layout.tabs[firstTab].inputNames.concat(uncategorizedInputs)
+					layout.tabs[firstTab].inputNames = firstTabeInputNamsWithUncategorized
+				}
 			}
 
 			return layout
@@ -162,16 +166,18 @@ export default defineComponent({
 			name: 'grid',
 			tip: 'Sto caricando...'
 		})
-		// this.loader.show()
+
 		this.loadModel()
+		if (this.mode === 'create') {
+			this.loadFakeData()
+		}
 		this.loadDetail()
-		// this.loader.close()
 	},
 
 	methods: {
 		isVisible(key: string) {
-			const condition = this.model[key].input.condition
-			const scope = this.model[key].input.scope || DEFAULT_SCOPE
+			const condition = this.model.columns[key].input.condition
+			const scope = this.model.columns[key].input.scope || DEFAULT_SCOPE
 			const isInScope =
 				scope === DEFAULT_SCOPE ||
 				(scope === SCOPE_CREATE && this.mode === 'create') ||
@@ -223,7 +229,7 @@ export default defineComponent({
 		loadDetail: async function () {
 			if (this.mode === 'update') {
 				try {
-					this.data = await findOne(this.source, this.id)
+					this.data = (await findOne(this.source, this.id)) as ApiBody
 				} catch (e) {
 					console.error(e)
 				}
@@ -235,18 +241,23 @@ export default defineComponent({
 			if (!sourceModel) {
 				console.warn('Configuration model missing')
 			} else {
-				this.model = sourceModel.columns
+				this.model = sourceModel
 			}
-
+		},
+		loadFakeData: function () {
 			//Adding a fake data array taken from the column definition, to render the create form
 			//event withou a model
-			if (Object.keys(this.model).length === 0 && this.mode === 'create') {
+			if (Object.keys(this.model.columns).length === 0) {
 				const tableStore = useTablesStore()
 				const fakeData = {} as { [key: string]: any }
 				const storeColumnDefinitions = tableStore.tables.columnDefinitions[this.source] || []
 
 				if (storeColumnDefinitions.length === 0) {
-					alert('Impossibile visualizzare la form di creazione')
+					Vue.$toast.open({
+						message: this.$t('toasts.cannotShowCreateForm'),
+						type: 'error',
+						position: 'bottom'
+					})
 					throw new Error('Cannot show create form')
 				}
 				storeColumnDefinitions.forEach((def) => {

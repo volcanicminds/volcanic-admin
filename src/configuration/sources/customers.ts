@@ -5,7 +5,14 @@ const model: ConfigSourceModel = {
 			type: 'text',
 			input: {
 				type: 'input',
-				hidden: true
+				hidden: true,
+				options: {
+					layout: {
+						tab: {
+							name: 'personalinformation'
+						}
+					}
+				}
 			},
 			table: {
 				visible: false
@@ -23,6 +30,11 @@ const model: ConfigSourceModel = {
 				options: {
 					validation: {
 						methods: ['required']
+					},
+					layout: {
+						tab: {
+							name: 'personalinformation'
+						}
 					}
 				}
 			}
@@ -35,6 +47,11 @@ const model: ConfigSourceModel = {
 				options: {
 					validation: {
 						methods: ['required']
+					},
+					layout: {
+						tab: {
+							name: 'personalinformation'
+						}
 					}
 				}
 			}
@@ -47,6 +64,11 @@ const model: ConfigSourceModel = {
 				options: {
 					validation: {
 						methods: ['required', 'email']
+					},
+					layout: {
+						tab: {
+							name: 'personalinformation'
+						}
 					}
 				}
 			},
@@ -70,6 +92,11 @@ const model: ConfigSourceModel = {
 				options: {
 					validation: {
 						methods: ['required']
+					},
+					layout: {
+						tab: {
+							name: 'personalinformation'
+						}
 					}
 				}
 			},
@@ -85,6 +112,11 @@ const model: ConfigSourceModel = {
 				options: {
 					validation: {
 						methods: ['numeric', 'required']
+					},
+					layout: {
+						tab: {
+							name: 'personalinformation'
+						}
 					}
 				}
 			},
@@ -103,6 +135,11 @@ const model: ConfigSourceModel = {
 					format: 'DD-MM-YYYY',
 					validation: {
 						methods: ['required']
+					},
+					layout: {
+						tab: {
+							name: 'personalinformation'
+						}
 					}
 				}
 			},
@@ -121,6 +158,11 @@ const model: ConfigSourceModel = {
 				options: {
 					validation: {
 						methods: ['required']
+					},
+					layout: {
+						tab: {
+							name: 'address'
+						}
 					}
 				}
 			},
@@ -136,6 +178,11 @@ const model: ConfigSourceModel = {
 				options: {
 					validation: {
 						methods: ['required']
+					},
+					layout: {
+						tab: {
+							name: 'address'
+						}
 					}
 				}
 			},
@@ -151,6 +198,11 @@ const model: ConfigSourceModel = {
 				options: {
 					validation: {
 						methods: ['required']
+					},
+					layout: {
+						tab: {
+							name: 'address'
+						}
 					}
 				}
 			},
@@ -166,6 +218,11 @@ const model: ConfigSourceModel = {
 				options: {
 					validation: {
 						methods: ['required']
+					},
+					layout: {
+						tab: {
+							name: 'address'
+						}
 					}
 				}
 			},
@@ -181,6 +238,11 @@ const model: ConfigSourceModel = {
 				options: {
 					validation: {
 						methods: ['required']
+					},
+					layout: {
+						tab: {
+							name: 'address'
+						}
 					}
 				}
 			},
@@ -206,6 +268,20 @@ const model: ConfigSourceModel = {
 			},
 			table: {
 				visible: false
+			}
+		}
+	},
+	layout: {
+		tabs: {
+			personalinformation: {
+				title: {
+					en: 'Personal information',
+					it: 'Informazioni personali',
+					de: 'Persönliche Informationen'
+				}
+			},
+			address: {
+				title: 'Address'
 			}
 		}
 	},

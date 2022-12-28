@@ -352,6 +352,19 @@ interface ConfigSourceModel {
 			}
 		}
 	}
+	layout?: {
+		tabs?: {
+			[name: string]: {
+				title:
+					| string
+					| number
+					| boolean
+					| {
+							[language: string]: string | number | boolean
+					  }
+			}
+		}
+	}
 	table?: {
 		pagination: {
 			pageSize: number
@@ -367,7 +380,7 @@ interface ConfigSourceModel {
 ```
 
 This is the source configuration.
-The _input_ field has 2 optionally localized fields: _label_ and _defaultValue_. The syntax is, in case you want to change the value fo these fields based on locale language, is:
+The _input_ field has 3 optionally localized fields: _label_, _defaultValue_ and the _title_ of the _layout_ configuration. The syntax is, in case you want to change the value fo these fields based on locale language, is:
 
 ```ts
 {
@@ -426,3 +439,10 @@ The _table_ field configures the behavior of the column and single cell inside t
   - **enable** you can use this field to disable sorting or filtering for that column, they are _true_ by default.
   - **defaultValues** are the default values to be set for the filter, it is an array to be used in caso of "between", "in" or "nin" operator values.
   - **operator** are a self explicable list of operators to filter the column with.
+
+### Layout configuration for the detail view
+
+You can configure 2 types of layout
+
+- **default**: in this case you'll get a simple list of imputs in a single column, but you don't have to do anything special
+- **tabs**: for this configuration you can organize the inputs in tabs, every input must be associated to a _options_._layout_._name_ value that is matched with the _layout_._tabs_ keys. The tabs _title_ can be translated.

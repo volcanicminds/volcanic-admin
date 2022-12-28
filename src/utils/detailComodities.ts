@@ -1,6 +1,6 @@
 import { getTranslatedItem } from '@/utils/locale'
 
-function getInitialValue(dataValue: any, model: ConfigSourceModelColumns, key: string) {
+function getInitialValue(dataValue: any, model: ConfigSourceModelColumns, key: string): string | number | boolean {
 	if (dataValue != null) {
 		if (typeof dataValue === 'object') {
 			const idFieldKey = Object.keys(model).find((m) => model[m].isKey)
@@ -16,5 +16,4 @@ function getInitialValue(dataValue: any, model: ConfigSourceModelColumns, key: s
 
 	return getTranslatedItem(model[key].input?.defaultValue as LocalizedItemField)
 }
-
 export { getInitialValue }

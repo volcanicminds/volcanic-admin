@@ -13,51 +13,40 @@
 	</Fragment>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
+<script setup lang="ts">
 import DynamicInput from '@/components/structural/detail/dynamicInput.vue'
 import { getInitialValue } from '@/utils/detailComodities'
 
-export default defineComponent({
-	name: 'DefaultLayout',
-	components: { DynamicInput },
-	props: {
-		data: {
-			type: Object,
-			default() {
-				return {} as DetailData
-			},
-			required: true
+const props = defineProps({
+	data: {
+		type: Object,
+		default() {
+			return {} as ApiBody
 		},
-		layout: {
-			type: Object,
-			default() {
-				return {} as DetailLayout
-			},
-			required: true
-		},
-		model: {
-			type: Object,
-			required: true
-		},
-		isVisible: {
-			type: Function,
-			required: true
-		},
-		updateData: {
-			type: Function,
-			required: true
-		}
+		required: true
 	},
-	data() {
-		return {
-			activeTab: 0
-		}
+	layout: {
+		type: Object,
+		default() {
+			return {} as DetailLayout
+		},
+		required: true
 	},
-	methods: {
-		generateInitialValue: function (key: string) {
-			return getInitialValue(this.data[key], this.model, key)
-		}
+	model: {
+		type: Object,
+		required: true
+	},
+	isVisible: {
+		type: Function,
+		required: true
+	},
+	updateData: {
+		type: Function,
+		required: true
 	}
 })
+
+function generateInitialValue(key: string) {
+	return getInitialValue(props.data[key], props.model, key)
+}
 </script>

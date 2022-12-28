@@ -4,8 +4,8 @@ function normalizeUser(user: User) {
 	return user
 }
 
-function normalizeDetailTabName(title: string) {
-	return camelCase(title.toLowerCase())
+function normalizeDetailTabKey(name: string) {
+	return camelCase(name.toLowerCase())
 }
 
-export { normalizeUser, normalizeDetailTabName }
+export { normalizeUser, normalizeDetailTabKey }

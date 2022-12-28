@@ -32,7 +32,8 @@ const messages = {
 			wrongMenu: 'Wrong menu configuration',
 			cannotDelete: 'Cannot delete the selected item',
 			cannotUpdateUser: 'Unable to update user',
-			errorLogin: 'Error logging in'
+			errorLogin: 'Error logging in',
+			cannotShowCreateForm: 'Unable to show the creation form'
 		}
 	},
 	it: {
@@ -68,7 +69,8 @@ const messages = {
 			wrongMenu: 'Configurazione menu errata',
 			cannotDelete: "Impossibile recuperare cancellare l'elemento selezionato",
 			cannotUpdateUser: "Impossibile aggiornare l'utente",
-			errorLogin: 'Errore durante la login'
+			errorLogin: 'Errore durante la login',
+			cannotShowCreateForm: 'Impossibile visualizzare la form di creazione'
 		}
 	},
 	de: {
@@ -104,7 +106,8 @@ const messages = {
 			wrongMenu: 'Falsche Menükonfiguration',
 			cannotDelete: 'Ausgewähltes Element kann nicht abgerufen werden',
 			cannotUpdateUser: 'Benutzer kann nicht aktualisiert werden',
-			errorLogin: 'Fehler bei der Anmeldung'
+			errorLogin: 'Fehler bei der Anmeldung',
+			cannotShowCreateForm: 'Das Erstellungsformular kann nicht angezeigt werden'
 		}
 	}
 }
