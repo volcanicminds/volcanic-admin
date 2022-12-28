@@ -5,7 +5,7 @@
 		</template>
 		<template v-else>
 			<label :for="modelKey"
-				>{{ translateLabel(model.input.label || capitalize(modelKey)) }}{{ getRequiredAsterics(modelKey) }}</label
+				>{{ translateLabel(model.input.label || capitalize(modelKey)) }}{{ getRequiredAsterics() }}</label
 			>
 			<DefaultInput
 				v-if="model.input.type === 'input' && !['date', 'boolean'].includes(model?.type)"
@@ -20,7 +20,7 @@
 			/>
 			<BooleanInput
 				v-if="model.input.type === 'input' && model?.type === 'boolean'"
-				:value="initialValue"
+				:value="initialValue === '' ? false : initialValue"
 				:name="modelKey"
 				:readonly="model.input.readonly"
 				:disabled="model.input.disabled"
@@ -79,9 +79,8 @@
 	</Fragment>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import { capitalize } from 'lodash'
-import { defineComponent } from 'vue'
 import InputDate from '@/components/structural/detail/inputs/date.vue'
 import DefaultInput from '@/components/structural/detail/inputs/defaultInput.vue'
 import TextArea from '@/components/structural/detail/inputs/textarea.vue'
@@ -92,51 +91,26 @@ import AutocompleteInput from '@/components/structural/detail/inputs/autocomplet
 import { getTranslatedItem } from '@/utils/locale'
 import { getModelRules } from '@/utils/validationHelpers'
 
-export default defineComponent({
-	name: 'DynamicInput',
-	components: {
-		InputDate,
-		DefaultInput,
-		TextArea,
-		SelectInput,
-		BooleanInput,
-		HiddenInput,
-		AutocompleteInput
-	},
-	props: {
-		//The generic empty string passed as dafault is cast as boolean where the initialValue props type is a boolean
-		initialValue: { type: [String, Number, Boolean, Array<string>], default: '', required: true },
-		model: {
-			type: Object,
-			default() {
-				return {}
-			},
-			required: true
+const props = defineProps({
+	//The generic empty string passed as dafault is cast as boolean where the initialValue props type is a boolean
+	initialValue: { type: [String, Number, Boolean, Array<string>], default: '', required: true },
+	model: {
+		type: Object,
+		default() {
+			return {}
 		},
-		modelKey: { type: String, default: '', required: true }
+		required: true
 	},
-	data: function () {
-		return {
-			value: this.initialValue
-		}
-	},
-	watch: {
-		initialValue: function () {
-			this.value = this.initialValue
-		}
-	},
-	methods: {
-		capitalize: function (string: string) {
-			return capitalize(string)
-		},
-		getRequiredAsterics: function (key: string) {
-			const modelRules = getModelRules(this.model?.input?.options?.validation) //|| 'required'
-
-			return modelRules?.includes('required') ? '*' : ''
-		},
-		translateLabel: function (label: LocalizedItemField) {
-			return getTranslatedItem(label)
-		}
-	}
+	modelKey: { type: String, default: '', required: true }
 })
+
+function getRequiredAsterics() {
+	const modelRules = getModelRules(props.model?.input?.options?.validation)
+
+	return modelRules?.includes('required') ? '*' : ''
+}
+
+function translateLabel(label: LocalizedItemField) {
+	return getTranslatedItem(label)
+}
 </script>

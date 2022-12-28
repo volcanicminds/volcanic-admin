@@ -25,7 +25,7 @@ export default defineComponent({
 	props: {
 		name: { type: String, required: true },
 		type: { type: String, required: true },
-		value: { type: [String, Number], default: '', required: true },
+		value: { type: [String, Number, Boolean, Array], default: '', required: true },
 		symbol: { type: String, default: null, required: false },
 		options: {
 			type: Object,
