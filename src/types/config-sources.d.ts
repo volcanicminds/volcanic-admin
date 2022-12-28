@@ -1,13 +1,22 @@
 type StoreSource = { [key: string]: ConfigSourceModel }
 type ConfigSourceModelColumns = { [key: string]: FieldModel }
+type ConfigSourceModelLayout = {
+	tabs?: {
+		[name: string]: {
+			title: LocalizedItemField
+		}
+	}
+}
+type ConfigSourceModelTable = {
+	pagination?: {
+		pageSize: number
+	}
+	rowMenu?: TableOptionsMenuItems
+}
 interface ConfigSourceModel {
 	columns: ConfigSourceModelColumns
-	table?: {
-		pagination?: {
-			pageSize: number
-		}
-		rowMenu?: TableOptionsMenuItems
-	}
+	layout?: ConfigSourceModelLayout
+	table?: ConfigSourceModelTable
 }
 
 type FieldModelType = 'number' | 'date' | 'text' | 'boolean'
@@ -96,7 +105,7 @@ interface Input {
 
 interface Layout {
 	tab?: {
-		title?: string
+		name: string
 	}
 }
 
