@@ -254,7 +254,8 @@ const model: ConfigSourceModel = {
 			type: 'boolean',
 			input: {
 				label: 'Has accepted the newsletter',
-				type: 'input'
+				type: 'input',
+				defaultValue: true
 			},
 			table: {
 				visible: false

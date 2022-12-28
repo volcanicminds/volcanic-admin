@@ -9,7 +9,7 @@ export default defineComponent({
 	name: 'HiddenInput',
 	props: {
 		name: { type: String, required: true },
-		value: { type: [String, Number, Boolean], default: '', required: true }
+		value: { type: [String, Number, Boolean, Array], default: '', required: true }
 	}
 })
 </script>

@@ -24,7 +24,7 @@ export default defineComponent({
 	components: { InputError },
 	props: {
 		name: { type: String, required: true },
-		value: { type: String, default: '', required: true },
+		value: { type: [String, Number, Boolean, Array], default: '', required: true },
 		options: {
 			type: Object,
 			default() {
