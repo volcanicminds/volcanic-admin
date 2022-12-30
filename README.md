@@ -409,7 +409,7 @@ The _menu_ button can be configured with a **title**, a **requiresConfirmation**
 The _input_ field is the most complex and it lets you set both the behavior of the single input inside the detail page and the column and cell inside the table.
 Many sub-fields are self explicable, we are going to explain the most peculiar ones:
 
-- **isKey** configures the field as the database key, useful to be used with updates, findOnes and deletes. The default key is the field with value "id".
+- **isKey** configures the field as the database key, useful to be used with updates, findOnes and deletes. The default key is the field with value "id". -- TODO: for now it is not supported, the only id field is "id"
 - **specifications** configures some specific implementations of the input components, the sub fields are:
   - **subtype** which allows you to set the field to be treated as a "currency" (in this case the subfield "symbos" is considered), "datetime" to allow the "calendar" input to show both days and time and "multiple" for "autocomplete" and "select" inputs to let the user choose multiple values.
   - **symbol** is the symbol used in case of the **subtype** is set to "currency".
