@@ -9,5 +9,5 @@ interface MenuItem {
 	filters?: TableFiltersParams
 	sorting?: TableSortingParams
 	pagination?: TablePaginationParams
-	operation?: () => void
+	operation?: (value: any) => void
 }

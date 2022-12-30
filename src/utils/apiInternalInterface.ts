@@ -1,5 +1,5 @@
 import Vue from 'vue'
-import { _find, _count, _findOne, _create, _update, _delete } from '@/api'
+import { _find, _count, _findOne, _create, _update, _delete, _deleteMultiple } from '@/api'
 import type { AxiosResponse } from 'axios'
 import { useConfigurationStore } from '@/stores/configuration'
 
@@ -121,4 +121,22 @@ async function del(source: string, id: string) {
 	return getApi().remapResponse(source, response.data)
 }
 
-export { find, count, findOne, create, update, del }
+async function deleteMultiple(source: string, ids: Array<string>) {
+	let response = null
+	try {
+		response = await _deleteMultiple(source, ids)
+	} catch (e) {
+		console.error('Error during delete', e)
+
+		Vue.$toast.open({
+			message: `Impossibile eliminare gli elementi selezionati`,
+			type: 'error',
+			position: 'bottom'
+		})
+		throw e
+	}
+
+	return getApi().remapResponse(source, response.data)
+}
+
+export { find, count, findOne, create, update, del, deleteMultiple }

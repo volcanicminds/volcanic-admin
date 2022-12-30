@@ -1,7 +1,12 @@
 <!-- eslint-disable vue/attribute-hyphenation -->
 <template>
 	<Fragment>
-		<TableHeader :source="routeSource" />
+		<TableHeader
+			:source="routeSource"
+			:deleteAll="deleteAll"
+			:options="model?.table?.options"
+			:has-selected-rows="checkboxOption.selectedRowKeys?.length > 0"
+		/>
 		<p v-if="tableTotalLength === 0">{{ $t('table.missingData', { routeSource }) }}</p>
 
 		<ve-table
@@ -11,6 +16,8 @@
 			:columnHiddenOption="columnHiddenOption"
 			:table-data="table || []"
 			:sort-option="sortOption"
+			row-key-field-name="rowKey"
+			:checkbox-option="checkboxOption"
 		/>
 		<ve-pagination
 			class="w100 mx-0"
@@ -58,7 +65,7 @@ export default defineComponent({
 				// default hidden column keys
 				defaultHiddenColumnKeys: [] as DefaultHiddenColumnKeys
 			},
-			model: {} as ConfigSourceModelColumns,
+			model: {} as ConfigSourceModel,
 			routeSource: '',
 			source: '',
 			params: {
@@ -78,8 +85,35 @@ export default defineComponent({
 			eventCustomOption: {
 				bodyRowEvents: ({ row, rowIndex }: any) => {
 					return {
-						click: (event: any) => this.$router.push({ name: 'detail', params: this.getDetailParams(row) })
+						click: (event: any) => {
+							if (event.target.type !== 'checkbox') {
+								this.$router.push({ name: 'detail', params: this.getDetailParams(row) })
+							}
+						}
 					}
+				}
+			},
+			checkboxOption: {
+				selectedRowKeys: [] as Array<number>,
+				selectedRowChange: ({
+					row,
+					isSelected,
+					selectedRowKeys
+				}: {
+					row: any
+					isSelected: boolean
+					selectedRowKeys: Array<number>
+				}) => {
+					this.changeSelectedRowKeys(selectedRowKeys)
+				},
+				selectedAllChange: ({
+					isSelected,
+					selectedRowKeys
+				}: {
+					isSelected: boolean
+					selectedRowKeys: Array<number>
+				}) => {
+					this.changeSelectedRowKeys(selectedRowKeys)
 				}
 			}
 		}
@@ -130,7 +164,7 @@ export default defineComponent({
 				console.warn('Configuration model missing')
 			}
 
-			this.model = modelConfiguration?.columns
+			this.model = modelConfiguration
 			this.source = `/${menuItem.source}`
 
 			let paramsHaveChange = false
@@ -140,7 +174,7 @@ export default defineComponent({
 				paramsHaveChange = !_.isEqual(this.params, tableStoreConfiguration)
 				this.params = tableStoreConfiguration
 			} else {
-				const updatedParams = this.getParams({ menu: menuItem, configuration: modelConfiguration })
+				const updatedParams = this.getParams({ menu: menuItem })
 
 				paramsHaveChange = !_.isEqual(this.params, updatedParams)
 				this.params = updatedParams
@@ -156,20 +190,12 @@ export default defineComponent({
 					console.error(e)
 				}
 
-				this.updateTable({ menu: menuItem, configuration: modelConfiguration, indexSource })
+				this.updateTable({ menu: menuItem, indexSource })
 			}
 
 			this.loader.close()
 		},
-		updateTable: function ({
-			menu,
-			indexSource,
-			configuration
-		}: {
-			menu: MenuItem
-			indexSource: string
-			configuration: ConfigSourceModel
-		}) {
+		updateTable: function ({ menu, indexSource }: { menu: MenuItem; indexSource: string }) {
 			const tableStore = useTablesStore()
 			const isConfigured = this.model != null
 			const hasTableData = this.table.length > 0
@@ -178,22 +204,14 @@ export default defineComponent({
 			if (storedColumnDefinitions) {
 				this.columnDefs = storedColumnDefinitions
 			} else if (isConfigured || hasTableData) {
-				this.setColumnDefinition({ isConfigured, configuration, indexSource })
+				this.setColumnDefinition({ isConfigured, indexSource })
 			}
 		},
-		setColumnDefinition: function ({
-			isConfigured,
-			configuration,
-			indexSource
-		}: {
-			isConfigured: boolean
-			configuration: ConfigSourceModel
-			indexSource: string
-		}) {
-			const sourceOfTableData = isConfigured ? this.model : this.table
+		setColumnDefinition: function ({ isConfigured, indexSource }: { isConfigured: boolean; indexSource: string }) {
+			const sourceOfTableData = isConfigured ? this.model.columns : this.table
 			this.columnDefs = Object.keys(sourceOfTableData).map((key, index) => {
-				const rowModel = this.model[key] || {}
-				const title = getTranslatedItem(this.model[key].input.label) || key.toUpperCase()
+				const rowModel = this.model.columns[key] || {}
+				const title = `${getTranslatedItem(this.model.columns[key].input.label || '') || key.toUpperCase()}`
 				const sortBy = this.params.sorting ? this.params.sorting[extendSingleSortKey(key, rowModel)] : undefined
 
 				return {
@@ -219,12 +237,13 @@ export default defineComponent({
 						}
 
 						const isLink = rowModel?.table?.cell?.isLink
+						const modelColumns = this.model.columns
 
 						if (isLink) {
 							return (
 								<router-link
-									title={`${this.model[column.field]?.input.label}`}
-									to={`${this.model[column.field]?.input.source}/${value?.id}`}
+									title={`${modelColumns[column.field]?.input.label}`}
+									to={`${modelColumns[column.field]?.input.source}/${value?.id}`}
 								>
 									<a onClick={(e) => e.stopPropagation()}>{normalizedValue}</a>
 								</router-link>
@@ -246,7 +265,7 @@ export default defineComponent({
 									name={key}
 									subField={filterModel?.subField}
 									operator={filterModel.operator || 'eq'}
-									values={filterDefaultValues || []}
+									values={(filterDefaultValues || []) as any} //TODO: understand how to remove this any
 									addFilter={this.addFilter}
 									searchCancel={() => this.searchCancel(closeFn)}
 									searchConfirm={() => this.searchConfirm(closeFn)}
@@ -257,8 +276,19 @@ export default defineComponent({
 				}
 			})
 
-			if (configuration?.table?.rowMenu) {
-				const menu = (configuration?.table?.rowMenu || []) as TableOptionsMenuItems
+			if (this.model.table?.options?.checkbox) {
+				this.columnDefs.unshift({
+					field: '',
+					key: 'checkbox',
+					type: 'checkbox',
+					title: '',
+					width: 50,
+					align: 'center'
+				})
+			}
+
+			if (this.model?.table?.rowMenu) {
+				const menu = (this.model?.table?.rowMenu || []) as TableOptionsMenuItems
 
 				//Setting the standard operation on case of delete
 				menu.forEach((m, index) => {
@@ -278,7 +308,7 @@ export default defineComponent({
 			}
 
 			Object.keys(sourceOfTableData).forEach((key) => {
-				if (this.model[key]?.table?.visible === false) {
+				if (this.model.columns[key]?.table?.visible === false) {
 					this.columnHiddenOption.defaultHiddenColumnKeys.push(key)
 				}
 			})
@@ -286,8 +316,17 @@ export default defineComponent({
 			const tableStore = useTablesStore()
 			tableStore.setColumnDefinition(indexSource, this.columnDefs)
 		},
-		getParams: function ({ menu, configuration }: { menu: MenuItem; configuration: ConfigSourceModel }) {
-			const getModelParameters = prepareModelParamenters(this.model)
+		changeSelectedRowKeys(keys: Array<number>) {
+			this.checkboxOption.selectedRowKeys = keys
+		},
+		selectedAll() {
+			this.checkboxOption.selectedRowKeys = this.table.map((x) => x.rowKey)
+		},
+		unselectedAll() {
+			this.checkboxOption.selectedRowKeys = []
+		},
+		getParams: function ({ menu }: { menu: MenuItem }) {
+			const getModelParameters = prepareModelParamenters(this.model.columns)
 			const urlParams = this.$route.query
 			const urlPagination = {} as TablePaginationParams
 			const urlFilters = [] as TableFiltersParams
@@ -314,7 +353,7 @@ export default defineComponent({
 			})
 
 			const { pagination: menuPagination = {}, sorting: menuSorting = {}, filters: menuFilters = [] } = menu
-			const modelPagination = configuration?.table?.pagination || {}
+			const modelPagination = this.model?.table?.pagination || {}
 
 			return {
 				pagination: {
@@ -352,7 +391,7 @@ export default defineComponent({
 				})
 			])
 
-			this.table = tableData as TableData
+			this.table = (tableData as TableData).map((t, i) => ({ rowKey: i, ...t }))
 			this.tableTotalLength = tableCount as number
 		},
 		updateRouteQuery: function () {
@@ -428,7 +467,7 @@ export default defineComponent({
 		sortChange(sorting: SortParams) {
 			const loader = this.loader
 			loader.show()
-			const extendedSorting = extendSorting(sorting, this.model)
+			const extendedSorting = extendSorting(sorting, this.model.columns)
 
 			this.params = {
 				...this.params,
@@ -493,6 +532,17 @@ export default defineComponent({
 					position: 'bottom'
 				})
 			}
+		},
+		deleteAll: async function () {
+			const rows = this.table.filter((t) => this.checkboxOption.selectedRowKeys.includes(t.rowKey)) || []
+			await api.deleteMultiple(
+				this.source,
+				rows.map((r: Row) => `${r.id}`)
+			)
+
+			//refresh
+			this.find()
+			this.unselectedAll()
 		}
 	}
 })

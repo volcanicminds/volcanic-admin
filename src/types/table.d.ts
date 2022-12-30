@@ -36,15 +36,21 @@ type ColumnCustomFilter = {
 }
 type ColumnArrayDefinition = Array<ColumnDefinition>
 
+type ColumnRendereBodyCellArgs = { row: any; column: any; rowIndex: number }
+
+type ColumnRenderBodyCell = (args: ColumnRendereBodyCellArgs) => JSX.Element
+
 type ColumnDefinition = {
 	field: string
 	key: string
 	title: string
+	type?: string
 	align?: string
 	width?: string | number
-	// filter
 	filter?: ColumnFilter
 	filterCustom?: ColumnCustomFilter
+	sortBy?: renderBodyCell | undefined
+	renderBodyCell?: ColumnRenderBodyCell
 }
 
 type DefaultHiddenColumnKeys = Array<string>
@@ -68,9 +74,9 @@ interface TableRoutingParams {
 
 type TableOptionsMenuItems = [
 	{
-		title: string
+		title: LocalizedItemField
 		requiresConfirmation: boolean
 		delete?: boolean
-		operation?: () => void
+		operation?: (value: any) => void
 	}
 ]

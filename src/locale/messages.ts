@@ -7,7 +7,11 @@ const messages = {
 		table: {
 			missingData: 'Missing data for the source {routeSource} or with the configured filters',
 			createButton: 'Create',
-			confirmDeleteRow: 'Do you really want to delete the row {rowId}?'
+			confirmDeleteRow: 'Do you really want to delete the row {rowId}?',
+			selectAll: 'Select all',
+			unselectAll: 'Unselect all',
+			deleteAll: 'Delete',
+			confirmDeleteAll: 'Do you confirm to delete every selected row?'
 		},
 		authentication: {
 			login: 'Login',
@@ -44,7 +48,11 @@ const messages = {
 		table: {
 			missingData: 'Dati mancanti per la sorgente {routeSource} o con i filtri impostati',
 			createButton: 'Crea',
-			confirmDeleteRow: 'Vuoi veramente cancellare la riga {rowId}?'
+			confirmDeleteRow: 'Vuoi veramente cancellare la riga {rowId}?',
+			selectAll: 'Seleziona tutto',
+			unselectAll: 'Deseleziona tutto',
+			deleteAll: 'Cancella',
+			confirmDeleteAll: 'Confermi di voler cancellare tutte le righe selezionate?'
 		},
 		authentication: {
 			login: 'Login',
@@ -76,12 +84,16 @@ const messages = {
 	de: {
 		detail: {
 			update: 'Detail {source} mit ID {id}',
-			create: 'Neu erstellen {source}',
-			confirmDeleteRow: 'Möchten Sie die Zeile {rowId} wirklich löschen?'
+			create: 'Neu erstellen {source}'
 		},
 		table: {
 			missingData: 'Fehlende Daten für Quelle {routeSource} oder mit eingestellten Filtern',
-			createButton: 'Schaffen'
+			createButton: 'Schaffen',
+			confirmDeleteRow: 'Möchten Sie die Zeile {rowId} wirklich löschen?',
+			selectAll: 'Wählen Sie Alle',
+			unselectAll: 'Alle abwählen',
+			deleteAll: 'Löschen',
+			confirmDeleteAll: 'Bestätigen Sie das Löschen jeder ausgewählten Zeile?'
 		},
 		authentication: {
 			login: 'Anmeldung',

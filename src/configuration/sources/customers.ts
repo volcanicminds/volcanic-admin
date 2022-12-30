@@ -287,9 +287,13 @@ const model: ConfigSourceModel = {
 		}
 	},
 	table: {
+		options: {
+			canDelete: true,
+			checkbox: true
+		},
 		rowMenu: [
 			{
-				title: 'Delete',
+				title: { en: 'Delete', it: 'Cancella', de: 'Löschen' },
 				requiresConfirmation: true,
 				delete: true
 			}

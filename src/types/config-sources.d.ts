@@ -11,6 +11,10 @@ type ConfigSourceModelTable = {
 	pagination?: {
 		pageSize: number
 	}
+	options?: {
+		canDelete?: boolean
+		checkbox?: boolean
+	}
 	rowMenu?: TableOptionsMenuItems
 }
 interface ConfigSourceModel {
