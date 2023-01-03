@@ -9,7 +9,7 @@
 							<div>
 								<label :for="email">{{ $t('authentication.email') }}</label>
 							</div>
-							<v-text-field v-model="email" name="email" type="email" placeholder="Email" />
+							<v-text-field v-model="email" name="email" type="email" :placeholder="$t('authentication.email')" />
 							<p>{{ errors[0] }}</p>
 						</ValidationProvider>
 					</div>
@@ -18,7 +18,12 @@
 							<div>
 								<label :for="password">{{ $t('authentication.password') }}</label>
 							</div>
-							<v-text-field v-model="password" name="password" type="password" placeholder="Password" />
+							<v-text-field
+								v-model="password"
+								name="password"
+								type="password"
+								:placeholder="$t('authentication.password')"
+							/>
 							<p>{{ errors[0] }}</p>
 						</ValidationProvider>
 					</div>

@@ -89,7 +89,7 @@ export default defineComponent({
 						console.error(err)
 
 						Vue.$toast.open({
-							message: `Impossibile recuperare ${this.itemsSource}`,
+							message: this.$t('toasts.cannotGetSource', { source: this.itemsSource }),
 							type: 'error',
 							position: 'bottom'
 						})

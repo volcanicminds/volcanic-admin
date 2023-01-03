@@ -2,6 +2,7 @@ import Vue from 'vue'
 import { _find, _count, _findOne, _create, _update, _delete, _deleteMultiple } from '@/api'
 import type { AxiosResponse } from 'axios'
 import { useConfigurationStore } from '@/stores/configuration'
+import i18n from '@/locale/i18n'
 
 function getApi() {
 	const store = useConfigurationStore()
@@ -19,7 +20,7 @@ async function find(source: string, options?: TableRoutingParams) {
 		console.error('Error during find', e)
 
 		Vue.$toast.open({
-			message: `Impossibile recuperare ${source}`,
+			message: i18n.t('toasts.cannotGetSource', { source }),
 			type: 'error',
 			position: 'bottom'
 		})
@@ -40,7 +41,7 @@ async function count(source: string, options?: TableRoutingParams) {
 		console.error('Error during find', e)
 
 		Vue.$toast.open({
-			message: `Impossibile recuperare il totale dei record di ${source}`,
+			message: i18n.t('toasts.cannotGetSource', { source }),
 			type: 'error',
 			position: 'bottom'
 		})
@@ -56,8 +57,9 @@ async function findOne(source: string, id: string | number) {
 		response = await _findOne(source, id)
 	} catch (e) {
 		console.error('Error during find by id', e)
+
 		Vue.$toast.open({
-			message: `Impossibile recuperare l'elemento ${id} di ${source}`,
+			message: i18n.t('toasts.cannotGetSource', { source }),
 			type: 'error',
 			position: 'bottom'
 		})
@@ -75,7 +77,7 @@ async function create(source: string, data: ApiRequestBody) {
 		console.error('Error during create', e)
 
 		Vue.$toast.open({
-			message: `Impossibile creare il nuovo elmento per ${source}`,
+			message: i18n.t('toasts.errorCreate'),
 			type: 'error',
 			position: 'bottom'
 		})
@@ -93,7 +95,7 @@ async function update(source: string, id: string, data: ApiRequestBody) {
 		console.error('Error during update', e)
 
 		Vue.$toast.open({
-			message: `Impossibile aggiornare l'elmento ${id} per ${source}`,
+			message: i18n.t('toasts.errorUpdate'),
 			type: 'error',
 			position: 'bottom'
 		})
@@ -111,7 +113,7 @@ async function del(source: string, id: string) {
 		console.error('Error during delete', e)
 
 		Vue.$toast.open({
-			message: `Impossibile eliminare l'elmento ${id} per ${source}`,
+			message: i18n.t('toasts.errorDelete'),
 			type: 'error',
 			position: 'bottom'
 		})
@@ -129,7 +131,7 @@ async function deleteMultiple(source: string, ids: Array<string>) {
 		console.error('Error during delete', e)
 
 		Vue.$toast.open({
-			message: `Impossibile eliminare gli elementi selezionati`,
+			message: i18n.t('toasts.errorDelete'),
 			type: 'error',
 			position: 'bottom'
 		})

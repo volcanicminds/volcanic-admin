@@ -4,6 +4,7 @@ import { useConfigurationStore } from '@/stores/configuration'
 import { normalizeUser } from '@/utils/normalization'
 import { types, save, clearAll, get } from '@/utils/localStorage'
 import getHeaders from '@/api/headers'
+import i18n from '@/locale/i18n'
 
 export const useUserStore = defineStore('user', () => {
 	const userFromLocalStorage = get(types.USER)
@@ -41,7 +42,7 @@ export const useUserStore = defineStore('user', () => {
 			})
 		} catch (e) {
 			console.error('Error during login', e)
-			Vue.$toast.open({ message: Vue.$t('toasts.errorLogin'), type: 'error', position: 'bottom' })
+			Vue.$toast.open({ message: i18n.t('toasts.errorLogin'), type: 'error', position: 'bottom' })
 			throw e
 		}
 
