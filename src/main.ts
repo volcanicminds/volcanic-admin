@@ -21,21 +21,13 @@ import 'vue-easytable/libs/font/iconfont.css'
 import itIT from '@/locale/table_itIT.js'
 import deDE from '@/locale/table_deDE.js'
 import enUS from 'vue-easytable/libs/locale/lang/en-US.js'
-import messages from '@/locale/messages'
+import i18n from '@/locale/i18n'
 import { getLocaleLanguage } from '@/utils/locale'
 
 /*
 Localization EN, IT, DE
 */
 const localeLanguage = getLocaleLanguage()
-
-Vue.use(VueI18n)
-const i18n = new VueI18n({
-	locale: localeLanguage,
-	fallbackLocale: 'en',
-	messages
-})
-
 const pluginLanguages: PluginLocaleConfiguration = {
 	it: {
 		validation: it,
