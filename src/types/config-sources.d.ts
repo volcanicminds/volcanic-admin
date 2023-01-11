@@ -16,6 +16,12 @@ type ConfigSourceModelTable = {
 		checkbox?: boolean
 	}
 	rowMenu?: TableOptionsMenuItems
+	customColumns?: Array<{
+		title?: LocalizedItemField
+		align?: 'center' | 'left' | 'right'
+		position: number
+		customComponent: Component
+	}>
 }
 interface ConfigSourceModel {
 	columns: ConfigSourceModelColumns

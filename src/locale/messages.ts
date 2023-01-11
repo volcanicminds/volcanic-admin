@@ -1,4 +1,4 @@
-const messages = {
+const messages: LocaleMessages = {
 	en: {
 		detail: {
 			update: 'Detail {source} with id {id}',

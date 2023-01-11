@@ -276,6 +276,23 @@ export default defineComponent({
 				}
 			})
 
+			if (this.model.table?.customColumns && this.model.table?.customColumns.length > 0) {
+				this.model.table?.customColumns.forEach((col) => {
+					this.columnDefs.splice(col.position, 0, {
+						field: '',
+						key: `custom-column-${col.position}`,
+						title: `${getTranslatedItem(col.title || {}) || ''}`,
+						align: col.align || 'center',
+						renderBodyCell: ({ row, column, rowIndex }: { row: any; column: any; rowIndex: number }, h: any) => {
+							return col.customComponent({
+								row,
+								model: this.model
+							})
+						}
+					})
+				})
+			}
+
 			if (this.model.table?.options?.checkbox) {
 				this.columnDefs.unshift({
 					field: '',

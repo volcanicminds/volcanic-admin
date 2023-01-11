@@ -4,3 +4,7 @@ interface PluginLocaleConfiguration {
 		table: any
 	}
 }
+
+interface LocaleMessages {
+	[lang: string]: { [group: string]: { [message: string]: string } }
+}
