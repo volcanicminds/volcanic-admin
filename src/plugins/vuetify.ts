@@ -15,6 +15,7 @@ import Vuetify, {
 	VNavigationDrawer,
 	VListItem,
 	VListItemContent,
+	VListItemGroup,
 	VDatePicker,
 	VBtn,
 	VDialog,
@@ -33,7 +34,8 @@ import Vuetify, {
 	VContainer,
 	VTextarea,
 	VListItemSubtitle,
-	VExpandTransition
+	VExpandTransition,
+	VPagination
 } from 'vuetify/lib'
 
 Vue.use(Vuetify, {
@@ -65,6 +67,7 @@ Vue.use(Vuetify, {
 		VListItemTitle,
 		VListItemSubtitle,
 		VListItemContent,
+		VListItemGroup,
 		VDatePicker,
 		VDialog,
 		VBtn,
@@ -74,7 +77,8 @@ Vue.use(Vuetify, {
 		VApp,
 		VTextarea,
 		VSelect,
-		VMenu
+		VMenu,
+		VPagination
 	}
 })
 

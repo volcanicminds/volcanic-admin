@@ -8,26 +8,48 @@
 			:has-selected-rows="checkboxOption.selectedRowKeys?.length > 0"
 		/>
 		<p v-if="tableTotalLength === 0">{{ $t('table.missingData', { routeSource }) }}</p>
-
-		<ve-table
-			:event-custom-option="eventCustomOption"
-			:fixed-header="true"
-			:columns="columnDefs"
-			:columnHiddenOption="columnHiddenOption"
-			:table-data="table || []"
-			:sort-option="sortOption"
-			row-key-field-name="rowKey"
-			:checkbox-option="checkboxOption"
-		/>
-		<ve-pagination
-			class="w100 mx-0"
-			:total="tableTotalLength"
-			:page-size="params.pagination?.pageSize"
-			:page-size-option="[defaultPageSize, defaultPageSize * 2, defaultPageSize * 4]"
-			:page-index="params.pagination?.pageIndex"
-			@on-page-number-change="pageNumberChange"
-			@on-page-size-change="pageSizeChange"
-		/>
+		<div class="d-none d-sm-block">
+			<ve-table
+				:event-custom-option="eventCustomOption"
+				:fixed-header="true"
+				:columns="columnDefs"
+				:columnHiddenOption="columnHiddenOption"
+				:table-data="table || []"
+				:sort-option="sortOption"
+				row-key-field-name="rowKey"
+				:checkbox-option="checkboxOption"
+			/>
+			<ve-pagination
+				class="w100 mx-0"
+				:total="tableTotalLength"
+				:page-size="params.pagination?.pageSize"
+				:page-size-option="[defaultPageSize, defaultPageSize * 2, defaultPageSize * 4]"
+				:page-index="params.pagination?.pageIndex"
+				@on-page-number-change="pageNumberChange"
+				@on-page-size-change="pageSizeChange"
+			/>
+		</div>
+		<div class="d-sm-none">
+			<v-card v-for="(row, rIndex) in table" :key="rIndex" tile class="mx-auto my-1" @click="goToDetail(row)">
+				<v-list dense>
+					<v-list-item-group v-for="(col, cIndex) in columnDefs" :key="cIndex">
+						<v-list-item
+							v-if="col.field && !columnHiddenOption.defaultHiddenColumnKeys.includes(col.key)"
+							:inactive="true"
+						>
+							<v-list-item-content>
+								<v-list-item-title>{{ col.title }}</v-list-item-title>
+								{{ row[col.key] }}
+							</v-list-item-content>
+						</v-list-item>
+					</v-list-item-group>
+				</v-list>
+			</v-card>
+			<v-pagination
+				v-model="mobileCurrentPage"
+				:length="Math.ceil(tableTotalLength / (params.pagination?.pageSize || 1))"
+			></v-pagination>
+		</div>
 	</Fragment>
 </template>
 
@@ -61,13 +83,14 @@ export default defineComponent({
 		return {
 			idField: '',
 			table: [] as TableData,
-			tableTotalLength: 0,
+			tableTotalLength: 1,
 			columnDefs: [] as ColumnArrayDefinition,
 			columnHiddenOption: {
 				// default hidden column keys
 				defaultHiddenColumnKeys: [] as DefaultHiddenColumnKeys
 			},
 			model: {} as ConfigSourceModel,
+			mobileCurrentPage: 1,
 			routeSource: '',
 			source: '',
 			params: {
@@ -89,7 +112,7 @@ export default defineComponent({
 					return {
 						click: (event: any) => {
 							if (event.target.type !== 'checkbox') {
-								this.$router.push({ name: 'detail', params: this.getDetailParams(row) })
+								this.goToDetail(row)
 							}
 						}
 					}
@@ -124,6 +147,9 @@ export default defineComponent({
 	watch: {
 		$route(to, from) {
 			this.initialize()
+		},
+		mobileCurrentPage(pageIndex: number) {
+			this.pageNumberChange(pageIndex)
 		}
 	},
 
@@ -563,6 +589,9 @@ export default defineComponent({
 			//refresh
 			this.find()
 			this.unselectedAll()
+		},
+		goToDetail: function (row: Row) {
+			this.$router.push({ name: 'detail', params: this.getDetailParams(row) })
 		}
 	}
 })
