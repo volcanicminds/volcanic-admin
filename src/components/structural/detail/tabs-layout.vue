@@ -8,7 +8,7 @@
 			</Fragment>
 		</v-tabs>
 		<v-tabs-items v-model="activeTab" class="mt2">
-			<v-tab-item v-for="tabItemKey in Object.keys(layout.tabs)" :key="tabItemKey">
+			<v-tab-item :eager="true" v-for="tabItemKey in Object.keys(layout.tabs)" :key="tabItemKey">
 				<div v-for="modelItemKey in Object.keys(model)" :key="modelItemKey" class="default-input-group">
 					<template v-if="isVisible(modelItemKey) && layout.tabs[tabItemKey].inputNames?.includes(modelItemKey)">
 						<DynamicInput
