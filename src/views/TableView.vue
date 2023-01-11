@@ -319,7 +319,7 @@ export default defineComponent({
 					title: '',
 					key: 'row-menu',
 					renderBodyCell: ({ row, column, rowIndex }: { row: any; column: any; rowIndex: number }, h: any) => {
-						return <TableOptionsMenu row={row} column={column} rowMenu={menu} />
+						return <TableOptionsMenu row={row} columns={this.model.columns} rowMenu={menu} />
 					}
 				})
 			}

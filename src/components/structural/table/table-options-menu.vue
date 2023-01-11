@@ -13,6 +13,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { getTranslatedItem } from '@/utils/locale'
+import { getIdField } from '@/utils/model'
 
 export default defineComponent({
 	props: {
@@ -37,9 +38,9 @@ export default defineComponent({
 	methods: {
 		onClick: function (e: any, item: any) {
 			// e.stopPropagation()
-
 			if (item.requiresConfirmation) {
-				const confirmed = window.confirm(this.$t('table.confirmDeleteRow', { rowId: this.row?.id }))
+				const idField = getIdField(this.columns)
+				const confirmed = window.confirm(this.$t('table.confirmDeleteRow', { rowId: (this.row || {})[idField] }))
 
 				if (confirmed) {
 					item.operation(this.row)
