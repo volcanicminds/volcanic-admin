@@ -246,7 +246,7 @@ export default defineComponent({
 		},
 		loadFakeData: function () {
 			//Adding a fake data array taken from the column definition, to render the create form
-			//event withou a model
+			//event without a model
 			if (Object.keys(this.model.columns).length === 0) {
 				const tableStore = useTablesStore()
 				const fakeData = {} as { [key: string]: any }

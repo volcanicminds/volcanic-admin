@@ -53,11 +53,13 @@ import {
 	extendSingleSortKey
 } from '@/utils/table'
 import { getTranslatedItem } from '@/utils/locale'
+import { getIdField } from '@/utils/model'
 
 export default defineComponent({
 	components: { TableHeader },
 	data() {
 		return {
+			idField: '',
 			table: [] as TableData,
 			tableTotalLength: 0,
 			columnDefs: [] as ColumnArrayDefinition,
@@ -165,6 +167,7 @@ export default defineComponent({
 			}
 
 			this.model = modelConfiguration
+			this.idField = getIdField(this.model.columns || [])
 			this.source = `/${menuItem.source}`
 
 			let paramsHaveChange = false
@@ -243,7 +246,7 @@ export default defineComponent({
 							return (
 								<router-link
 									title={`${modelColumns[column.field]?.input.label}`}
-									to={`${modelColumns[column.field]?.input.source}/${value?.id}`}
+									to={`${modelColumns[column.field]?.input.source}/${(value || {})[this.idField]}`}
 								>
 									<a onClick={(e) => e.stopPropagation()}>{normalizedValue}</a>
 								</router-link>
@@ -390,7 +393,7 @@ export default defineComponent({
 		getDetailParams: function (row: any) {
 			return {
 				source: this.routeSource,
-				id: row.id
+				id: row[this.idField]
 			}
 		},
 		updateStoreConfiguration: function () {
@@ -535,7 +538,7 @@ export default defineComponent({
 			closeFn()
 		},
 		deleteRow: async function (row: any) {
-			const id = row?.id
+			const id = (row || {})[this.idField]
 			if (id) {
 				await api.del(this.source, id)
 
@@ -554,7 +557,7 @@ export default defineComponent({
 			const rows = this.table.filter((t) => this.checkboxOption.selectedRowKeys.includes(t.rowKey)) || []
 			await api.deleteMultiple(
 				this.source,
-				rows.map((r: Row) => `${r.id}`)
+				rows.map((r: Row) => `${r[this.idField]}`)
 			)
 
 			//refresh
