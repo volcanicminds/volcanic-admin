@@ -164,7 +164,7 @@ export default defineComponent({
 		this.loader = this.$veLoading({
 			target: '#table-container',
 			name: 'grid',
-			tip: 'Sto caricando...'
+			tip: this.$t('table.loading')
 		})
 
 		this.loadModel()

@@ -11,7 +11,8 @@ const messages: LocaleMessages = {
 			selectAll: 'Select all',
 			unselectAll: 'Unselect all',
 			deleteAll: 'Delete',
-			confirmDeleteAll: 'Do you confirm to delete every selected row?'
+			confirmDeleteAll: 'Do you confirm to delete every selected row?',
+			loading: 'Loading...'
 		},
 		authentication: {
 			login: 'Login',
@@ -56,7 +57,8 @@ const messages: LocaleMessages = {
 			selectAll: 'Seleziona tutto',
 			unselectAll: 'Deseleziona tutto',
 			deleteAll: 'Cancella',
-			confirmDeleteAll: 'Confermi di voler cancellare tutte le righe selezionate?'
+			confirmDeleteAll: 'Confermi di voler cancellare tutte le righe selezionate?',
+			loading: 'Sto caricando...'
 		},
 		authentication: {
 			login: 'Login',
@@ -101,7 +103,8 @@ const messages: LocaleMessages = {
 			selectAll: 'Wählen Sie Alle',
 			unselectAll: 'Alle abwählen',
 			deleteAll: 'Löschen',
-			confirmDeleteAll: 'Bestätigen Sie das Löschen jeder ausgewählten Zeile?'
+			confirmDeleteAll: 'Bestätigen Sie das Löschen jeder ausgewählten Zeile?',
+			loading: 'Wird geladen...'
 		},
 		authentication: {
 			login: 'Anmeldung',
