@@ -40,7 +40,7 @@ function RegisterComponent({ row, model }: { row: Row; model: ConfigSourceModelC
 	async function register(e: MouseEvent) {
 		e.stopPropagation()
 		try {
-			const password = generatePassword(32, {
+			const password = generatePassword(16, {
 				numbers: true,
 				special: true,
 				lowerCase: true,
