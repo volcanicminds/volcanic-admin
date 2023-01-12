@@ -2,7 +2,12 @@
 	<Fragment>
 		<div class="mb1">
 			<v-btn elevation="2" @click="create"><v-icon left dark> add </v-icon>{{ $t('table.createButton') }}</v-btn>
-			<v-btn v-if="options?.canDelete" :disabled="!hasSelectedRows" class="ml1" elevation="2" @click="deleteAllConfirm"
+			<v-btn
+				v-if="options?.canDelete"
+				:disabled="!hasSelectedRows"
+				class="ml1 d-none d-sm-inline"
+				elevation="2"
+				@click="deleteAllConfirm"
 				><v-icon left dark> delete </v-icon>{{ $t('table.deleteAll') }}</v-btn
 			>
 		</div>
