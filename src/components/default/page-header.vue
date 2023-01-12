@@ -1,5 +1,28 @@
 <template>
 	<v-app-bar app dense elevation="4">
+		<v-app-bar-nav-icon @click.stop="toggleDrawer"></v-app-bar-nav-icon>
+
+		<div class="text-h6">
+			<router-link to="/">
+				<span v-if="store?.company?.name && !store?.company?.logo && !store?.company?.logo_alt" class="h1 caps bold">{{
+					store?.company?.name
+				}}</span>
+				<img
+					v-if="store?.company?.logo && store.theme === THEMES.light"
+					height="50"
+					class="py1"
+					:title="store?.company?.name"
+					:src="store?.company?.logo"
+				/>
+				<img
+					v-if="(store?.company?.logo_alt || store?.company?.logo) && store.theme === THEMES.dark"
+					height="50"
+					class="py1"
+					:title="store?.company?.name"
+					:src="store?.company?.logo_alt || store?.company?.logo"
+				/>
+			</router-link>
+		</div>
 		<v-spacer></v-spacer>
 		<a style="width: 36px" class="mx2" :title="$t('general.theme')" href="#" @click="toggleDarkMode"
 			><v-icon large>brightness_4_icon</v-icon></a
@@ -9,12 +32,24 @@
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue'
 import { useConfigurationStore } from '@/stores/configuration'
 import { THEMES } from '@/utils/constants'
-import { defineComponent } from 'vue'
 
 export default defineComponent({
 	name: 'PageHeader',
+	props: {
+		toggleDrawer: {
+			type: Function,
+			default: () => null,
+			required: true
+		}
+	},
+	setup() {
+		const store = useConfigurationStore()
+
+		return { store, THEMES }
+	},
 	methods: {
 		toggleDarkMode: function () {
 			const store = useConfigurationStore()

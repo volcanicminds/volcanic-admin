@@ -1,9 +1,11 @@
 <template>
 	<v-app>
-		<PageHeader />
+		<PageHeader :toggle-drawer="toggleDrawer" />
 		<v-main class="flex" style="flex: 1">
 			<v-container>
-				<PageMenu :menu="menuItems" />
+				<v-navigation-drawer v-model="drawer" absolute temporary>
+					<PageMenu :menu="menuItems" />
+				</v-navigation-drawer>
 				<v-sheet class="p2" elevation="3" height="100%" width="100%">
 					<router-view />
 				</v-sheet>
@@ -50,7 +52,7 @@ export default {
 	data() {
 		const store = useConfigurationStore()
 		const { menu: storeMenu } = storeToRefs(store)
-		return { menuItems: storeMenu }
+		return { menuItems: storeMenu, drawer: false }
 	},
 	beforeMount: function () {
 		const store = useConfigurationStore()
@@ -59,6 +61,11 @@ export default {
 		store.setupMenu(this.menu)
 		store.setupSources(this.sources)
 		store.setupApi(this.api)
+	},
+	methods: {
+		toggleDrawer: function () {
+			this.drawer = !this.drawer
+		}
 	}
 }
 </script>

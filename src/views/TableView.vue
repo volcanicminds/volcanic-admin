@@ -600,4 +600,7 @@ export default defineComponent({
 .ve-table-body-tr:hover {
 	cursor: pointer;
 }
+.ve-table-fixed-header {
+	position: sticky;
+}
 </style>
