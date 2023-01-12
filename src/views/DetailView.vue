@@ -288,5 +288,9 @@ export default defineComponent({
 </script>
 <style lang="stylus" scoped>
 #detail-container
-	padding 0 10rem
+	padding 0
+
+@media (min-width: 64em)
+	#detail-container
+		padding 0 10rem
 </style>
