@@ -484,7 +484,7 @@ export default defineComponent({
 				pagination: {
 					pageSize: this.params?.pagination?.pageSize,
 					//Subtracting 1 because of the table lib needs
-					pageIndex: pageIndex - 1
+					pageIndex
 				}
 			}
 			this.updateStoreConfiguration()
