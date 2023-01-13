@@ -7,6 +7,12 @@ type ConfigSourceModelLayout = {
 		}
 	}
 }
+type ConfigSourceCustomColumn = {
+	title?: LocalizedItemField
+	align?: 'center' | 'left' | 'right'
+	position: number
+	customComponent: Component
+}
 type ConfigSourceModelTable = {
 	pagination?: {
 		pageSize: number
@@ -16,12 +22,7 @@ type ConfigSourceModelTable = {
 		checkbox?: boolean
 	}
 	rowMenu?: TableOptionsMenuItems
-	customColumns?: Array<{
-		title?: LocalizedItemField
-		align?: 'center' | 'left' | 'right'
-		position: number
-		customComponent: Component
-	}>
+	customColumns?: Array<ConfigSourceCustomColumn>
 }
 interface ConfigSourceModel {
 	columns: ConfigSourceModelColumns
