@@ -55,6 +55,9 @@
 
 <script lang="tsx">
 import Vue, { defineComponent } from 'vue'
+import { storeToRefs } from 'pinia'
+import router from '@/router'
+import type { Route } from 'vue-router'
 import dayjs from 'dayjs'
 import _ from 'lodash'
 import * as api from '@/utils/apiInternalInterface'
@@ -76,9 +79,38 @@ import {
 } from '@/utils/table'
 import { getTranslatedItem } from '@/utils/locale'
 import { getIdField } from '@/utils/model'
+import { useI18n } from '@/composables/i18n'
 
 export default defineComponent({
 	components: { TableHeader },
+	setup() {
+		const configStore = useConfigurationStore()
+		const { sources: storeSources, menu: storeMenu } = storeToRefs(configStore)
+
+		const route = router.currentRoute as Route
+		const path = route.path.replace('/', '')
+		const menuItem = (storeMenu.value || []).find((m) => {
+			return m.name === path
+		})
+
+		const indexSource = menuItem?.source
+		if (!menuItem || !indexSource) {
+			const { t } = useI18n()
+			Vue.$toast.open({
+				message: t('toasts.wrongMenu'),
+				type: 'warning',
+				position: 'bottom'
+			})
+			return
+		}
+		const model = (storeSources.value || {})[indexSource]
+
+		return {
+			model,
+			configMenu: menuItem || { source: path },
+			routeSource: indexSource
+		}
+	},
 	data() {
 		return {
 			idField: '',
@@ -89,9 +121,7 @@ export default defineComponent({
 				// default hidden column keys
 				defaultHiddenColumnKeys: [] as DefaultHiddenColumnKeys
 			},
-			model: {} as ConfigSourceModel,
 			mobileCurrentPage: 1,
-			routeSource: '',
 			source: '',
 			params: {
 				sorting: {},
@@ -150,6 +180,19 @@ export default defineComponent({
 		},
 		mobileCurrentPage(pageIndex: number) {
 			this.pageNumberChange(pageIndex)
+		},
+		model(newValue, oldValue) {
+			if (!_.isEqual(newValue, oldValue)) {
+				this.loader = this.$veLoading({
+					target: '#table-container',
+					name: 'grid',
+					tip: this.$t('table.loading')
+				})
+				this.loader.show()
+				this.initialize().then(() => {
+					this.loader.close()
+				})
+			}
 		}
 	},
 
@@ -159,51 +202,26 @@ export default defineComponent({
 			name: 'grid',
 			tip: this.$t('table.loading')
 		})
-		this.initialize()
+		this.loader.show()
+		this.initialize().then(() => {
+			this.loader.close()
+		})
 	},
 
 	methods: {
 		initialize: async function () {
-			const tableStore = useTablesStore()
-			const configStore = useConfigurationStore()
-
-			const path = this.$route.path.replace('/', '')
-			const menu = configStore.menu || []
-			const menuItem = menu.find((m) => {
-				return m.name === path
-			})
-
-			const indexSource = menuItem?.source
-			if (!menuItem || !indexSource) {
-				Vue.$toast.open({
-					message: this.$t('toasts.wrongMenu'),
-					type: 'warning',
-					position: 'bottom'
-				})
-				return
-			}
-
-			this.routeSource = indexSource
-
-			this.loader.show()
-
-			const modelConfiguration = configStore.sources[this.routeSource]
-			if (!modelConfiguration) {
-				console.warn('Configuration model missing')
-			}
-
-			this.model = modelConfiguration
-			this.idField = getIdField(this.model.columns || [])
-			this.source = `/${menuItem.source}`
+			this.idField = getIdField(this.model?.columns || {})
+			this.source = `/${this.configMenu.source}`
 
 			let paramsHaveChange = false
 
-			const tableStoreConfiguration = tableStore.tables.configuration[menuItem.name || indexSource]
+			const tableStore = useTablesStore()
+			const tableStoreConfiguration = tableStore.tables.configuration[this.configMenu.name || this.routeSource]
 			if (tableStoreConfiguration) {
 				paramsHaveChange = !_.isEqual(this.params, tableStoreConfiguration)
 				this.params = tableStoreConfiguration
 			} else {
-				const updatedParams = this.getParams({ menu: menuItem })
+				const updatedParams = this.getParams({ menu: this.configMenu })
 
 				paramsHaveChange = !_.isEqual(this.params, updatedParams)
 				this.params = updatedParams
@@ -219,29 +237,38 @@ export default defineComponent({
 					console.error(e)
 				}
 
-				this.updateTable({ menu: menuItem, indexSource })
+				this.updateTable()
 			}
-
-			this.loader.close()
 		},
-		updateTable: function ({ menu, indexSource }: { menu: MenuItem; indexSource: string }) {
+		updateTable: function () {
 			const tableStore = useTablesStore()
-			const isConfigured = this.model != null
+			const isConfigured = this.model?.columns != null
 			const hasTableData = this.table.length > 0
-			const storedColumnDefinitions = tableStore.tables.columnDefinitions[menu.name || indexSource]
+			const storedColumnDefinitions = tableStore.tables.columnDefinitions[this.configMenu?.name || this.routeSource]
 
 			if (storedColumnDefinitions) {
 				this.columnDefs = storedColumnDefinitions
 			} else if (isConfigured || hasTableData) {
-				this.setColumnDefinition({ isConfigured, indexSource })
+				this.setColumnDefinition(isConfigured)
 			}
 		},
-		setColumnDefinition: function ({ isConfigured, indexSource }: { isConfigured: boolean; indexSource: string }) {
-			const sourceOfTableData = isConfigured ? this.model.columns : this.table
-			this.columnDefs = Object.keys(sourceOfTableData).map((key, index) => {
-				const rowModel = this.model.columns[key] || {}
-				const title = `${getTranslatedItem(this.model.columns[key].input.label || '') || key.toUpperCase()}`
-				const sortBy = this.params.sorting ? this.params.sorting[extendSingleSortKey(key, rowModel)] : undefined
+		setColumnDefinition: function (isConfigured: boolean) {
+			let sourceOfTableData = {}
+			if (isConfigured) {
+				sourceOfTableData = this.model.columns
+			} else if (this.table && this.table.length > 0) {
+				sourceOfTableData = this.table[0]
+			}
+
+			this.columnDefs = Object.keys(sourceOfTableData).map((key) => {
+				let rowModel = null
+				let title = key.toUpperCase()
+				let sortBy = undefined
+				if (isConfigured) {
+					rowModel = this.model.columns[key]
+					title = `${getTranslatedItem(this.model.columns[key].input.label || '')}`
+					sortBy = this.params.sorting ? this.params.sorting[extendSingleSortKey(key, rowModel)] : undefined
+				}
 
 				return {
 					field: key,
@@ -266,7 +293,7 @@ export default defineComponent({
 						}
 
 						const isLink = rowModel?.table?.cell?.isLink
-						const modelColumns = this.model.columns
+						const modelColumns = this.model?.columns || {}
 
 						if (isLink) {
 							return (
@@ -305,8 +332,8 @@ export default defineComponent({
 				}
 			})
 
-			if (this.model.table?.customColumns && this.model.table?.customColumns.length > 0) {
-				this.model.table?.customColumns.forEach((col) => {
+			if (this.model?.table?.customColumns && this.model?.table?.customColumns.length > 0) {
+				this.model.table?.customColumns.forEach((col: ConfigSourceCustomColumn) => {
 					this.columnDefs.splice(col.position, 0, {
 						field: '',
 						key: `custom-column-${col.position}`,
@@ -322,7 +349,7 @@ export default defineComponent({
 				})
 			}
 
-			if (this.model.table?.options?.checkbox) {
+			if (this.model?.table?.options?.checkbox) {
 				this.columnDefs.unshift({
 					field: '',
 					key: 'checkbox',
@@ -354,13 +381,13 @@ export default defineComponent({
 			}
 
 			Object.keys(sourceOfTableData).forEach((key) => {
-				if (this.model.columns[key]?.table?.visible === false) {
+				if (this.model?.columns[key]?.table?.visible === false) {
 					this.columnHiddenOption.defaultHiddenColumnKeys.push(key)
 				}
 			})
 
 			const tableStore = useTablesStore()
-			tableStore.setColumnDefinition(indexSource, this.columnDefs)
+			tableStore.setColumnDefinition(this.routeSource, this.columnDefs)
 		},
 		changeSelectedRowKeys(keys: Array<number>) {
 			this.checkboxOption.selectedRowKeys = keys
@@ -372,7 +399,7 @@ export default defineComponent({
 			this.checkboxOption.selectedRowKeys = []
 		},
 		getParams: function ({ menu }: { menu: MenuItem }) {
-			const getModelParameters = prepareModelParamenters(this.model.columns)
+			const getModelParameters = prepareModelParamenters(this.model?.columns || {})
 			const urlParams = this.$route.query
 			const urlPagination = {} as TablePaginationParams
 			const urlFilters = [] as TableFiltersParams
@@ -513,7 +540,7 @@ export default defineComponent({
 		sortChange(sorting: SortParams) {
 			const loader = this.loader
 			loader.show()
-			const extendedSorting = extendSorting(sorting, this.model.columns)
+			const extendedSorting = extendSorting(sorting, this.model?.columns || {})
 
 			this.params = {
 				...this.params,

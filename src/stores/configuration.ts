@@ -40,7 +40,8 @@ export const useConfigurationStore = defineStore('configuration', () => {
 			}
 		}
 	} as Authconfiguration)
-	const sources = ref({} as StoreSource)
+	const sources = ref(null as StoreSource | null)
+
 	const api = ref({
 		remapResponse: (a, b) => ({} as ApiResponseBody),
 		remapSource: () => ''
@@ -93,16 +94,18 @@ export const useConfigurationStore = defineStore('configuration', () => {
 	}
 
 	async function setupSources(_sources: StoreSource) {
-		let sourcesToStore = null
+		let sourcesToStore = {}
 		if (_sources) {
 			sourcesToStore = _sources
 		} else {
-			const defaultSources = await import('@/configuration/sources')
-			sourcesToStore = defaultSources.default
+			try {
+				const defaultSources = await import('@/configuration/sources')
+				sourcesToStore = defaultSources.default
+			} catch (e) {
+				console.warn('Configuration model missing', e)
+			}
 		}
-		if (sourcesToStore) {
-			sources.value = sourcesToStore
-		}
+		sources.value = sourcesToStore
 	}
 
 	async function setupApi(_api: Api) {

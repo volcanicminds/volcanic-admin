@@ -237,7 +237,7 @@ export default defineComponent({
 		},
 		loadModel: async function () {
 			const store = useConfigurationStore()
-			const sourceModel = store.sources[this.source]
+			const sourceModel = (store.sources || {})[this.source]
 			if (!sourceModel) {
 				console.warn('Configuration model missing')
 			} else {
