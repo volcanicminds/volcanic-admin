@@ -52,8 +52,7 @@ export default defineComponent({
 	},
 	methods: {
 		toggleDarkMode: function () {
-			const store = useConfigurationStore()
-			store.theme = store.theme === THEMES.dark ? THEMES.light : THEMES.dark
+			this.store.theme = this.store.theme === THEMES.dark ? THEMES.light : THEMES.dark
 		}
 	}
 })
