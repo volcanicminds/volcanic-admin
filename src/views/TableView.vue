@@ -54,7 +54,7 @@
 </template>
 
 <script lang="tsx">
-import Vue, { defineComponent, ref, watch } from 'vue'
+import Vue, { computed, defineComponent, ref, watch } from 'vue'
 import router from '@/router'
 import type { Route } from 'vue-router'
 import dayjs from 'dayjs'
@@ -83,10 +83,13 @@ import { storeToRefs } from 'pinia'
 export default defineComponent({
 	components: { TableHeader },
 	setup() {
-		const route = router.currentRoute as Route
-		const path = route.path.replace('/', '')
+		function getCurrentPath() {
+			const route = router.currentRoute as Route
+			return route.path.replace('/', '')
+		}
+		const currentPath = ref(getCurrentPath())
 
-		const defaulConfigMenu = { source: path, label: '', name: null }
+		const defaulConfigMenu = { source: currentPath.value, label: '', name: null }
 		const model = ref(null as ConfigSourceModel | null)
 		const configMenu = ref(defaulConfigMenu as MenuItem)
 		const routeSource = ref(null as string | null | undefined)
@@ -95,7 +98,7 @@ export default defineComponent({
 		const { menu, sources } = storeToRefs(configStore)
 		function setupConfigMenu(value: Menu) {
 			const menuItem = (value || []).find((m) => {
-				return m.name === path
+				return m.name === currentPath.value
 			})
 			configMenu.value = menuItem || defaulConfigMenu
 		}
@@ -103,6 +106,9 @@ export default defineComponent({
 			const indexSource = configMenu.value?.source
 			routeSource.value = indexSource
 			model.value = indexSource ? (sources || {})[indexSource] : null
+		}
+		function refreshRoute() {
+			currentPath.value = getCurrentPath()
 		}
 
 		if (menu) {
@@ -118,11 +124,16 @@ export default defineComponent({
 		watch(sources, (newSources) => {
 			setupModelAndRouteSource(newSources)
 		})
+		watch(currentPath, () => {
+			setupConfigMenu(menu.value)
+			setupModelAndRouteSource(sources.value)
+		})
 
 		return {
 			model,
 			configMenu,
-			routeSource
+			routeSource,
+			refreshRoute
 		}
 	},
 	data() {
@@ -190,12 +201,19 @@ export default defineComponent({
 
 	watch: {
 		$route(to, from) {
-			this.initialize()
+			if (to !== from) {
+				this.refreshRoute()
+			}
 		},
 		mobileCurrentPage(pageIndex: number) {
 			this.pageNumberChange(pageIndex)
 		},
 		model(newValue, oldValue) {
+			if (!_.isEqual(newValue, oldValue)) {
+				this.initialize()
+			}
+		},
+		configMenu(newValue, oldValue) {
 			if (!_.isEqual(newValue, oldValue)) {
 				this.initialize()
 			}
