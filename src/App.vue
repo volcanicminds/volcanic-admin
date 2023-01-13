@@ -54,13 +54,16 @@ export default {
 		const { menu: storeMenu } = storeToRefs(store)
 		return { menuItems: storeMenu, drawer: false }
 	},
-	beforeMount: function () {
+	beforeMount: async function () {
 		const store = useConfigurationStore()
-		store.setupAuthentication(this.authentication)
-		store.setupBrand(this.brand)
-		store.setupMenu(this.menu)
-		store.setupSources(this.sources)
-		store.setupApi(this.api)
+		//Very important await - the config store MUST be loaded before mounting the app
+		await Promise.all([
+			store.setupAuthentication(this.authentication),
+			store.setupBrand(this.brand),
+			store.setupMenu(this.menu),
+			store.setupSources(this.sources),
+			store.setupApi(this.api)
+		])
 	},
 	methods: {
 		toggleDrawer: function () {
