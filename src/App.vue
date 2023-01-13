@@ -54,15 +54,14 @@ export default {
 		const { menu: storeMenu } = storeToRefs(store)
 		return { menuItems: storeMenu, drawer: false }
 	},
-	beforeMount: async function () {
+	beforeMount: function () {
 		const store = useConfigurationStore()
-		//Very important await - the config store MUST be loaded before mounting the app
-		await Promise.all([
-			store.setupAuthentication(this.authentication),
+		Promise.all([
+			store.setupAuthentication(this.authentication as Authconfiguration),
 			store.setupBrand(this.brand),
 			store.setupMenu(this.menu),
 			store.setupSources(this.sources),
-			store.setupApi(this.api)
+			store.setupApi(this.api as Api)
 		])
 	},
 	methods: {
