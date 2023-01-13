@@ -52,17 +52,14 @@ export default {
 	data() {
 		const store = useConfigurationStore()
 		const { menu: storeMenu } = storeToRefs(store)
-		return { menuItems: storeMenu, drawer: false }
+		return { store, menuItems: storeMenu, drawer: false }
 	},
 	beforeMount: function () {
-		const store = useConfigurationStore()
-		Promise.all([
-			store.setupAuthentication(this.authentication as Authconfiguration),
-			store.setupBrand(this.brand),
-			store.setupMenu(this.menu),
-			store.setupSources(this.sources),
-			store.setupApi(this.api as Api)
-		])
+		this.store.setupAuthentication(this.authentication as Authconfiguration)
+		this.store.setupBrand(this.brand)
+		this.store.setupSources(this.sources)
+		this.store.setupMenu(this.menu)
+		this.store.setupApi(this.api as Api)
 	},
 	methods: {
 		toggleDrawer: function () {

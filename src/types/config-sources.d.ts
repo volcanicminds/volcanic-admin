@@ -1,4 +1,4 @@
-type StoreSource = { [key: string]: ConfigSourceModel }
+type StoreSource = { [key: string]: ConfigSourceModel } | null
 type ConfigSourceModelColumns = { [key: string]: FieldModel }
 type ConfigSourceModelLayout = {
 	tabs?: {

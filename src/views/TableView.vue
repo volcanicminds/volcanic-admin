@@ -2,7 +2,7 @@
 <template>
 	<Fragment>
 		<TableHeader
-			:source="routeSource"
+			:source="routeSource || ''"
 			:deleteAll="deleteAll"
 			:options="model?.table?.options"
 			:has-selected-rows="checkboxOption.selectedRowKeys?.length > 0"
@@ -54,8 +54,7 @@
 </template>
 
 <script lang="tsx">
-import Vue, { defineComponent } from 'vue'
-import { storeToRefs } from 'pinia'
+import Vue, { defineComponent, ref, watch } from 'vue'
 import router from '@/router'
 import type { Route } from 'vue-router'
 import dayjs from 'dayjs'
@@ -79,36 +78,51 @@ import {
 } from '@/utils/table'
 import { getTranslatedItem } from '@/utils/locale'
 import { getIdField } from '@/utils/model'
-import { useI18n } from '@/composables/i18n'
+import { storeToRefs } from 'pinia'
 
 export default defineComponent({
 	components: { TableHeader },
 	setup() {
-		const configStore = useConfigurationStore()
-		const { sources: storeSources, menu: storeMenu } = storeToRefs(configStore)
-
 		const route = router.currentRoute as Route
 		const path = route.path.replace('/', '')
-		const menuItem = (storeMenu.value || []).find((m) => {
-			return m.name === path
-		})
 
-		const indexSource = menuItem?.source
-		if (!menuItem || !indexSource) {
-			const { t } = useI18n()
-			Vue.$toast.open({
-				message: t('toasts.wrongMenu'),
-				type: 'warning',
-				position: 'bottom'
+		const defaulConfigMenu = { source: path, label: '', name: null }
+		const model = ref(null as ConfigSourceModel | null)
+		const configMenu = ref(defaulConfigMenu as MenuItem)
+		const routeSource = ref(null as string | null | undefined)
+
+		const configStore = useConfigurationStore()
+		const { menu, sources } = storeToRefs(configStore)
+		function setupConfigMenu(value: Menu) {
+			const menuItem = (value || []).find((m) => {
+				return m.name === path
 			})
-			return
+			configMenu.value = menuItem || defaulConfigMenu
 		}
-		const model = (storeSources.value || {})[indexSource]
+		function setupModelAndRouteSource(sources: StoreSource) {
+			const indexSource = configMenu.value?.source
+			routeSource.value = indexSource
+			model.value = indexSource ? (sources || {})[indexSource] : null
+		}
+
+		if (menu) {
+			setupConfigMenu(menu.value)
+		}
+		if (sources) {
+			setupModelAndRouteSource(sources.value)
+		}
+
+		watch(menu, (newMenu) => {
+			setupConfigMenu(newMenu)
+		})
+		watch(sources, (newSources) => {
+			setupModelAndRouteSource(newSources)
+		})
 
 		return {
 			model,
-			configMenu: menuItem || { source: path },
-			routeSource: indexSource
+			configMenu,
+			routeSource
 		}
 	},
 	data() {
@@ -183,15 +197,7 @@ export default defineComponent({
 		},
 		model(newValue, oldValue) {
 			if (!_.isEqual(newValue, oldValue)) {
-				this.loader = this.$veLoading({
-					target: '#table-container',
-					name: 'grid',
-					tip: this.$t('table.loading')
-				})
-				this.loader.show()
-				this.initialize().then(() => {
-					this.loader.close()
-				})
+				this.initialize()
 			}
 		}
 	},
@@ -202,15 +208,22 @@ export default defineComponent({
 			name: 'grid',
 			tip: this.$t('table.loading')
 		})
-		this.loader.show()
-		this.initialize().then(() => {
-			this.loader.close()
-		})
+		this.initialize()
 	},
 
 	methods: {
 		initialize: async function () {
+			this.loader.show()
 			this.idField = getIdField(this.model?.columns || {})
+			if (!this.configMenu || !this.routeSource) {
+				// Vue.$toast.open({
+				// 	message: this.$t('toasts.wrongMenu'),
+				// 	type: 'warning',
+				// 	position: 'bottom'
+				// })
+				this.loader.close()
+				return
+			}
 			this.source = `/${this.configMenu.source}`
 
 			let paramsHaveChange = false
@@ -239,6 +252,7 @@ export default defineComponent({
 
 				this.updateTable()
 			}
+			this.loader.close()
 		},
 		updateTable: function () {
 			const tableStore = useTablesStore()

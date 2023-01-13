@@ -40,7 +40,7 @@ export const useConfigurationStore = defineStore('configuration', () => {
 			}
 		}
 	} as Authconfiguration)
-	const sources = ref(null as StoreSource | null)
+	const sources = ref(null as StoreSource)
 
 	const api = ref({
 		remapResponse: (a, b) => ({} as ApiResponseBody),
@@ -62,19 +62,6 @@ export const useConfigurationStore = defineStore('configuration', () => {
 			}
 		} catch (e) {
 			console.warn(e)
-		}
-	}
-
-	async function setupMenu(_menu: Menu) {
-		let menuToStore = null
-		if (_menu) {
-			menuToStore = _menu
-		} else {
-			const defaultMenu = await import('@/configuration/menu')
-			menuToStore = defaultMenu?.default
-		}
-		if (menuToStore) {
-			menu.value = menuToStore
 		}
 	}
 
@@ -100,12 +87,25 @@ export const useConfigurationStore = defineStore('configuration', () => {
 		} else {
 			try {
 				const defaultSources = await import('@/configuration/sources')
-				sourcesToStore = defaultSources.default
+				sourcesToStore = defaultSources?.default
 			} catch (e) {
 				console.warn('Configuration model missing', e)
 			}
 		}
 		sources.value = sourcesToStore
+	}
+
+	async function setupMenu(_menu: Menu) {
+		let menuToStore = null
+		if (_menu) {
+			menuToStore = _menu
+		} else {
+			const defaultMenu = await import('@/configuration/menu')
+			menuToStore = defaultMenu?.default
+		}
+		if (menuToStore) {
+			menu.value = menuToStore
+		}
 	}
 
 	async function setupApi(_api: Api) {
