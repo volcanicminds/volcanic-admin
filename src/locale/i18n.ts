@@ -11,7 +11,7 @@ try {
 		mergedMessages[lang] = { ...configurationMessages.default[lang], ...mergedMessages[lang] }
 	})
 } catch (e) {
-	console.error(e)
+	console.warn(e)
 }
 
 Vue.use(VueI18n)
