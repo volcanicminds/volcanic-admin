@@ -36,6 +36,7 @@ interface FieldModel {
 	type: FieldModelType
 	input: Input
 	table?: {
+		label?: LocalizedItemField
 		cell?: {
 			format?: function | string
 			isLink?: boolean

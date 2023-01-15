@@ -54,7 +54,7 @@
 </template>
 
 <script lang="tsx">
-import Vue, { computed, defineComponent, ref, watch } from 'vue'
+import Vue, { defineComponent, ref, watch } from 'vue'
 import router from '@/router'
 import type { Route } from 'vue-router'
 import dayjs from 'dayjs'
@@ -298,7 +298,7 @@ export default defineComponent({
 				let sortBy = undefined
 				if (isConfigured) {
 					rowModel = this.model.columns[key]
-					title = `${getTranslatedItem(this.model.columns[key].input.label || '')}`
+					title = `${getTranslatedItem(this.model.columns[key].table?.label || key)}`
 					sortBy = this.params.sorting ? this.params.sorting[extendSingleSortKey(key, rowModel)] : undefined
 				}
 
