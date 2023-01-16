@@ -9,14 +9,14 @@
 				}}</span>
 				<img
 					v-if="store?.company?.logo && store.theme === THEMES.light"
-					height="50"
+					:style="{ height: store?.company?.logo_height || '50px', width: store?.company?.logo_width || 'auto' }"
 					class="py1"
 					:title="store?.company?.name"
 					:src="store?.company?.logo"
 				/>
 				<img
 					v-if="(store?.company?.logo_alt || store?.company?.logo) && store.theme === THEMES.dark"
-					height="50"
+					:style="{ height: store?.company?.logo_height || '50px', width: store?.company?.logo_width || 'auto' }"
 					class="py1"
 					:title="store?.company?.name"
 					:src="store?.company?.logo_alt || store?.company?.logo"
