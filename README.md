@@ -167,6 +167,8 @@ interface ConfigurationCompany {
 	name?: string
 	logo?: string
 	logo_alt?: string
+	logo_width?: string | number
+	logo_height?: string | number
 }
 ```
 
@@ -174,6 +176,8 @@ You can use this file to configure the branding of your admin panel.
 **name** it should be the name of your company or project. It is used as a title tag for the logo image.
 **logo** is the name of the image file to be linked by a "img" tag for the light theme.
 **logo_alt** is the name of the image file to be linked by a "img" tag for the dark theme.
+**logo_width** is the width to be used for the logo, the default value is "auto".
+**logo_height** is the height to be used for the logo, the default value is "50px", the height of the vuetify header is "48px".
 
 ## authentication.ts
 
