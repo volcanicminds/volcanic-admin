@@ -39,7 +39,14 @@
 						>
 							<v-list-item-content>
 								<v-list-item-title>{{ col.title }}</v-list-item-title>
-								{{ row[col.key] }}
+								<router-link
+									v-if="isCellALink(col.key)"
+									:title="getLinkTitle(col.field)"
+									:to="getLinkTo(row[col.key], col.field)"
+								>
+									{{ normalizeCellValue(row[col.key], col.key) }}
+								</router-link>
+								<template v-else>{{ normalizeCellValue(row[col.key], col.key) }}</template>
 							</v-list-item-content>
 						</v-list-item>
 					</v-list-item-group>
@@ -272,20 +279,42 @@ export default defineComponent({
 			}
 			this.loader.close()
 		},
+		isConfigured: function () {
+			return this.model?.columns != null
+		},
 		updateTable: function () {
 			const tableStore = useTablesStore()
-			const isConfigured = this.model?.columns != null
+			const isConfigured = this.isConfigured()
 			const hasTableData = this.table.length > 0
 			const storedColumnDefinitions = tableStore.tables.columnDefinitions[this.configMenu?.name || this.routeSource]
 
 			if (storedColumnDefinitions) {
 				this.columnDefs = storedColumnDefinitions
 			} else if (isConfigured || hasTableData) {
-				this.setColumnDefinition(isConfigured)
+				this.setColumnDefinition()
 			}
 		},
-		setColumnDefinition: function (isConfigured: boolean) {
+		isCellALink: function (key: string) {
+			const rowModel = this.getRowModel(key)
+			return rowModel?.table?.cell?.isLink
+		},
+		getLinkTitle: function (field: string) {
+			const modelColumns = this.model?.columns || {}
+			return `${modelColumns[field]?.input.label}`
+		},
+		getLinkTo: function (value: any, field: string) {
+			const modelColumns = this.model?.columns || {}
+			return `${modelColumns[field]?.input.source}/${(value || {})[this.idField]}`
+		},
+		getLinkAttributes: function (value: any, field: string) {
+			return {
+				title: this.getLinkTitle(field),
+				to: this.getLinkTo(value, field)
+			}
+		},
+		setColumnDefinition: function () {
 			let sourceOfTableData = {}
+			const isConfigured = this.isConfigured()
 			if (isConfigured) {
 				sourceOfTableData = this.model.columns
 			} else if (this.table && this.table.length > 0) {
@@ -293,11 +322,10 @@ export default defineComponent({
 			}
 
 			this.columnDefs = Object.keys(sourceOfTableData).map((key) => {
-				let rowModel = null
+				let rowModel = this.getRowModel(key)
 				let title = key.toUpperCase()
 				let sortBy = undefined
 				if (isConfigured) {
-					rowModel = this.model.columns[key]
 					title = `${getTranslatedItem(this.model.columns[key].table?.label || key)}`
 					sortBy = this.params.sorting ? this.params.sorting[extendSingleSortKey(key, rowModel)] : undefined
 				}
@@ -312,27 +340,14 @@ export default defineComponent({
 					//align: typeof sourceOfTableData[key] === 'number' ? 'right' : 'left',
 					renderBodyCell: ({ row, column, rowIndex }: { row: any; column: any; rowIndex: number }, h: any) => {
 						const value = row[column.field]
-						let normalizedValue = value
-						const cellFormat = rowModel?.table?.cell?.format
-						const formatType = typeof cellFormat
 
-						if (typeof value === 'boolean') {
-							normalizedValue = value === true ? 'Sì' : 'No'
-						} else if (formatType === 'string') {
-							normalizedValue = dayjs(value).format(cellFormat)
-						} else if (formatType === 'function') {
-							normalizedValue = cellFormat(value)
-						}
-
-						const isLink = rowModel?.table?.cell?.isLink
-						const modelColumns = this.model?.columns || {}
+						const normalizedValue = this.normalizeCellValue(value, key)
+						const isLink = this.isCellALink(key)
+						const { title: linkTitle, to: linkTo } = this.getLinkAttributes(value, column.field)
 
 						if (isLink) {
 							return (
-								<router-link
-									title={`${modelColumns[column.field]?.input.label}`}
-									to={`${modelColumns[column.field]?.input.source}/${(value || {})[this.idField]}`}
-								>
+								<router-link title={linkTitle} to={linkTo}>
 									<a onClick={(e) => e.stopPropagation()}>{normalizedValue}</a>
 								</router-link>
 							)
@@ -420,6 +435,25 @@ export default defineComponent({
 
 			const tableStore = useTablesStore()
 			tableStore.setColumnDefinition(this.routeSource, this.columnDefs)
+		},
+		getRowModel(key: string) {
+			const isConfigured = this.isConfigured()
+			return isConfigured ? this.model?.columns[key] : null
+		},
+		normalizeCellValue(value: any, key: string) {
+			const rowModel = this.getRowModel(key)
+			let normalizedValue = value
+			const cellFormat = rowModel?.table?.cell?.format
+			const formatType = typeof cellFormat
+
+			if (typeof value === 'boolean') {
+				normalizedValue = value === true ? 'Sì' : 'No'
+			} else if (formatType === 'string') {
+				normalizedValue = dayjs(value).format(cellFormat)
+			} else if (formatType === 'function') {
+				normalizedValue = cellFormat(value)
+			}
+			return normalizedValue
 		},
 		changeSelectedRowKeys(keys: Array<number>) {
 			this.checkboxOption.selectedRowKeys = keys
