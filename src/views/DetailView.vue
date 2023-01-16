@@ -114,7 +114,8 @@ export default defineComponent({
 					Object.keys(model.columns).forEach((key, index) => {
 						const fieldTab = model.columns[key].input.options?.layout?.tab
 						const modelLayoutTabKey = Object.keys(tabs).find((t) => t === fieldTab?.name)
-						if (!modelLayoutTabKey) {
+						const isInScope = this.isInScope(key)
+						if (!modelLayoutTabKey || !isInScope) {
 							uncategorizedInputs.push(key)
 						} else {
 							const modelLayoutTab = tabs[modelLayoutTabKey]
@@ -175,13 +176,18 @@ export default defineComponent({
 	},
 
 	methods: {
-		isVisible(key: string) {
-			const condition = this.model.columns[key].input.condition
+		isInScope(key: string) {
 			const scope = this.model.columns[key].input.scope || DEFAULT_SCOPE
 			const isInScope =
 				scope === DEFAULT_SCOPE ||
 				(scope === SCOPE_CREATE && this.mode === 'create') ||
 				(scope === SCOPE_UPDATE && this.mode === 'update')
+
+			return isInScope
+		},
+		isVisible(key: string) {
+			const condition = this.model.columns[key].input.condition
+			const isInScope = this.isInScope(key)
 
 			if (condition && isInScope) {
 				const valueToEvaluate = this.data[condition.field]
