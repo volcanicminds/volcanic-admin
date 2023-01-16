@@ -3,7 +3,7 @@
 	<ValidationProvider v-slot="{ errors }" :name="name" :rules="getModelRules(options?.validation)">
 		<v-autocomplete
 			:name="name"
-			:value="value"
+			:value="initialValue"
 			:items="selectItems"
 			:loading="isLoading"
 			:style="styling"
@@ -34,7 +34,7 @@ export default defineComponent({
 	components: { InputError },
 	props: {
 		name: { type: String, required: true },
-		value: { type: [String, Array<any>], default: '', required: true },
+		initialValue: { type: [String, Array<any>], default: '', required: true },
 		valueField: { type: String, required: true },
 		labelField: { type: String, required: true },
 		options: {
@@ -55,14 +55,11 @@ export default defineComponent({
 		disabled: { type: Boolean }
 	},
 	data() {
-		return { search: '', isLoading: false, selectItems: this.items as ApiResponseBody }
+		return { search: '', isLoading: false, selectItems: [] }
 	},
 	computed: {
 		styling: function () {
 			return this.options?.style
-		},
-		normalizedValue: function () {
-			return typeof this.value === 'string' ? [this.value] : this.value
 		}
 	},
 	watch: {
@@ -70,15 +67,18 @@ export default defineComponent({
 			// Lazily load input items
 			if (this.itemsSource !== 'static') {
 				this.isLoading = true
-				api
-					.find(this.itemsSource, {
-						filters: [
+				const filters = searchValue
+					? [
 							{
 								key: this.labelField,
 								operator: 'contains',
 								value: searchValue
 							}
-						],
+					  ]
+					: []
+				api
+					.find(this.itemsSource, {
+						filters,
 						sorting: {},
 						pagination: {}
 					})
@@ -89,7 +89,7 @@ export default defineComponent({
 						console.error(err)
 
 						Vue.$toast.open({
-							message: `Impossibile recuperare ${this.itemsSource}`,
+							message: this.$t('toasts.cannotGetSource', { source: this.itemsSource }),
 							type: 'error',
 							position: 'bottom'
 						})
@@ -102,17 +102,19 @@ export default defineComponent({
 			}
 		}
 	},
-	mounted() {
-		if (this.itemsSource !== 'static') {
-			api.find(this.itemsSource).then((items) => (this.selectItems = items))
-		}
-	},
 	methods: {
 		emitValue(value: any | Array<any>) {
-			if (value instanceof Array) {
-				value = value.map((v) => v[this.valueField])
-			} else {
-				value = value[this.valueField]
+			if (value) {
+				if (value instanceof Array) {
+					value = value.map((v) => {
+						if (typeof v === 'object') {
+							return v[this.valueField]
+						}
+						return v
+					})
+				} else {
+					value = value[this.valueField]
+				}
 			}
 			this.$emit('input', { value, key: this.name })
 		},

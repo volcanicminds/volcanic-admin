@@ -114,7 +114,8 @@ export default defineComponent({
 					Object.keys(model.columns).forEach((key, index) => {
 						const fieldTab = model.columns[key].input.options?.layout?.tab
 						const modelLayoutTabKey = Object.keys(tabs).find((t) => t === fieldTab?.name)
-						if (!modelLayoutTabKey) {
+						const isInScope = this.isInScope(key)
+						if (!modelLayoutTabKey || !isInScope) {
 							uncategorizedInputs.push(key)
 						} else {
 							const modelLayoutTab = tabs[modelLayoutTabKey]
@@ -164,7 +165,7 @@ export default defineComponent({
 		this.loader = this.$veLoading({
 			target: '#table-container',
 			name: 'grid',
-			tip: 'Sto caricando...'
+			tip: this.$t('table.loading')
 		})
 
 		this.loadModel()
@@ -175,13 +176,18 @@ export default defineComponent({
 	},
 
 	methods: {
-		isVisible(key: string) {
-			const condition = this.model.columns[key].input.condition
+		isInScope(key: string) {
 			const scope = this.model.columns[key].input.scope || DEFAULT_SCOPE
 			const isInScope =
 				scope === DEFAULT_SCOPE ||
 				(scope === SCOPE_CREATE && this.mode === 'create') ||
 				(scope === SCOPE_UPDATE && this.mode === 'update')
+
+			return isInScope
+		},
+		isVisible(key: string) {
+			const condition = this.model.columns[key].input.condition
+			const isInScope = this.isInScope(key)
 
 			if (condition && isInScope) {
 				const valueToEvaluate = this.data[condition.field]
@@ -237,7 +243,7 @@ export default defineComponent({
 		},
 		loadModel: async function () {
 			const store = useConfigurationStore()
-			const sourceModel = store.sources[this.source]
+			const sourceModel = (store.sources || {})[this.source]
 			if (!sourceModel) {
 				console.warn('Configuration model missing')
 			} else {
@@ -246,7 +252,7 @@ export default defineComponent({
 		},
 		loadFakeData: function () {
 			//Adding a fake data array taken from the column definition, to render the create form
-			//event withou a model
+			//event without a model
 			if (Object.keys(this.model.columns).length === 0) {
 				const tableStore = useTablesStore()
 				const fakeData = {} as { [key: string]: any }
@@ -288,5 +294,9 @@ export default defineComponent({
 </script>
 <style lang="stylus" scoped>
 #detail-container
-	padding 0 10rem
+	padding 0
+
+@media (min-width: 64em)
+	#detail-container
+		padding 0 10rem
 </style>

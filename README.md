@@ -51,6 +51,8 @@ There is also a user page to change the user password.
 
 But you would miss all the fun!
 
+The Admin is thought to be used as a desktop web app, but there is a simplified table support if the web app is loaded on a phone device.
+
 ## Localization
 
 The project is localized in 3 languages: English, Italian and German.
@@ -366,15 +368,39 @@ interface ConfigSourceModel {
 		}
 	}
 	table?: {
-		pagination: {
+		pagination?: {
 			pageSize: number
 		}
-		rowMenu: {
-			title: string
-			requiresConfirmation: boolean
-			delete?: boolean
-			operation?: () => void
+		options?: {
+			canDelete?: boolean
+			checkbox?: boolean
 		}
+		rowMenu?: [
+			{
+				title:
+					| string
+					| number
+					| boolean
+					| {
+							[language: string]: string | number | boolean
+					  }
+				requiresConfirmation: boolean
+				delete?: boolean
+				operation?: (value: any) => void
+			}
+		]
+		customColumns?: Array<{
+			title?:
+				| string
+				| number
+				| boolean
+				| {
+						[language: string]: string | number | boolean
+				  }
+			align?: 'center' | 'left' | 'right'
+			position: number
+			customComponent: JSXComponent
+		}>
 	}
 }
 ```
@@ -429,7 +455,7 @@ Fields to configure the options of "select" and "autocomplete" inputs are:
 - **dataOptions** configures the "value" and "label" keys to match the single item of the values returned calling the "source" endpoint
 - **filters** and **sorting** are the filters and sorting configuration applied when calling the "source" enpoint
 
-The _table_ field configures the behavior of the column and single cell inside the table.
+The _table_ field inside the _input_ configuration, configures the behavior of the column and single cell inside the table.
 
 - **cell** sets the cell configuration with 2 sub fields:
   - **format** could be a function or a string to format the data before showing it to the user, the string is use to format "boolean" and "date" fields.
@@ -439,6 +465,13 @@ The _table_ field configures the behavior of the column and single cell inside t
   - **enable** you can use this field to disable sorting or filtering for that column, they are _true_ by default.
   - **defaultValues** are the default values to be set for the filter, it is an array to be used in caso of "between", "in" or "nin" operator values.
   - **operator** are a self explicable list of operators to filter the column with.
+
+The _table_ base field lets you to configure the table in the whole.
+
+- **pagination**: has the **_pageSize_** field and it configures the pageSize of the table.
+- **options**: has the **_canDelete_** field to show the options to delete the rows and **_checkbox_** field, to enable the multi selection.
+- **rowMenu**: is an array of object, the object has the **_title_** which is a localized label, the **_requiresConfirmation_** which configures the need to ask for a user confirmation before starting the operation or delete, the **_delete_** option, which tells that you need to perform a delete, in this case the operation field is not executed, the **_operation_** field which is a custom function that will be executed.
+- **customColumns**: is an array of object, the object has the **_title_** which is a localized label, the **_align_** field, which sets the alignment inside the cell, **_position_** which is the number of the column, the count of the column starts from 0, **_customComponent_** which is a custom JSX component.
 
 ### Layout configuration for the detail view
 

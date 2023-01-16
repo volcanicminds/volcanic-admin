@@ -1,4 +1,4 @@
-type StoreSource = { [key: string]: ConfigSourceModel }
+type StoreSource = { [key: string]: ConfigSourceModel } | null
 type ConfigSourceModelColumns = { [key: string]: FieldModel }
 type ConfigSourceModelLayout = {
 	tabs?: {
@@ -7,11 +7,22 @@ type ConfigSourceModelLayout = {
 		}
 	}
 }
+type ConfigSourceCustomColumn = {
+	title?: LocalizedItemField
+	align?: 'center' | 'left' | 'right'
+	position: number
+	customComponent: Component
+}
 type ConfigSourceModelTable = {
 	pagination?: {
 		pageSize: number
 	}
+	options?: {
+		canDelete?: boolean
+		checkbox?: boolean
+	}
 	rowMenu?: TableOptionsMenuItems
+	customColumns?: Array<ConfigSourceCustomColumn>
 }
 interface ConfigSourceModel {
 	columns: ConfigSourceModelColumns
@@ -25,6 +36,7 @@ interface FieldModel {
 	type: FieldModelType
 	input: Input
 	table?: {
+		label?: LocalizedItemField
 		cell?: {
 			format?: function | string
 			isLink?: boolean

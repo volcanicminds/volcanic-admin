@@ -1,14 +1,24 @@
 import { getTranslatedItem } from '@/utils/locale'
+import { getIdField } from '@/utils/model'
 
-function getInitialValue(dataValue: any, model: ConfigSourceModelColumns, key: string): string | number | boolean {
+function getInitialValue(
+	dataValue: any,
+	model: ConfigSourceModelColumns,
+	key: string
+): string | number | boolean | Array<any> {
 	if (dataValue != null) {
 		if (typeof dataValue === 'object') {
-			const idFieldKey = Object.keys(model).find((m) => model[m].isKey)
-			if (idFieldKey) {
+			const idFieldKey = getIdField(model)
+			if (dataValue instanceof Array) {
+				return dataValue.map((dv) => {
+					if (typeof dv === 'object') {
+						return dv[idFieldKey]
+					}
+					return dv
+				})
+			} else {
 				return dataValue[idFieldKey]
 			}
-
-			return dataValue['id']
 		}
 
 		return dataValue

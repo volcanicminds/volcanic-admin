@@ -1,6 +1,6 @@
 const authenticationConfig: Authconfiguration = {
 	request: {
-		body: { reqEmailField: 'username', reqPasswordField: 'password' },
+		body: { reqEmailField: 'email', reqPasswordField: 'password' },
 		url: '/auth/login',
 		method: 'POST'
 	},

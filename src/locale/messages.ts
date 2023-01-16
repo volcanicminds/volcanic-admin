@@ -1,4 +1,4 @@
-const messages = {
+const messages: LocaleMessages = {
 	en: {
 		detail: {
 			update: 'Detail {source} with id {id}',
@@ -7,7 +7,12 @@ const messages = {
 		table: {
 			missingData: 'Missing data for the source {routeSource} or with the configured filters',
 			createButton: 'Create',
-			confirmDeleteRow: 'Do you really want to delete the row {rowId}?'
+			confirmDeleteRow: 'Do you really want to delete the row {rowId}?',
+			selectAll: 'Select all',
+			unselectAll: 'Unselect all',
+			deleteAll: 'Delete',
+			confirmDeleteAll: 'Do you confirm to delete every selected row?',
+			loading: 'Loading...'
 		},
 		authentication: {
 			login: 'Login',
@@ -33,7 +38,11 @@ const messages = {
 			cannotDelete: 'Cannot delete the selected item',
 			cannotUpdateUser: 'Unable to update user',
 			errorLogin: 'Error logging in',
-			cannotShowCreateForm: 'Unable to show the creation form'
+			cannotShowCreateForm: 'Unable to show the creation form',
+			cannotGetSource: 'Unable to get {source}',
+			errorUpdate: 'Unable to update the item',
+			errorCreate: 'Unable to create the item',
+			errorDelete: 'Unable to delete'
 		}
 	},
 	it: {
@@ -44,7 +53,12 @@ const messages = {
 		table: {
 			missingData: 'Dati mancanti per la sorgente {routeSource} o con i filtri impostati',
 			createButton: 'Crea',
-			confirmDeleteRow: 'Vuoi veramente cancellare la riga {rowId}?'
+			confirmDeleteRow: 'Vuoi veramente cancellare la riga {rowId}?',
+			selectAll: 'Seleziona tutto',
+			unselectAll: 'Deseleziona tutto',
+			deleteAll: 'Cancella',
+			confirmDeleteAll: 'Confermi di voler cancellare tutte le righe selezionate?',
+			loading: 'Sto caricando...'
 		},
 		authentication: {
 			login: 'Login',
@@ -70,18 +84,27 @@ const messages = {
 			cannotDelete: "Impossibile recuperare cancellare l'elemento selezionato",
 			cannotUpdateUser: "Impossibile aggiornare l'utente",
 			errorLogin: 'Errore durante la login',
-			cannotShowCreateForm: 'Impossibile visualizzare la form di creazione'
+			cannotShowCreateForm: 'Impossibile visualizzare la form di creazione',
+			cannotGetSource: 'Impossibile recuperare {source}',
+			errorUpdate: "Impossibile aggiornare l'elemento",
+			errorCreate: "Impossibile creare l'elemento",
+			errorDelete: "Impossibile eseguire l'eliminazione"
 		}
 	},
 	de: {
 		detail: {
 			update: 'Detail {source} mit ID {id}',
-			create: 'Neu erstellen {source}',
-			confirmDeleteRow: 'Möchten Sie die Zeile {rowId} wirklich löschen?'
+			create: 'Neu erstellen {source}'
 		},
 		table: {
 			missingData: 'Fehlende Daten für Quelle {routeSource} oder mit eingestellten Filtern',
-			createButton: 'Schaffen'
+			createButton: 'Schaffen',
+			confirmDeleteRow: 'Möchten Sie die Zeile {rowId} wirklich löschen?',
+			selectAll: 'Wählen Sie Alle',
+			unselectAll: 'Alle abwählen',
+			deleteAll: 'Löschen',
+			confirmDeleteAll: 'Bestätigen Sie das Löschen jeder ausgewählten Zeile?',
+			loading: 'Wird geladen...'
 		},
 		authentication: {
 			login: 'Anmeldung',
@@ -107,7 +130,11 @@ const messages = {
 			cannotDelete: 'Ausgewähltes Element kann nicht abgerufen werden',
 			cannotUpdateUser: 'Benutzer kann nicht aktualisiert werden',
 			errorLogin: 'Fehler bei der Anmeldung',
-			cannotShowCreateForm: 'Das Erstellungsformular kann nicht angezeigt werden'
+			cannotShowCreateForm: 'Das Erstellungsformular kann nicht angezeigt werden',
+			cannotGetSource: 'Kann nicht abgerufen werden {source}',
+			errorUpdate: 'Das Element kann nicht aktualisiert werden',
+			errorCreate: 'Das Element kann nicht erstellt werden',
+			errorDelete: 'Löschen nicht möglich'
 		}
 	}
 }

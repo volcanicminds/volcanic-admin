@@ -1,31 +1,69 @@
 <!-- eslint-disable vue/attribute-hyphenation -->
 <template>
 	<Fragment>
-		<TableHeader :source="routeSource" />
+		<TableHeader
+			:source="routeSource || ''"
+			:deleteAll="deleteAll"
+			:options="model?.table?.options"
+			:has-selected-rows="checkboxOption.selectedRowKeys?.length > 0"
+		/>
 		<p v-if="tableTotalLength === 0">{{ $t('table.missingData', { routeSource }) }}</p>
-
-		<ve-table
-			:event-custom-option="eventCustomOption"
-			:fixed-header="true"
-			:columns="columnDefs"
-			:columnHiddenOption="columnHiddenOption"
-			:table-data="table || []"
-			:sort-option="sortOption"
-		/>
-		<ve-pagination
-			class="w100 mx-0"
-			:total="tableTotalLength"
-			:page-size="params.pagination?.pageSize"
-			:page-size-option="[defaultPageSize, defaultPageSize * 2, defaultPageSize * 4]"
-			:page-index="params.pagination?.pageIndex"
-			@on-page-number-change="pageNumberChange"
-			@on-page-size-change="pageSizeChange"
-		/>
+		<div class="d-none d-sm-block">
+			<ve-table
+				:event-custom-option="eventCustomOption"
+				:fixed-header="true"
+				:columns="columnDefs"
+				:columnHiddenOption="columnHiddenOption"
+				:table-data="table || []"
+				:sort-option="sortOption"
+				row-key-field-name="rowKey"
+				:checkbox-option="checkboxOption"
+			/>
+			<ve-pagination
+				class="w100 mx-0"
+				:total="tableTotalLength"
+				:page-size="params.pagination?.pageSize"
+				:page-size-option="[defaultPageSize, defaultPageSize * 2, defaultPageSize * 4]"
+				:page-index="params.pagination?.pageIndex"
+				@on-page-number-change="pageNumberChange"
+				@on-page-size-change="pageSizeChange"
+			/>
+		</div>
+		<div class="d-sm-none">
+			<v-card v-for="(row, rIndex) in table" :key="rIndex" tile class="mx-auto my-1" @click="goToDetail(row)">
+				<v-list dense>
+					<v-list-item-group v-for="(col, cIndex) in columnDefs" :key="cIndex">
+						<v-list-item
+							v-if="col.field && !columnHiddenOption.defaultHiddenColumnKeys.includes(col.key)"
+							:inactive="true"
+						>
+							<v-list-item-content>
+								<v-list-item-title>{{ col.title }}</v-list-item-title>
+								<router-link
+									v-if="isCellALink(col.key)"
+									:title="getLinkTitle(col.field)"
+									:to="getLinkTo(row[col.key], col.field)"
+								>
+									{{ normalizeCellValue(row[col.key], col.key) }}
+								</router-link>
+								<template v-else>{{ normalizeCellValue(row[col.key], col.key) }}</template>
+							</v-list-item-content>
+						</v-list-item>
+					</v-list-item-group>
+				</v-list>
+			</v-card>
+			<v-pagination
+				v-model="mobileCurrentPage"
+				:length="Math.ceil(tableTotalLength / (params.pagination?.pageSize || 1))"
+			></v-pagination>
+		</div>
 	</Fragment>
 </template>
 
 <script lang="tsx">
-import Vue, { defineComponent } from 'vue'
+import Vue, { defineComponent, ref, watch } from 'vue'
+import router from '@/router'
+import type { Route } from 'vue-router'
 import dayjs from 'dayjs'
 import _ from 'lodash'
 import * as api from '@/utils/apiInternalInterface'
@@ -46,20 +84,76 @@ import {
 	extendSingleSortKey
 } from '@/utils/table'
 import { getTranslatedItem } from '@/utils/locale'
+import { getIdField } from '@/utils/model'
+import { storeToRefs } from 'pinia'
 
 export default defineComponent({
 	components: { TableHeader },
+	setup() {
+		function getCurrentPath() {
+			const route = router.currentRoute as Route
+			return route.path.replace('/', '')
+		}
+		const currentPath = ref(getCurrentPath())
+
+		const defaulConfigMenu = { source: currentPath.value, label: '', name: null }
+		const model = ref(null as ConfigSourceModel | null)
+		const configMenu = ref(defaulConfigMenu as MenuItem)
+		const routeSource = ref(null as string | null | undefined)
+
+		const configStore = useConfigurationStore()
+		const { menu, sources } = storeToRefs(configStore)
+		function setupConfigMenu(value: Menu) {
+			const menuItem = (value || []).find((m) => {
+				return m.name === currentPath.value
+			})
+			configMenu.value = menuItem || defaulConfigMenu
+		}
+		function setupModelAndRouteSource(sources: StoreSource) {
+			const indexSource = configMenu.value?.source
+			routeSource.value = indexSource
+			model.value = indexSource ? (sources || {})[indexSource] : null
+		}
+		function refreshRoute() {
+			currentPath.value = getCurrentPath()
+		}
+
+		if (menu) {
+			setupConfigMenu(menu.value)
+		}
+		if (sources) {
+			setupModelAndRouteSource(sources.value)
+		}
+
+		watch(menu, (newMenu) => {
+			setupConfigMenu(newMenu)
+		})
+		watch(sources, (newSources) => {
+			setupModelAndRouteSource(newSources)
+		})
+		watch(currentPath, () => {
+			setupConfigMenu(menu.value)
+			setupModelAndRouteSource(sources.value)
+		})
+
+		return {
+			model,
+			configMenu,
+			routeSource,
+			refreshRoute
+		}
+	},
 	data() {
 		return {
+			idField: '',
 			table: [] as TableData,
-			tableTotalLength: 0,
+			tableTotalLength: 1,
 			columnDefs: [] as ColumnArrayDefinition,
 			columnHiddenOption: {
 				// default hidden column keys
 				defaultHiddenColumnKeys: [] as DefaultHiddenColumnKeys
 			},
-			model: {} as ConfigSourceModelColumns,
-			routeSource: '',
+			mobileCurrentPage: 1,
 			source: '',
 			params: {
 				sorting: {},
@@ -78,8 +172,35 @@ export default defineComponent({
 			eventCustomOption: {
 				bodyRowEvents: ({ row, rowIndex }: any) => {
 					return {
-						click: (event: any) => this.$router.push({ name: 'detail', params: this.getDetailParams(row) })
+						click: (event: any) => {
+							if (event.target.type !== 'checkbox') {
+								this.goToDetail(row)
+							}
+						}
 					}
+				}
+			},
+			checkboxOption: {
+				selectedRowKeys: [] as Array<number>,
+				selectedRowChange: ({
+					row,
+					isSelected,
+					selectedRowKeys
+				}: {
+					row: any
+					isSelected: boolean
+					selectedRowKeys: Array<number>
+				}) => {
+					this.changeSelectedRowKeys(selectedRowKeys)
+				},
+				selectedAllChange: ({
+					isSelected,
+					selectedRowKeys
+				}: {
+					isSelected: boolean
+					selectedRowKeys: Array<number>
+				}) => {
+					this.changeSelectedRowKeys(selectedRowKeys)
 				}
 			}
 		}
@@ -87,7 +208,22 @@ export default defineComponent({
 
 	watch: {
 		$route(to, from) {
-			this.initialize()
+			if (to !== from) {
+				this.refreshRoute()
+			}
+		},
+		mobileCurrentPage(pageIndex: number) {
+			this.pageNumberChange(pageIndex)
+		},
+		model(newValue, oldValue) {
+			if (!_.isEqual(newValue, oldValue)) {
+				this.initialize()
+			}
+		},
+		configMenu(newValue, oldValue) {
+			if (!_.isEqual(newValue, oldValue)) {
+				this.initialize()
+			}
 		}
 	},
 
@@ -95,52 +231,35 @@ export default defineComponent({
 		this.loader = this.$veLoading({
 			target: '#table-container',
 			name: 'grid',
-			tip: 'Sto caricando...'
+			tip: this.$t('table.loading')
 		})
 		this.initialize()
 	},
 
 	methods: {
 		initialize: async function () {
-			const tableStore = useTablesStore()
-			const configStore = useConfigurationStore()
-
-			const path = this.$route.path.replace('/', '')
-			const menu = configStore.menu || []
-			const menuItem = menu.find((m) => {
-				return m.name === path
-			})
-
-			const indexSource = menuItem?.source
-			if (!menuItem || !indexSource) {
-				Vue.$toast.open({
-					message: this.$t('toasts.wrongMenu'),
-					type: 'warning',
-					position: 'bottom'
-				})
+			this.loader.show()
+			this.idField = getIdField(this.model?.columns || {})
+			if (!this.configMenu || !this.routeSource) {
+				// Vue.$toast.open({
+				// 	message: this.$t('toasts.wrongMenu'),
+				// 	type: 'warning',
+				// 	position: 'bottom'
+				// })
+				this.loader.close()
 				return
 			}
-
-			this.routeSource = indexSource
-
-			this.loader.show()
-
-			const modelConfiguration = configStore.sources[this.routeSource]
-			if (!modelConfiguration) {
-				console.warn('Configuration model missing')
-			}
-
-			this.model = modelConfiguration?.columns
-			this.source = `/${menuItem.source}`
+			this.source = `/${this.configMenu.source}`
 
 			let paramsHaveChange = false
 
-			const tableStoreConfiguration = tableStore.tables.configuration[menuItem.name || indexSource]
+			const tableStore = useTablesStore()
+			const tableStoreConfiguration = tableStore.tables.configuration[this.configMenu.name || this.routeSource]
 			if (tableStoreConfiguration) {
 				paramsHaveChange = !_.isEqual(this.params, tableStoreConfiguration)
 				this.params = tableStoreConfiguration
 			} else {
-				const updatedParams = this.getParams({ menu: menuItem, configuration: modelConfiguration })
+				const updatedParams = this.getParams({ menu: this.configMenu })
 
 				paramsHaveChange = !_.isEqual(this.params, updatedParams)
 				this.params = updatedParams
@@ -156,45 +275,60 @@ export default defineComponent({
 					console.error(e)
 				}
 
-				this.updateTable({ menu: menuItem, configuration: modelConfiguration, indexSource })
+				this.updateTable()
 			}
-
 			this.loader.close()
 		},
-		updateTable: function ({
-			menu,
-			indexSource,
-			configuration
-		}: {
-			menu: MenuItem
-			indexSource: string
-			configuration: ConfigSourceModel
-		}) {
+		isConfigured: function () {
+			return this.model?.columns != null
+		},
+		updateTable: function () {
 			const tableStore = useTablesStore()
-			const isConfigured = this.model != null
+			const isConfigured = this.isConfigured()
 			const hasTableData = this.table.length > 0
-			const storedColumnDefinitions = tableStore.tables.columnDefinitions[menu.name || indexSource]
+			const storedColumnDefinitions = tableStore.tables.columnDefinitions[this.configMenu?.name || this.routeSource]
 
 			if (storedColumnDefinitions) {
 				this.columnDefs = storedColumnDefinitions
 			} else if (isConfigured || hasTableData) {
-				this.setColumnDefinition({ isConfigured, configuration, indexSource })
+				this.setColumnDefinition()
 			}
 		},
-		setColumnDefinition: function ({
-			isConfigured,
-			configuration,
-			indexSource
-		}: {
-			isConfigured: boolean
-			configuration: ConfigSourceModel
-			indexSource: string
-		}) {
-			const sourceOfTableData = isConfigured ? this.model : this.table
-			this.columnDefs = Object.keys(sourceOfTableData).map((key, index) => {
-				const rowModel = this.model[key] || {}
-				const title = getTranslatedItem(this.model[key].input.label) || key.toUpperCase()
-				const sortBy = this.params.sorting ? this.params.sorting[extendSingleSortKey(key, rowModel)] : undefined
+		isCellALink: function (key: string) {
+			const rowModel = this.getRowModel(key)
+			return rowModel?.table?.cell?.isLink
+		},
+		getLinkTitle: function (field: string) {
+			const modelColumns = this.model?.columns || {}
+			return `${modelColumns[field]?.input.label}`
+		},
+		getLinkTo: function (value: any, field: string) {
+			const modelColumns = this.model?.columns || {}
+			return `${modelColumns[field]?.input.source}/${(value || {})[this.idField]}`
+		},
+		getLinkAttributes: function (value: any, field: string) {
+			return {
+				title: this.getLinkTitle(field),
+				to: this.getLinkTo(value, field)
+			}
+		},
+		setColumnDefinition: function () {
+			let sourceOfTableData = {}
+			const isConfigured = this.isConfigured()
+			if (isConfigured) {
+				sourceOfTableData = this.model.columns
+			} else if (this.table && this.table.length > 0) {
+				sourceOfTableData = this.table[0]
+			}
+
+			this.columnDefs = Object.keys(sourceOfTableData).map((key) => {
+				let rowModel = this.getRowModel(key)
+				let title = key.toUpperCase()
+				let sortBy = undefined
+				if (isConfigured) {
+					title = `${getTranslatedItem(this.model.columns[key].table?.label || key)}`
+					sortBy = this.params.sorting ? this.params.sorting[extendSingleSortKey(key, rowModel)] : undefined
+				}
 
 				return {
 					field: key,
@@ -206,26 +340,14 @@ export default defineComponent({
 					//align: typeof sourceOfTableData[key] === 'number' ? 'right' : 'left',
 					renderBodyCell: ({ row, column, rowIndex }: { row: any; column: any; rowIndex: number }, h: any) => {
 						const value = row[column.field]
-						let normalizedValue = value
-						const cellFormat = rowModel?.table?.cell?.format
-						const formatType = typeof cellFormat
 
-						if (typeof value === 'boolean') {
-							normalizedValue = value === true ? 'Sì' : 'No'
-						} else if (formatType === 'string') {
-							normalizedValue = dayjs(value).format(cellFormat)
-						} else if (formatType === 'function') {
-							normalizedValue = cellFormat(value)
-						}
-
-						const isLink = rowModel?.table?.cell?.isLink
+						const normalizedValue = this.normalizeCellValue(value, key)
+						const isLink = this.isCellALink(key)
+						const { title: linkTitle, to: linkTo } = this.getLinkAttributes(value, column.field)
 
 						if (isLink) {
 							return (
-								<router-link
-									title={`${this.model[column.field]?.input.label}`}
-									to={`${this.model[column.field]?.input.source}/${value?.id}`}
-								>
+								<router-link title={linkTitle} to={linkTo}>
 									<a onClick={(e) => e.stopPropagation()}>{normalizedValue}</a>
 								</router-link>
 							)
@@ -246,7 +368,7 @@ export default defineComponent({
 									name={key}
 									subField={filterModel?.subField}
 									operator={filterModel.operator || 'eq'}
-									values={filterDefaultValues || []}
+									values={(filterDefaultValues || []) as any} //TODO: understand how to remove this any
 									addFilter={this.addFilter}
 									searchCancel={() => this.searchCancel(closeFn)}
 									searchConfirm={() => this.searchConfirm(closeFn)}
@@ -257,8 +379,36 @@ export default defineComponent({
 				}
 			})
 
-			if (configuration?.table?.rowMenu) {
-				const menu = (configuration?.table?.rowMenu || []) as TableOptionsMenuItems
+			if (this.model?.table?.customColumns && this.model?.table?.customColumns.length > 0) {
+				this.model.table?.customColumns.forEach((col: ConfigSourceCustomColumn) => {
+					this.columnDefs.splice(col.position, 0, {
+						field: '',
+						key: `custom-column-${col.position}`,
+						title: `${getTranslatedItem(col.title || {}) || ''}`,
+						align: col.align || 'center',
+						renderBodyCell: ({ row, column, rowIndex }: { row: any; column: any; rowIndex: number }, h: any) => {
+							return col.customComponent({
+								row,
+								model: this.model
+							})
+						}
+					})
+				})
+			}
+
+			if (this.model?.table?.options?.checkbox) {
+				this.columnDefs.unshift({
+					field: '',
+					key: 'checkbox',
+					type: 'checkbox',
+					title: '',
+					width: 50,
+					align: 'center'
+				})
+			}
+
+			if (this.model?.table?.rowMenu) {
+				const menu = (this.model?.table?.rowMenu || []) as TableOptionsMenuItems
 
 				//Setting the standard operation on case of delete
 				menu.forEach((m, index) => {
@@ -272,22 +422,50 @@ export default defineComponent({
 					title: '',
 					key: 'row-menu',
 					renderBodyCell: ({ row, column, rowIndex }: { row: any; column: any; rowIndex: number }, h: any) => {
-						return <TableOptionsMenu row={row} column={column} rowMenu={menu} />
+						return <TableOptionsMenu row={row} columns={this.model.columns} rowMenu={menu} />
 					}
 				})
 			}
 
 			Object.keys(sourceOfTableData).forEach((key) => {
-				if (this.model[key]?.table?.visible === false) {
+				if (this.model?.columns[key]?.table?.visible === false) {
 					this.columnHiddenOption.defaultHiddenColumnKeys.push(key)
 				}
 			})
 
 			const tableStore = useTablesStore()
-			tableStore.setColumnDefinition(indexSource, this.columnDefs)
+			tableStore.setColumnDefinition(this.routeSource, this.columnDefs)
 		},
-		getParams: function ({ menu, configuration }: { menu: MenuItem; configuration: ConfigSourceModel }) {
-			const getModelParameters = prepareModelParamenters(this.model)
+		getRowModel(key: string) {
+			const isConfigured = this.isConfigured()
+			return isConfigured ? this.model?.columns[key] : null
+		},
+		normalizeCellValue(value: any, key: string) {
+			const rowModel = this.getRowModel(key)
+			let normalizedValue = value
+			const cellFormat = rowModel?.table?.cell?.format
+			const formatType = typeof cellFormat
+
+			if (typeof value === 'boolean') {
+				normalizedValue = value === true ? 'Sì' : 'No'
+			} else if (formatType === 'string') {
+				normalizedValue = dayjs(value).format(cellFormat)
+			} else if (formatType === 'function') {
+				normalizedValue = cellFormat(value)
+			}
+			return normalizedValue
+		},
+		changeSelectedRowKeys(keys: Array<number>) {
+			this.checkboxOption.selectedRowKeys = keys
+		},
+		selectedAll() {
+			this.checkboxOption.selectedRowKeys = this.table.map((x) => x.rowKey)
+		},
+		unselectedAll() {
+			this.checkboxOption.selectedRowKeys = []
+		},
+		getParams: function ({ menu }: { menu: MenuItem }) {
+			const getModelParameters = prepareModelParamenters(this.model?.columns || {})
 			const urlParams = this.$route.query
 			const urlPagination = {} as TablePaginationParams
 			const urlFilters = [] as TableFiltersParams
@@ -314,7 +492,7 @@ export default defineComponent({
 			})
 
 			const { pagination: menuPagination = {}, sorting: menuSorting = {}, filters: menuFilters = [] } = menu
-			const modelPagination = configuration?.table?.pagination || {}
+			const modelPagination = this.model?.table?.pagination || {}
 
 			return {
 				pagination: {
@@ -334,7 +512,7 @@ export default defineComponent({
 		getDetailParams: function (row: any) {
 			return {
 				source: this.routeSource,
-				id: row.id
+				id: row[this.idField]
 			}
 		},
 		updateStoreConfiguration: function () {
@@ -352,7 +530,7 @@ export default defineComponent({
 				})
 			])
 
-			this.table = tableData as TableData
+			this.table = (tableData as TableData).map((t, i) => ({ rowKey: i, ...t }))
 			this.tableTotalLength = tableCount as number
 		},
 		updateRouteQuery: function () {
@@ -399,7 +577,7 @@ export default defineComponent({
 				pagination: {
 					pageSize: this.params?.pagination?.pageSize,
 					//Subtracting 1 because of the table lib needs
-					pageIndex: pageIndex - 1
+					pageIndex
 				}
 			}
 			this.updateStoreConfiguration()
@@ -428,7 +606,7 @@ export default defineComponent({
 		sortChange(sorting: SortParams) {
 			const loader = this.loader
 			loader.show()
-			const extendedSorting = extendSorting(sorting, this.model)
+			const extendedSorting = extendSorting(sorting, this.model?.columns || {})
 
 			this.params = {
 				...this.params,
@@ -479,7 +657,7 @@ export default defineComponent({
 			closeFn()
 		},
 		deleteRow: async function (row: any) {
-			const id = row?.id
+			const id = (row || {})[this.idField]
 			if (id) {
 				await api.del(this.source, id)
 
@@ -493,6 +671,20 @@ export default defineComponent({
 					position: 'bottom'
 				})
 			}
+		},
+		deleteAll: async function () {
+			const rows = this.table.filter((t) => this.checkboxOption.selectedRowKeys.includes(t.rowKey)) || []
+			await api.deleteMultiple(
+				this.source,
+				rows.map((r: Row) => `${r[this.idField]}`)
+			)
+
+			//refresh
+			this.find()
+			this.unselectedAll()
+		},
+		goToDetail: function (row: Row) {
+			this.$router.push({ name: 'detail', params: this.getDetailParams(row) })
 		}
 	}
 })
@@ -500,5 +692,8 @@ export default defineComponent({
 <style stylus>
 .ve-table-body-tr:hover {
 	cursor: pointer;
+}
+.ve-table-fixed-header {
+	position: sticky;
 }
 </style>

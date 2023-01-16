@@ -63,7 +63,7 @@
 			/>
 			<AutocompleteInput
 				v-if="model.input.type === 'autocomplete'"
-				:value="initialValue"
+				:initial-value="initialValue"
 				:name="modelKey"
 				:items-source="model.input.source"
 				:readonly="model.input.readonly"

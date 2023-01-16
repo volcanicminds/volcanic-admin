@@ -1,3 +1,5 @@
+import RegisterCustomer from '@/configuration/sources/components/RegisterCustomer'
+
 const model: ConfigSourceModel = {
 	columns: {
 		id: {
@@ -287,11 +289,22 @@ const model: ConfigSourceModel = {
 		}
 	},
 	table: {
+		options: {
+			canDelete: true,
+			checkbox: true
+		},
 		rowMenu: [
 			{
-				title: 'Delete',
+				title: { en: 'Delete', it: 'Cancella', de: 'Löschen' },
 				requiresConfirmation: true,
 				delete: true
+			}
+		],
+		customColumns: [
+			{
+				title: { en: 'Register', it: 'Registra', de: 'Registrieren' },
+				position: 0,
+				customComponent: RegisterCustomer
 			}
 		]
 	}
