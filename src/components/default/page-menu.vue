@@ -1,26 +1,25 @@
 <template>
-	<v-list dense nav>
-		<v-list-item>
-			<v-list-item-content>
-				<v-list-item-subtitle> {{ $t('general.adminTitle') }} </v-list-item-subtitle>
-			</v-list-item-content>
-		</v-list-item>
-		<v-list-item v-for="(item, index) in menu" :key="index">
-			<router-link
-				v-if="item.name"
-				:to="{
-					path: `/${item.name}`
-				}"
-			>
-				<PageMenuItem :item="item" />
-			</router-link>
-			<a v-if="item.operation" href="javascript:void(0);" @click="item.operation"> <PageMenuItem :item="item" /></a>
-		</v-list-item>
-		<v-list-item>&nbsp;</v-list-item>
-		<v-list-item
-			><v-list-item-content> <PageMenuLogout /></v-list-item-content>
-		</v-list-item>
-	</v-list>
+	<div class="flex flex-column justify-between" style="min-height: calc(100vh - 48px)">
+		<v-list dense nav>
+			<v-list-item>
+				<v-list-item-content>
+					<v-list-item-subtitle> {{ $t('general.adminTitle') }} </v-list-item-subtitle>
+				</v-list-item-content>
+			</v-list-item>
+			<v-list-item v-for="(item, index) in menu" :key="index">
+				<router-link
+					v-if="item.name"
+					:to="{
+						path: `/${item.name}`
+					}"
+				>
+					<PageMenuItem :item="item" />
+				</router-link>
+				<a v-if="item.operation" href="javascript:void(0);" @click="item.operation"> <PageMenuItem :item="item" /></a>
+			</v-list-item>
+		</v-list>
+		<PageMenuLogout />
+	</div>
 </template>
 
 <script lang="ts">
