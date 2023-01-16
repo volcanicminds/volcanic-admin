@@ -1,9 +1,7 @@
 <template>
-	<Fragment>
-		<div class="pa-2">
-			<v-btn block @click="logout"> {{ $t('authentication.logout') }} </v-btn>
-		</div>
-	</Fragment>
+	<div class="pa-2 my-3">
+		<v-btn block @click="logout"> {{ $t('authentication.logout') }} </v-btn>
+	</div>
 </template>
 
 <script lang="ts">
