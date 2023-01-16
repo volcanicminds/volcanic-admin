@@ -104,15 +104,17 @@ export default defineComponent({
 	},
 	methods: {
 		emitValue(value: any | Array<any>) {
-			if (value instanceof Array) {
-				value = value.map((v) => {
-					if (typeof v === 'object') {
-						return v[this.valueField]
-					}
-					return v
-				})
-			} else {
-				value = value[this.valueField]
+			if (value) {
+				if (value instanceof Array) {
+					value = value.map((v) => {
+						if (typeof v === 'object') {
+							return v[this.valueField]
+						}
+						return v
+					})
+				} else {
+					value = value[this.valueField]
+				}
 			}
 			this.$emit('input', { value, key: this.name })
 		},
