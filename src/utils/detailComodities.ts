@@ -10,7 +10,12 @@ function getInitialValue(
 		if (typeof dataValue === 'object') {
 			const idFieldKey = getIdField(model)
 			if (dataValue instanceof Array) {
-				return dataValue.map((dv) => dv[idFieldKey])
+				return dataValue.map((dv) => {
+					if (typeof dv === 'object') {
+						return dv[idFieldKey]
+					}
+					return dv
+				})
 			} else {
 				return dataValue[idFieldKey]
 			}

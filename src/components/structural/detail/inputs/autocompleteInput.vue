@@ -105,7 +105,12 @@ export default defineComponent({
 	methods: {
 		emitValue(value: any | Array<any>) {
 			if (value instanceof Array) {
-				value = value.map((v) => v[this.valueField])
+				value = value.map((v) => {
+					if (typeof v === 'object') {
+						return v[this.valueField]
+					}
+					return v
+				})
 			} else {
 				value = value[this.valueField]
 			}
