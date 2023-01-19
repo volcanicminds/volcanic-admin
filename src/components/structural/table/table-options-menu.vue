@@ -10,48 +10,50 @@
 		</v-list>
 	</v-menu>
 </template>
-<script lang="ts">
-import { defineComponent } from 'vue'
+<script setup lang="ts">
 import { getTranslatedItem } from '@/utils/locale'
 import { getIdField } from '@/utils/model'
+import i18n from '@/locale/i18n'
 
-export default defineComponent({
-	props: {
-		rowMenu: {
-			type: Array,
-			default() {
-				return [] as unknown
-			},
-			required: true
+const props = defineProps({
+	rowMenu: {
+		type: Array,
+		default() {
+			return []
 		},
-		row: {
-			type: Object,
-			default: null,
-			required: false
-		},
-		columns: {
-			type: Object,
-			default: null,
-			required: false
-		}
+		required: true
 	},
-	methods: {
-		onClick: function (e: any, item: any) {
-			// e.stopPropagation()
-			if (item.requiresConfirmation) {
-				const idField = getIdField(this.columns)
-				const confirmed = window.confirm(this.$t('table.confirmDeleteRow', { rowId: (this.row || {})[idField] }))
-
-				if (confirmed) {
-					item.operation(this.row)
-				}
-			}
-		},
-		translateLabel: function (label: LocalizedItemField) {
-			return getTranslatedItem(label)
-		}
+	row: {
+		type: Object,
+		default: null,
+		required: false
+	},
+	columns: {
+		type: Object,
+		default: null,
+		required: false
 	}
 })
+
+function onClick(e: any, item: any) {
+	// e.stopPropagation()
+	if (item.requiresConfirmation) {
+		const idField = getIdField(props.columns)
+		let translatedMessage = i18n.t('table.confirmDeleteRow', { rowId: (props.row || {})[idField] })
+		if (typeof translatedMessage === 'object') {
+			//TODO: to deeply understand how to manage this case
+			translatedMessage = JSON.stringify(translatedMessage)
+		}
+		const confirmed = window.confirm(translatedMessage)
+
+		if (confirmed) {
+			item.operation(props.row)
+		}
+	}
+}
+function translateLabel(label: LocalizedItemField) {
+	return getTranslatedItem(label)
+}
 </script>
 <style stylus>
 .table-row-menu-list-item:hover {
