@@ -20,7 +20,7 @@
 			/>
 			<BooleanInput
 				v-if="model.input.type === 'input' && model?.type === 'boolean'"
-				:value="initialValue === '' ? false : initialValue"
+				:initial-value="initialValue === '' ? false : initialValue"
 				:name="modelKey"
 				:readonly="model.input.readonly"
 				:disabled="model.input.disabled"
@@ -29,7 +29,7 @@
 			/>
 			<InputDate
 				v-if="model.input.type === 'input' && model?.type === 'date'"
-				:value="initialValue"
+				:initial-value="initialValue"
 				:type="model?.specifications?.subtype === 'datetime' ? 'datetime-local' : 'date'"
 				:name="modelKey"
 				:readonly="model.input.readonly"
@@ -81,13 +81,13 @@
 
 <script setup lang="ts">
 import { capitalize } from 'lodash'
-import InputDate from '@/components/structural/detail/inputs/date.vue'
-import DefaultInput from '@/components/structural/detail/inputs/defaultInput.vue'
-import TextArea from '@/components/structural/detail/inputs/textarea.vue'
-import SelectInput from '@/components/structural/detail/inputs/selectInput.vue'
-import BooleanInput from '@/components/structural/detail/inputs/booleanInput.vue'
-import HiddenInput from '@/components/structural/detail/inputs/hiddenInput.vue'
-import AutocompleteInput from '@/components/structural/detail/inputs/autocompleteInput.vue'
+import InputDate from '@/components/structural/detail/inputs/input-date.vue'
+import DefaultInput from '@/components/structural/detail/inputs/default-input.vue'
+import TextArea from '@/components/structural/detail/inputs/text-area.vue'
+import SelectInput from '@/components/structural/detail/inputs/select-input.vue'
+import BooleanInput from '@/components/structural/detail/inputs/boolean-input.vue'
+import HiddenInput from '@/components/structural/detail/inputs/hidden-input.vue'
+import AutocompleteInput from '@/components/structural/detail/inputs/autocomplete-input.vue'
 import { getTranslatedItem } from '@/utils/locale'
 import { getModelRules } from '@/utils/validationHelpers'
 
