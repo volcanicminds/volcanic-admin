@@ -18,6 +18,7 @@ const messages: LocaleMessages = {
 			login: 'Login',
 			logout: 'Logout',
 			email: 'Email',
+			oldPassword: 'Old password',
 			password: 'Password',
 			userViewTitle: 'User configuration',
 			repeatPassword: 'Repeat password'
@@ -64,6 +65,7 @@ const messages: LocaleMessages = {
 			login: 'Login',
 			logout: 'Logout',
 			email: 'Email',
+			oldPassword: 'Vecchia password',
 			password: 'Password',
 			userViewTitle: 'Configurazione utente',
 			repeatPassword: 'Ripeti la password'
@@ -110,6 +112,7 @@ const messages: LocaleMessages = {
 			login: 'Anmeldung',
 			logout: 'Ausloggen',
 			email: 'Email',
+			oldPassword: 'Alt Passwort',
 			password: 'Passwort',
 			userViewTitle: 'Benutzer Konfiguration',
 			repeatPassword: 'Wiederhole das Passwort'

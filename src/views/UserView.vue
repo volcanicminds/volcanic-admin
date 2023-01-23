@@ -14,7 +14,21 @@
 					</ValidationProvider>
 				</div>
 				<div>
-					<ValidationProvider v-slot="{ errors }" vid="password" name="Password" rules="required">
+					<ValidationProvider v-slot="{ errors }" name="old_password" rules="required">
+						<div>
+							<label :for="oldPassword">{{ $t('authentication.oldPassword') }}</label>
+						</div>
+						<v-text-field
+							v-model="oldPassword"
+							name="old_password"
+							type="password"
+							:placeholder="$t('authentication.oldPassword')"
+						/>
+						<p>{{ errors[0] }}</p>
+					</ValidationProvider>
+				</div>
+				<div>
+					<ValidationProvider v-slot="{ errors }" vid="password" name="password" rules="required">
 						<div>
 							<label :for="password">{{ $t('authentication.password') }}</label>
 						</div>
@@ -70,16 +84,21 @@ export default defineComponent({
 		const { logout: _logout } = store
 
 		const email = ref(_email)
+		const oldPassword = ref('')
 		const password = ref('')
 		const confirmation = ref('')
-		const id = ref('')
 
-		function onSubmit() {
+		async function onSubmit(e: any) {
 			try {
-				api.update('users', id.value, {
+				await api.create('auth/change-password', {
 					email: email.value,
-					password: password.value
+					oldPassword: oldPassword.value,
+					newPassword1: password.value,
+					newPassword2: confirmation.value
 				})
+				oldPassword.value = ''
+				password.value = ''
+				confirmation.value = ''
 			} catch (e) {
 				console.error('Error during users update', e)
 
@@ -100,6 +119,7 @@ export default defineComponent({
 			email,
 			password,
 			confirmation,
+			oldPassword,
 			onSubmit,
 			logout
 		}
