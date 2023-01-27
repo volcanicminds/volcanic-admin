@@ -50,7 +50,7 @@ function RegisterComponent({ row, model }: { row: Row; model: ConfigSourceModelC
 				id: row[getIdField(model)],
 				username: row.email,
 				email: row.email,
-				roles: ['customer'],
+				requiredRoles: ['customer'],
 				password1: password,
 				password2: password
 			})
