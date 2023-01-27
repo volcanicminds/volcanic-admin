@@ -279,6 +279,15 @@ export default defineComponent({
 			}
 			this.loader.close()
 		},
+		refresh: async function () {
+			try {
+				await this.find()
+			} catch (e) {
+				console.error(e)
+			}
+
+			this.setColumnDefinition()
+		},
 		isConfigured: function () {
 			return this.model?.columns != null
 		},
@@ -389,7 +398,11 @@ export default defineComponent({
 						renderBodyCell: ({ row, column, rowIndex }: { row: any; column: any; rowIndex: number }, h: any) => {
 							return col.customComponent({
 								row,
-								model: this.model
+								model: this.model,
+								refresh: this.refresh,
+								router: this.$router,
+								loader: this.loader,
+								notifier: Vue.$toast
 							})
 						}
 					})

@@ -2,7 +2,21 @@ import * as api from '@/utils/apiInternalInterface'
 import { getIdField } from '@/utils/model'
 import i18n from '@/locale/i18n'
 
-function RegisterComponent({ row, model }: { row: Row; model: ConfigSourceModelColumns }) {
+function RegisterComponent({
+	row,
+	model,
+	refresh,
+	router,
+	loader,
+	notifier
+}: {
+	row: Row
+	model: ConfigSourceModelColumns
+	refresh: () => void
+	router: any
+	loader: any
+	notifier: any
+}) {
 	//source: https://stackoverflow.com/questions/70706563/javascript-password-generator-sometimes-not-including-character-selections
 	function generatePassword(
 		len: number,
@@ -46,6 +60,7 @@ function RegisterComponent({ row, model }: { row: Row; model: ConfigSourceModelC
 				lowerCase: true,
 				upperCase: true
 			})
+			loader.show()
 			await api.create('/auth/register', {
 				id: row[getIdField(model)],
 				username: row.email,
@@ -54,8 +69,16 @@ function RegisterComponent({ row, model }: { row: Row; model: ConfigSourceModelC
 				password1: password,
 				password2: password
 			})
+			notifier.open({
+				message: i18n.t('toasts.confirmExecution'),
+				type: 'success',
+				position: 'bottom'
+			})
+			await refresh()
 		} catch (e) {
 			console.error(e)
+		} finally {
+			loader.close()
 		}
 	}
 

@@ -33,6 +33,7 @@ const messages: LocaleMessages = {
 		},
 		toasts: {
 			missingDataSource: 'Missing information: data source',
+			confirmExecution: 'Operation performed successfully',
 			confirmUpdate: 'Item updated successfully',
 			confirmCreate: 'Item created successfully',
 			wrongMenu: 'Wrong menu configuration',
@@ -80,6 +81,7 @@ const messages: LocaleMessages = {
 		},
 		toasts: {
 			missingDataSource: 'Informazione mancante: sorgente dati',
+			confirmExecution: 'Operazione eseguita con successo',
 			confirmUpdate: 'Elemento aggiornato con successo',
 			confirmCreate: 'Elemento creato con successo',
 			wrongMenu: 'Configurazione menu errata',
@@ -127,6 +129,7 @@ const messages: LocaleMessages = {
 		},
 		toasts: {
 			missingDataSource: 'Fehlende Informationen: Datenquelle',
+			confirmExecution: 'Operation erfolgreich durchgeführt',
 			confirmUpdate: 'Artikel erfolgreich aktualisiert',
 			confirmCreate: 'Artikel erfolgreich erstellt',
 			wrongMenu: 'Falsche Menükonfiguration',
