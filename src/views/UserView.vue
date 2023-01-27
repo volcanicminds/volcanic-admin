@@ -2,7 +2,7 @@
 	<div class="py0 px3">
 		<h1>{{ $t('authentication.userViewTitle') }}</h1>
 
-		<ValidationObserver v-slot="{ invalid }">
+		<ValidationObserver v-slot="{ invalid }" ref="form">
 			<form @submit.prevent="onSubmit">
 				<div>
 					<ValidationProvider v-slot="{ errors }" name="Email" rules="required|email">
@@ -72,6 +72,7 @@ import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
 import * as api from '@/utils/apiInternalInterface'
 import router from '@/router'
+import i18n from '@/locale/i18n'
 
 extend('email', email)
 extend('required', required)
@@ -84,6 +85,7 @@ export default defineComponent({
 		const { logout: _logout } = store
 
 		const email = ref(_email)
+		const form = ref()
 		const oldPassword = ref('')
 		const password = ref('')
 		const confirmation = ref('')
@@ -99,11 +101,12 @@ export default defineComponent({
 				oldPassword.value = ''
 				password.value = ''
 				confirmation.value = ''
+				form.value.reset()
 			} catch (e) {
 				console.error('Error during users update', e)
 
 				Vue.$toast.open({
-					message: this.$t('toasts.cannotUpdateUser'),
+					message: i18n.t('toasts.cannotUpdateUser'),
 					type: 'error',
 					position: 'bottom'
 				})
@@ -116,6 +119,7 @@ export default defineComponent({
 			router.push('/login')
 		}
 		return {
+			form,
 			email,
 			password,
 			confirmation,
