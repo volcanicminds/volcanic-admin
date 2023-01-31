@@ -18,6 +18,7 @@ const messages: LocaleMessages = {
 			login: 'Login',
 			logout: 'Logout',
 			email: 'Email',
+			oldPassword: 'Old password',
 			password: 'Password',
 			userViewTitle: 'User configuration',
 			repeatPassword: 'Repeat password'
@@ -32,6 +33,7 @@ const messages: LocaleMessages = {
 		},
 		toasts: {
 			missingDataSource: 'Missing information: data source',
+			confirmExecution: 'Operation performed successfully',
 			confirmUpdate: 'Item updated successfully',
 			confirmCreate: 'Item created successfully',
 			wrongMenu: 'Wrong menu configuration',
@@ -64,6 +66,7 @@ const messages: LocaleMessages = {
 			login: 'Login',
 			logout: 'Logout',
 			email: 'Email',
+			oldPassword: 'Vecchia password',
 			password: 'Password',
 			userViewTitle: 'Configurazione utente',
 			repeatPassword: 'Ripeti la password'
@@ -78,6 +81,7 @@ const messages: LocaleMessages = {
 		},
 		toasts: {
 			missingDataSource: 'Informazione mancante: sorgente dati',
+			confirmExecution: 'Operazione eseguita con successo',
 			confirmUpdate: 'Elemento aggiornato con successo',
 			confirmCreate: 'Elemento creato con successo',
 			wrongMenu: 'Configurazione menu errata',
@@ -110,6 +114,7 @@ const messages: LocaleMessages = {
 			login: 'Anmeldung',
 			logout: 'Ausloggen',
 			email: 'Email',
+			oldPassword: 'Alt Passwort',
 			password: 'Passwort',
 			userViewTitle: 'Benutzer Konfiguration',
 			repeatPassword: 'Wiederhole das Passwort'
@@ -124,6 +129,7 @@ const messages: LocaleMessages = {
 		},
 		toasts: {
 			missingDataSource: 'Fehlende Informationen: Datenquelle',
+			confirmExecution: 'Operation erfolgreich durchgeführt',
 			confirmUpdate: 'Artikel erfolgreich aktualisiert',
 			confirmCreate: 'Artikel erfolgreich erstellt',
 			wrongMenu: 'Falsche Menükonfiguration',

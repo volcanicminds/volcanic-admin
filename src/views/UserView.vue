@@ -2,7 +2,7 @@
 	<div class="py0 px3">
 		<h1>{{ $t('authentication.userViewTitle') }}</h1>
 
-		<ValidationObserver v-slot="{ invalid }">
+		<ValidationObserver v-slot="{ invalid }" ref="form">
 			<form @submit.prevent="onSubmit">
 				<div>
 					<ValidationProvider v-slot="{ errors }" name="Email" rules="required|email">
@@ -14,7 +14,21 @@
 					</ValidationProvider>
 				</div>
 				<div>
-					<ValidationProvider v-slot="{ errors }" vid="password" name="Password" rules="required">
+					<ValidationProvider v-slot="{ errors }" name="old_password" rules="required">
+						<div>
+							<label :for="oldPassword">{{ $t('authentication.oldPassword') }}</label>
+						</div>
+						<v-text-field
+							v-model="oldPassword"
+							name="old_password"
+							type="password"
+							:placeholder="$t('authentication.oldPassword')"
+						/>
+						<p>{{ errors[0] }}</p>
+					</ValidationProvider>
+				</div>
+				<div>
+					<ValidationProvider v-slot="{ errors }" vid="password" name="password" rules="required">
 						<div>
 							<label :for="password">{{ $t('authentication.password') }}</label>
 						</div>
@@ -58,6 +72,7 @@ import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
 import * as api from '@/utils/apiInternalInterface'
 import router from '@/router'
+import i18n from '@/locale/i18n'
 
 extend('email', email)
 extend('required', required)
@@ -70,21 +85,28 @@ export default defineComponent({
 		const { logout: _logout } = store
 
 		const email = ref(_email)
+		const form = ref()
+		const oldPassword = ref('')
 		const password = ref('')
 		const confirmation = ref('')
-		const id = ref('')
 
-		function onSubmit() {
+		async function onSubmit(e: any) {
 			try {
-				api.update('users', id.value, {
+				await api.create('auth/change-password', {
 					email: email.value,
-					password: password.value
+					oldPassword: oldPassword.value,
+					newPassword1: password.value,
+					newPassword2: confirmation.value
 				})
+				oldPassword.value = ''
+				password.value = ''
+				confirmation.value = ''
+				form.value.reset()
 			} catch (e) {
 				console.error('Error during users update', e)
 
 				Vue.$toast.open({
-					message: this.$t('toasts.cannotUpdateUser'),
+					message: i18n.t('toasts.cannotUpdateUser'),
 					type: 'error',
 					position: 'bottom'
 				})
@@ -97,9 +119,11 @@ export default defineComponent({
 			router.push('/login')
 		}
 		return {
+			form,
 			email,
 			password,
 			confirmation,
+			oldPassword,
 			onSubmit,
 			logout
 		}

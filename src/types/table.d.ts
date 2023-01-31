@@ -72,11 +72,11 @@ interface TableRoutingParams {
 	pagination: TablePaginationParams
 }
 
-type TableOptionsMenuItems = [
-	{
-		title: LocalizedItemField
-		requiresConfirmation: boolean
-		delete?: boolean
-		operation?: (value: any) => void
-	}
-]
+type TableOptionsMenuItem = {
+	title: LocalizedItemField
+	requiresConfirmation: boolean
+	delete?: boolean
+	operation?: (value: any) => void
+}
+
+type TableOptionsMenuItems = Array<TableOptionsMenuItem>

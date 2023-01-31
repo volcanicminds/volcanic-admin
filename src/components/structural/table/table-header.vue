@@ -14,32 +14,26 @@
 	</Fragment>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import router from '@/router'
 import { useI18n } from '@/composables/i18n'
 
-export default {
-	props: {
-		source: { type: String, default: '', required: true },
-		deleteAll: { type: Function, default: () => null, required: false },
-		hasSelectedRows: { type: Boolean, default: false, required: false },
-		options: { type: Object, default: null, required: false }
-	},
-	setup(props) {
-		const { t } = useI18n()
+const props = defineProps({
+	source: { type: String, default: '', required: true },
+	deleteAll: { type: Function, default: () => null, required: false },
+	hasSelectedRows: { type: Boolean, default: false, required: false },
+	options: { type: Object, default: null, required: false }
+})
+const { t } = useI18n()
 
-		function deleteAllConfirm() {
-			const confirmed = window.confirm(t('table.confirmDeleteAll'))
-			if (confirmed) {
-				props.deleteAll()
-			}
-		}
-
-		function create() {
-			router.push(`/${props.source}/create`)
-		}
-
-		return { create, deleteAllConfirm }
+function deleteAllConfirm() {
+	const confirmed = window.confirm(t('table.confirmDeleteAll'))
+	if (confirmed) {
+		props.deleteAll()
 	}
+}
+
+function create() {
+	router.push(`/${props.source}/create`)
 }
 </script>
