@@ -20,9 +20,8 @@ Best to be used coupled with
 
 ## How to install
 
-```ts
-yarn add @volcanicminds/admin
-```
+This project cannot be imported as a dependency, therefore you must clone it and modify it as you need.
+The project is structured so that most of the change should be made inside the configuration folder, so you can clone the project again when you want to update the codebase and just paste inside your confguration folder.
 
 ## Environment (example)
 
