@@ -65,6 +65,27 @@ export function Sidebar() {
     )
   }
 
+  const visibleGroups = groups.filter((g) => grouped.get(g.name)?.length)
+
+  const accountLink = (
+    <NavLink
+      to="/account"
+      title={collapsed ? t('nav.account') : undefined}
+      className={({ isActive }) =>
+        cn(
+          'flex items-center gap-2 rounded-md py-2 text-sm transition-colors',
+          collapsed ? 'justify-center px-0' : 'px-3',
+          isActive
+            ? 'bg-primary/10 font-medium text-primary'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+        )
+      }
+    >
+      <UserCog className="h-4 w-4 shrink-0" />
+      {!collapsed && <span className="truncate">{t('nav.account')}</span>}
+    </NavLink>
+  )
+
   return (
     <aside
       className={cn(
@@ -85,48 +106,30 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden p-2">
-        {groups.map((group) => {
-          const list = grouped.get(group.name)
-          if (!list?.length) return null
-          return (
-            <div key={group.name} className="space-y-1">
-              {collapsed ? (
-                <div className="mx-2 border-t" />
-              ) : (
-                <div className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t(group.label)}
-                </div>
-              )}
-              {sortRes(list).map(renderItem)}
-            </div>
-          )
-        })}
+        {visibleGroups.map((group, i) => (
+          <div key={group.name} className="space-y-1">
+            {collapsed ? (
+              <div className="mx-2 border-t" />
+            ) : (
+              <div className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t(group.label)}
+              </div>
+            )}
+            {sortRes(grouped.get(group.name)!).map(renderItem)}
+            {/* Account joins the last group so it sits directly under its last item. */}
+            {i === visibleGroups.length - 1 && ungrouped.length === 0 && accountLink}
+          </div>
+        ))}
         {ungrouped.length > 0 && (
           <div className="space-y-1">
             {collapsed && <div className="mx-2 border-t" />}
             {sortRes(ungrouped).map(renderItem)}
+            {accountLink}
           </div>
         )}
-
-        <div className="space-y-1">
-          {collapsed && <div className="mx-2 border-t" />}
-          <NavLink
-            to="/account"
-            title={collapsed ? t('nav.account') : undefined}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-2 rounded-md py-2 text-sm transition-colors',
-                collapsed ? 'justify-center px-0' : 'px-3',
-                isActive
-                  ? 'bg-primary/10 font-medium text-primary'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-              )
-            }
-          >
-            <UserCog className="h-4 w-4 shrink-0" />
-            {!collapsed && <span className="truncate">{t('nav.account')}</span>}
-          </NavLink>
-        </div>
+        {visibleGroups.length === 0 && ungrouped.length === 0 && (
+          <div className="space-y-1">{accountLink}</div>
+        )}
       </nav>
 
       <div className="border-t p-2">
