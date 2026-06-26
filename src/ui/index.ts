@@ -17,6 +17,7 @@ export { FieldInput, formFieldName } from './widgets/inputs'
 export { FieldCell, FieldValue } from './widgets/display'
 export { ReferenceSelect } from './widgets/ReferenceSelect'
 export type { WidgetProps } from './widgets/types'
+export { defaultWidgets, ImageSingle, GalleryReorder } from './widgets/upload'
 
 export { notificationProvider } from './notification'
 export { Toaster } from './components/ui/sonner'

@@ -29,7 +29,14 @@ import {
   toRefineResources
 } from '@/engine'
 import type { AdminModel, Manifest, TenantOption } from '@/engine'
-import { AdminLayout, LoginView, resourceRouteElements, notificationProvider, Toaster } from '@/ui'
+import {
+  AdminLayout,
+  LoginView,
+  resourceRouteElements,
+  notificationProvider,
+  Toaster,
+  defaultWidgets
+} from '@/ui'
 
 import { mockManifest } from '@/mock/manifest'
 import { mockDataProvider } from '@/mock/mockDataProvider'
