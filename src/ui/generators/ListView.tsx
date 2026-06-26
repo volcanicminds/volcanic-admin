@@ -23,6 +23,7 @@ import { useT } from '@/engine'
 import type { ResourceModel, ListLayout } from '@/engine'
 import { ListTable } from './ListTable'
 import { ListCards } from './ListCards'
+import { ListIO } from './ListIO'
 
 const layoutKey = (name: string) => `volcanic.admin.list.${name}.layout`
 
@@ -98,6 +99,7 @@ export function ListView({ model }: { model: ResourceModel }) {
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">{t(spec.label.plural)}</h1>
         <div className="flex items-center gap-2">
+          <ListIO model={model} filters={filters} sorters={sorters} canWrite={canCreate || canEdit} />
           {layouts.length > 1 && (
             <div className="flex rounded-md border p-0.5">
               <Button
