@@ -5,7 +5,7 @@
  */
 import { Outlet, useNavigate } from 'react-router'
 import { useGetIdentity, useLogout } from '@refinedev/core'
-import { LogOut, Globe, UserCog } from 'lucide-react'
+import { LogOut, Globe, UserCog, Building2 } from 'lucide-react'
 import { useI18n } from '@/engine'
 import { Button } from '@/ui/components/ui/button'
 import {
@@ -29,7 +29,7 @@ interface Identity {
 export function AdminLayout() {
   const { data: identity } = useGetIdentity<Identity>()
   const { mutate: logout } = useLogout()
-  const { locale, locales, setLocale } = useI18n()
+  const { locale, locales, setLocale, t } = useI18n()
   const navigate = useNavigate()
 
   const name =
@@ -73,6 +73,9 @@ export function AdminLayout() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate('/account')}>
                   <UserCog className="h-4 w-4" /> Account
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/company')}>
+                  <Building2 className="h-4 w-4" /> {t('res.company.plural')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => logout()}>
                   <LogOut className="h-4 w-4" /> Logout

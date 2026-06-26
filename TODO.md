@@ -6,4 +6,5 @@
 - nella scheda auto aggiungere campo note "nascosto" sol oad uso BO
 - nella scheda aggoungere campi privati non esposti quali: offerta numero, identificativo, provider (es leasys, ecc), data offerta generata, ecc
 - aggiungere collection provider noleggi (leasys, arval, avis, ..)
+- nel menu utente in alto a destra c'è nome + congome full.. mettiamo il nome ma con cognome solo 1 lettera puntata
 -
