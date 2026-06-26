@@ -118,6 +118,7 @@ const it: Record<string, string> = {
   'state.loading': 'Caricamento…',
   'state.empty': 'Nessun record',
   'list.pageInfo': 'Pagina {page} di {pageCount}',
+  'list.pageSize': 'Righe per pagina',
   'list.prev': 'Precedente',
   'list.next': 'Successiva'
 }
@@ -141,6 +142,7 @@ const en: Record<string, string> = {
   'state.loading': 'Loading…',
   'state.empty': 'No records',
   'list.pageInfo': 'Page {page} of {pageCount}',
+  'list.pageSize': 'Rows per page',
   'list.prev': 'Previous',
   'list.next': 'Next'
 }

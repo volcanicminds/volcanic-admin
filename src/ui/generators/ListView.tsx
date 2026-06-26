@@ -18,6 +18,13 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/ui/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/ui/components/ui/select'
 import { cn } from '@/lib/utils'
 import { useT } from '@/engine'
 import type { ResourceModel, ListLayout } from '@/engine'
@@ -26,6 +33,8 @@ import { ListCards } from './ListCards'
 import { ListIO } from './ListIO'
 
 const layoutKey = (name: string) => `volcanic.admin.list.${name}.layout`
+const pageSizeKey = (name: string) => `volcanic.admin.list.${name}.pageSize`
+const PAGE_SIZES = [10, 20, 50, 100]
 
 export function ListView({ model }: { model: ResourceModel }) {
   const t = useT()
@@ -45,7 +54,15 @@ export function ListView({ model }: { model: ResourceModel }) {
   }
 
   const [page, setPage] = useState(1)
-  const pageSize = 20
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const stored = Number(localStorage.getItem(pageSizeKey(spec.name)))
+    return PAGE_SIZES.includes(stored) ? stored : 20
+  })
+  const choosePageSize = (n: number) => {
+    setPageSize(n)
+    setPage(1)
+    localStorage.setItem(pageSizeKey(spec.name), String(n))
+  }
   const [search, setSearch] = useState('')
   const [appliedSearch, setAppliedSearch] = useState('')
   const [sorters, setSorters] = useState<CrudSorting>(
@@ -157,9 +174,26 @@ export function ListView({ model }: { model: ResourceModel }) {
       )}
 
       <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>
-          {t('list.pageInfo', { page, pageCount })} · {total}
-        </span>
+        <div className="flex items-center gap-3">
+          <span>
+            {t('list.pageInfo', { page, pageCount })} · {total}
+          </span>
+          <div className="flex items-center gap-2">
+            <span>{t('list.pageSize')}</span>
+            <Select value={String(pageSize)} onValueChange={(v) => choosePageSize(Number(v))}>
+              <SelectTrigger className="h-8 w-[4.5rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZES.map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
             {t('list.prev')}
