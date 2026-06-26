@@ -3,7 +3,7 @@
  * enums → colored badge, booleans → check/dash, relations → titleField, dates →
  * locale string, images → thumbnail.
  */
-import { Check, Minus } from 'lucide-react'
+import { Check, X, Minus } from 'lucide-react'
 import { Badge } from '@/ui/components/ui/badge'
 import type { ResolvedField } from '@/engine'
 import type { WidgetProps } from './types'
@@ -28,15 +28,16 @@ export interface CellProps {
 export function FieldCell({ record, field, t }: CellProps) {
   const value = getValue(record, field)
 
+  // Boolean is tri-state: true → green check, false → red cross, undefined → grey dash.
+  if (field.type === 'boolean') {
+    if (value === true) return <Check className="h-4 w-4 text-green-600" />
+    if (value === false) return <X className="h-4 w-4 text-destructive" />
+    return <Minus className="h-4 w-4 text-muted-foreground" />
+  }
+
   if (value == null || value === '') return <span className="text-muted-foreground">—</span>
 
   switch (field.type) {
-    case 'boolean':
-      return value ? (
-        <Check className="h-4 w-4 text-primary" />
-      ) : (
-        <Minus className="h-4 w-4 text-muted-foreground" />
-      )
     case 'enum': {
       const opt = field.options?.find((o) => o.value === value)
       return (
