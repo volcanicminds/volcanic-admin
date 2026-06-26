@@ -150,7 +150,11 @@ export function ListView({ model }: { model: ResourceModel }) {
               </TableRow>
             ) : (
               records.map((record: any) => (
-                <TableRow key={record.id}>
+                <TableRow
+                  key={record.id}
+                  className="cursor-pointer"
+                  onClick={() => show(spec.name, record.id)}
+                >
                   {listFields.map((f) => (
                     <TableCell
                       key={f.name}
@@ -159,7 +163,7 @@ export function ListView({ model }: { model: ResourceModel }) {
                       <FieldCell record={record} field={f} t={t} />
                     </TableCell>
                   ))}
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-1">
                       <Button size="icon" variant="ghost" onClick={() => show(spec.name, record.id)}>
                         <Eye />
