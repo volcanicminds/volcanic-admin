@@ -31,6 +31,7 @@ export function ListCards({
   const { spec, listFields } = model
 
   const imageField = model.fields.find((f) => f.type === 'image')
+  const hasImage = Boolean(imageField)
   const titleField = spec.titleField ?? 'name'
   const subtitleField = spec.subtitleField
   const badgeFields = listFields.filter((f) => f.type === 'enum')
@@ -46,40 +47,49 @@ export function ListCards({
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {records.map((record: any) => {
-        const cover = coverOf(record, imageField?.name)
+        const cover = hasImage ? coverOf(record, imageField?.name) : undefined
+        const actions = (canEdit || canDelete) && (
+          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+            {canEdit && (
+              <Button size="icon" variant="secondary" className="h-7 w-7" onClick={() => onEdit(record.id)}>
+                <Pencil />
+              </Button>
+            )}
+            {canDelete && (
+              <Button size="icon" variant="secondary" className="h-7 w-7" onClick={() => onDelete(record.id)}>
+                <Trash2 className="text-destructive" />
+              </Button>
+            )}
+          </div>
+        )
         return (
           <Card
             key={record.id}
             className="group cursor-pointer overflow-hidden transition-shadow hover:shadow-md"
             onClick={() => onShow(record.id)}
           >
-            <div className="relative flex aspect-video items-center justify-center bg-muted/40">
-              {cover ? (
-                <img src={cover} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <ImageOff className="h-8 w-8 text-muted-foreground/50" />
-              )}
-              <div
-                className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {canEdit && (
-                  <Button size="icon" variant="secondary" className="h-7 w-7" onClick={() => onEdit(record.id)}>
-                    <Pencil />
-                  </Button>
+            {hasImage && (
+              <div className="relative flex aspect-video items-center justify-center bg-muted/40">
+                {cover ? (
+                  <img src={cover} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <ImageOff className="h-8 w-8 text-muted-foreground/50" />
                 )}
-                {canDelete && (
-                  <Button size="icon" variant="secondary" className="h-7 w-7" onClick={() => onDelete(record.id)}>
-                    <Trash2 className="text-destructive" />
-                  </Button>
-                )}
+                <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
+                  {actions}
+                </div>
               </div>
-            </div>
+            )}
             <div className="space-y-2 p-3">
-              <div>
-                <div className="truncate font-medium">{record[titleField] ?? '—'}</div>
-                {subtitleField && record[subtitleField] && (
-                  <div className="truncate text-sm text-muted-foreground">{record[subtitleField]}</div>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate font-medium">{record[titleField] ?? '—'}</div>
+                  {subtitleField && record[subtitleField] && (
+                    <div className="truncate text-sm text-muted-foreground">{record[subtitleField]}</div>
+                  )}
+                </div>
+                {!hasImage && (
+                  <div className="opacity-0 transition-opacity group-hover:opacity-100">{actions}</div>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-1">
