@@ -11,7 +11,7 @@ export const mockManifest: Manifest = {
   generatedAt: '2026-06-26T10:00:00Z',
   i18n: { defaultLocale: 'it', locales: ['it', 'en'] },
   auth: {
-    mode: 'cookie',
+    mode: 'bearer',
     endpoints: { login: '/auth/login', refresh: '/auth/refresh-token', logout: '/auth/logout' }
   },
   tenancy: {

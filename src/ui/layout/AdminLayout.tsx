@@ -3,9 +3,9 @@
  * outlet. Consumes engine hooks only; no manifest knowledge beyond what the
  * Sidebar reads.
  */
-import { Outlet } from 'react-router'
+import { Outlet, useNavigate } from 'react-router'
 import { useGetIdentity, useLogout } from '@refinedev/core'
-import { LogOut, Globe } from 'lucide-react'
+import { LogOut, Globe, UserCog } from 'lucide-react'
 import { useI18n } from '@/engine'
 import { Button } from '@/ui/components/ui/button'
 import {
@@ -30,6 +30,7 @@ export function AdminLayout() {
   const { data: identity } = useGetIdentity<Identity>()
   const { mutate: logout } = useLogout()
   const { locale, locales, setLocale } = useI18n()
+  const navigate = useNavigate()
 
   const name =
     [identity?.firstName, identity?.lastName].filter(Boolean).join(' ') ||
@@ -70,6 +71,9 @@ export function AdminLayout() {
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel className="truncate">{identity?.email ?? name}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/account')}>
+                  <UserCog className="h-4 w-4" /> Account
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => logout()}>
                   <LogOut className="h-4 w-4" /> Logout
                 </DropdownMenuItem>

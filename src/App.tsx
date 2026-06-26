@@ -23,15 +23,20 @@ import {
   createVolcanicAccessControlProvider,
   createVolcanicDataProvider,
   createVolcanicAuthProvider,
+  createVolcanicAuthClient,
+  AuthClientProvider,
   tokenStore,
   tenantStore,
   rolesStore,
   toRefineResources
 } from '@/engine'
-import type { AdminModel, Manifest, TenantOption } from '@/engine'
+import type { AdminModel, AuthClient, Manifest, TenantOption } from '@/engine'
 import {
   AdminLayout,
   LoginView,
+  ForgotPasswordView,
+  ResetPasswordView,
+  AccountView,
   resourceRouteElements,
   notificationProvider,
   Toaster,
@@ -40,7 +45,7 @@ import {
 
 import { mockManifest } from '@/mock/manifest'
 import { mockDataProvider } from '@/mock/mockDataProvider'
-import { mockAuthProvider } from '@/mock/mockAuthProvider'
+import { mockAuthClient } from '@/mock/mockAuthClient'
 import { mockDictionaries } from '@/mock/i18n'
 import { mockTenants } from '@/mock/data'
 
@@ -72,12 +77,17 @@ function RefineApp({ model }: { model: AdminModel }) {
     })
   }, [model, manifest.auth.mode])
 
-  const authProvider: AuthProvider = useMemo(
+  const authClient: AuthClient = useMemo(
     () =>
       IS_MOCK
-        ? mockAuthProvider
-        : createVolcanicAuthProvider({ apiUrl: API_URL, authMode: manifest.auth.mode }),
+        ? mockAuthClient
+        : createVolcanicAuthClient({ apiUrl: API_URL, authMode: manifest.auth.mode }),
     [manifest.auth.mode]
+  )
+
+  const authProvider: AuthProvider = useMemo(
+    () => createVolcanicAuthProvider({ client: authClient, authMode: manifest.auth.mode }),
+    [authClient, manifest.auth.mode]
   )
 
   const accessControlProvider = useMemo(() => createVolcanicAccessControlProvider(model), [model])
@@ -108,8 +118,9 @@ function RefineApp({ model }: { model: AdminModel }) {
       locales={manifest.i18n.locales}
     >
       <RegistryProvider registry={registry}>
-        <TenantProvider tenancy={manifest.tenancy} fetchTenants={fetchTenants}>
-          <Refine
+        <AuthClientProvider client={authClient}>
+          <TenantProvider tenancy={manifest.tenancy} fetchTenants={fetchTenants}>
+            <Refine
             dataProvider={dataProvider}
             authProvider={authProvider}
             accessControlProvider={accessControlProvider}
@@ -123,33 +134,36 @@ function RefineApp({ model }: { model: AdminModel }) {
             }}
           >
             <RolesSync />
-            <Routes>
-              <Route
-                element={
-                  <Authenticated key="authenticated" fallback={<CatchAllNavigate to="/login" />}>
-                    <AdminLayout />
-                  </Authenticated>
-                }
-              >
-                <Route index element={<NavigateToResource />} />
-                {resourceRouteElements(model)}
-                <Route path="*" element={<NavigateToResource />} />
-              </Route>
-              <Route
-                element={
-                  <Authenticated key="auth-pages" fallback={<LoginView />}>
-                    <NavigateToResource />
-                  </Authenticated>
-                }
-              >
-                <Route path="/login" element={<LoginView />} />
-              </Route>
-            </Routes>
-            <UnsavedChangesNotifier />
-            <DocumentTitleHandler />
-            <Toaster richColors position="top-right" />
-          </Refine>
-        </TenantProvider>
+              <Routes>
+                <Route
+                  path="/login"
+                  element={
+                    <Authenticated key="login" fallback={<LoginView />}>
+                      <NavigateToResource />
+                    </Authenticated>
+                  }
+                />
+                <Route path="/forgot-password" element={<ForgotPasswordView />} />
+                <Route path="/reset-password" element={<ResetPasswordView />} />
+                <Route
+                  element={
+                    <Authenticated key="authenticated" fallback={<CatchAllNavigate to="/login" />}>
+                      <AdminLayout />
+                    </Authenticated>
+                  }
+                >
+                  <Route index element={<NavigateToResource />} />
+                  <Route path="/account" element={<AccountView />} />
+                  {resourceRouteElements(model)}
+                  <Route path="*" element={<NavigateToResource />} />
+                </Route>
+              </Routes>
+              <UnsavedChangesNotifier />
+              <DocumentTitleHandler />
+              <Toaster richColors position="top-right" />
+            </Refine>
+          </TenantProvider>
+        </AuthClientProvider>
       </RegistryProvider>
     </I18nProvider>
   )

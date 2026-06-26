@@ -1,116 +1,87 @@
 /**
- * Volcanic auth provider — wraps the native `/auth` + `/users/me` endpoints of
- * @volcanicminds/backend. Supports BEARER (token in localStorage) and COOKIE
- * (HttpOnly, credentials: include) modes.
+ * Volcanic auth provider — drives the native /auth flow through an AuthClient.
+ * The login action is multi-step to support MFA:
+ *   - { email, password }            → credentials; may return mfaRequired/mfaSetupRequired
+ *   - { mfaStep: 'verify', code }     → TOTP verify with the stored temp token
+ *   - { mfaStep: 'enable', secret, code } → enable MFA during a forced-setup login
+ * On the MFA-pending branch login resolves with success:true (no redirect) and
+ * the flags, so the LoginView can render the next step.
  */
 import type { AuthProvider } from '@refinedev/core'
 import type { AuthMode } from './data.js'
-
-const TOKEN_KEY = 'volcanic.admin.token'
-const REFRESH_KEY = 'volcanic.admin.refresh'
+import type { AuthClient, AuthData } from '../auth/client.js'
+import { tokenStore } from '../auth/tokenStore.js'
 
 export interface VolcanicAuthOptions {
-  apiUrl: string
+  client: AuthClient
   authMode?: AuthMode
-  endpoints?: {
-    login?: string
-    logout?: string
-    refresh?: string
-    me?: string
-  }
 }
 
-export const tokenStore = {
-  get: () => localStorage.getItem(TOKEN_KEY) ?? undefined,
-  set: (t?: string) => (t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY)),
-  getRefresh: () => localStorage.getItem(REFRESH_KEY) ?? undefined,
-  setRefresh: (t?: string) =>
-    t ? localStorage.setItem(REFRESH_KEY, t) : localStorage.removeItem(REFRESH_KEY),
-  clear: () => {
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(REFRESH_KEY)
-  }
-}
-
-export function createVolcanicAuthProvider(opts: VolcanicAuthOptions): AuthProvider {
-  const { apiUrl, authMode = 'cookie' } = opts
-  const ep = {
-    login: opts.endpoints?.login ?? '/auth/login',
-    logout: opts.endpoints?.logout ?? '/auth/logout',
-    refresh: opts.endpoints?.refresh ?? '/auth/refresh-token',
-    me: opts.endpoints?.me ?? '/users/me'
-  }
-
-  const credentials: RequestCredentials = authMode === 'cookie' ? 'include' : 'same-origin'
-
-  function authHeaders(): Record<string, string> {
-    const h: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (authMode === 'bearer') {
-      const t = tokenStore.get()
-      if (t) h.Authorization = `Bearer ${t}`
-    }
-    return h
+export function createVolcanicAuthProvider({
+  client,
+  authMode = 'cookie'
+}: VolcanicAuthOptions): AuthProvider {
+  const storeAuth = (data: AuthData) => {
+    if (data?.token) tokenStore.set(data.token)
+    if (data?.refreshToken) tokenStore.setRefresh(data.refreshToken)
   }
 
   return {
-    login: async ({ email, username, password }) => {
-      const res = await fetch(`${apiUrl}${ep.login}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials,
-        body: JSON.stringify({ email: email ?? username, username: username ?? email, password })
-      })
-      if (!res.ok) {
-        return {
-          success: false,
-          error: { name: 'LoginError', message: 'Invalid credentials' }
+    login: async (params: any) => {
+      try {
+        if (params?.mfaStep === 'verify') {
+          const data = await client.verifyMfa(params.code, tokenStore.getTempMfa())
+          storeAuth(data)
+          tokenStore.setTempMfa(undefined)
+          return { success: true, redirectTo: '/' }
         }
+        if (params?.mfaStep === 'enable') {
+          const data = await client.enableMfa(params.secret, params.code, tokenStore.getTempMfa())
+          storeAuth(data)
+          tokenStore.setTempMfa(undefined)
+          return { success: true, redirectTo: '/' }
+        }
+
+        const res = await client.login(params.email ?? params.username, params.password)
+        if (res?.mfaRequired || res?.mfaSetupRequired) {
+          tokenStore.setTempMfa(res.tempToken)
+          return {
+            success: true,
+            mfaRequired: Boolean(res.mfaRequired),
+            mfaSetupRequired: Boolean(res.mfaSetupRequired)
+          }
+        }
+        storeAuth(res)
+        return { success: true, redirectTo: '/' }
+      } catch (e: any) {
+        return { success: false, error: { name: 'LoginError', message: e?.message ?? 'Login failed' } }
       }
-      if (authMode === 'bearer') {
-        const data = await res.json().catch(() => ({}))
-        if (data?.token) tokenStore.set(data.token)
-        if (data?.refreshToken) tokenStore.setRefresh(data.refreshToken)
-      }
-      return { success: true, redirectTo: '/' }
     },
 
     logout: async () => {
-      try {
-        await fetch(`${apiUrl}${ep.logout}`, {
-          method: 'POST',
-          headers: authHeaders(),
-          credentials
-        })
-      } catch {
-        /* ignore network errors on logout */
-      }
+      await client.logout()
       tokenStore.clear()
       return { success: true, redirectTo: '/login' }
     },
 
     check: async () => {
-      try {
-        const res = await fetch(`${apiUrl}${ep.me}`, {
-          method: 'GET',
-          headers: authHeaders(),
-          credentials
-        })
-        if (res.ok) return { authenticated: true }
-      } catch {
-        /* fallthrough */
+      if (authMode === 'bearer') {
+        return tokenStore.get()
+          ? { authenticated: true }
+          : { authenticated: false, redirectTo: '/login', logout: true }
       }
-      return { authenticated: false, redirectTo: '/login', logout: true }
+      // COOKIE mode: verify via /users/me.
+      try {
+        await client.me()
+        return { authenticated: true }
+      } catch {
+        return { authenticated: false, redirectTo: '/login', logout: true }
+      }
     },
 
     getIdentity: async () => {
       try {
-        const res = await fetch(`${apiUrl}${ep.me}`, {
-          method: 'GET',
-          headers: authHeaders(),
-          credentials
-        })
-        if (!res.ok) return null
-        return await res.json()
+        return await client.me()
       } catch {
         return null
       }
@@ -118,16 +89,40 @@ export function createVolcanicAuthProvider(opts: VolcanicAuthOptions): AuthProvi
 
     getPermissions: async () => {
       try {
-        const res = await fetch(`${apiUrl}${ep.me}`, {
-          method: 'GET',
-          headers: authHeaders(),
-          credentials
-        })
-        if (!res.ok) return []
-        const me = await res.json()
+        const me = await client.me()
         return me?.roles ?? []
       } catch {
         return []
+      }
+    },
+
+    updatePassword: async (params: any) => {
+      try {
+        const me = await client.me()
+        await client.changePassword(
+          me?.email,
+          params.oldPassword,
+          params.password,
+          params.confirmPassword ?? params.password
+        )
+        return { success: true }
+      } catch (e: any) {
+        return {
+          success: false,
+          error: { name: 'UpdatePasswordError', message: e?.message ?? 'Change failed' }
+        }
+      }
+    },
+
+    forgotPassword: async (params: any) => {
+      try {
+        await client.forgotPassword(params.email)
+        return { success: true }
+      } catch (e: any) {
+        return {
+          success: false,
+          error: { name: 'ForgotPasswordError', message: e?.message ?? 'Request failed' }
+        }
       }
     },
 

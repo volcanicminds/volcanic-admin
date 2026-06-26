@@ -12,8 +12,18 @@ export { buildMagicQuery, readTotal } from './magic-query.js'
 export { createVolcanicDataProvider } from './providers/data.js'
 export type { VolcanicDataProviderOptions, AuthMode } from './providers/data.js'
 
-export { createVolcanicAuthProvider, tokenStore } from './providers/auth.js'
+export { createVolcanicAuthProvider } from './providers/auth.js'
 export type { VolcanicAuthOptions } from './providers/auth.js'
+export { tokenStore } from './auth/tokenStore.js'
+export { createVolcanicAuthClient } from './auth/client.js'
+export type {
+  AuthClient,
+  AuthData,
+  LoginResponse,
+  MfaSetup,
+  VolcanicAuthClientOptions
+} from './auth/client.js'
+export { AuthClientProvider, useAuthClient } from './auth/context.js'
 
 export { createVolcanicAccessControlProvider, rolesStore } from './providers/accessControl.js'
 
