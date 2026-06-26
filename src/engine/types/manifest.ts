@@ -130,6 +130,9 @@ export interface SearchSpec {
 
 export type ViewMode = 'auto' | string // "auto" | componentId from override registry
 
+/** List presentation layouts (table grid vs. card grid). */
+export type ListLayout = 'table' | 'card'
+
 export interface ResourceViews {
   list?: ViewMode
   create?: ViewMode
@@ -154,6 +157,10 @@ export interface ResourceSpec {
   capabilities?: ResourceCapabilities
   defaultSort?: SortSpec[]
   search?: SearchSpec
+  /** Available list layouts; when more than one, the UI shows a layout toggle. */
+  listLayouts?: ListLayout[]
+  /** Default list layout (falls back to the first of listLayouts, else 'table'). */
+  defaultListLayout?: ListLayout
   fields: FieldSpec[]
   actions?: ActionSpec[]
   views?: ResourceViews

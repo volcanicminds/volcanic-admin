@@ -9,6 +9,8 @@ export { LoginView } from './views/LoginView'
 
 export { resourceRouteElements } from './generators/routes'
 export { ListView } from './generators/ListView'
+export { ListTable } from './generators/ListTable'
+export { ListCards } from './generators/ListCards'
 export { ShowView } from './generators/ShowView'
 export { AutoForm } from './generators/AutoForm'
 export { SingletonView } from './generators/SingletonView'

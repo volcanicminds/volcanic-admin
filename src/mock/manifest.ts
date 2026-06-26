@@ -69,6 +69,8 @@ export const mockManifest: Manifest = {
       capabilities: { create: true, update: true, delete: true, search: true },
       defaultSort: [{ field: 'name', order: 'asc' }],
       search: { fields: ['name'], operator: 'containsi' },
+      listLayouts: ['table', 'card'],
+      defaultListLayout: 'card',
       fields: [
         { name: 'name', type: 'string', required: true, list: { visible: true, sortable: true } },
         {
@@ -101,6 +103,8 @@ export const mockManifest: Manifest = {
       capabilities: { create: true, update: true, delete: true, bulkDelete: true, search: true },
       defaultSort: [{ field: 'importance', order: 'desc' }],
       search: { fields: ['name', 'trimLevel', 'description', 'tag'], operator: 'containsi' },
+      listLayouts: ['table', 'card'],
+      defaultListLayout: 'card',
       fields: [
         {
           name: 'status',
