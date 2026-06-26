@@ -13,6 +13,15 @@ import { Card } from '@/ui/components/ui/card'
 import { FieldCell } from '@/ui/widgets/display'
 import type { ListPresentationProps } from './listShared'
 
+/** Resolve a display string from one or more fields (joined with spaces). */
+function display(record: any, field?: string | string[]): string {
+  if (!field) return ''
+  return (Array.isArray(field) ? field : [field])
+    .map((f) => record[f])
+    .filter((v) => v != null && v !== '')
+    .join(' ')
+}
+
 /** All displayable image URLs for a record, cover first. */
 function imageUrls(record: any, imageFieldName?: string): string[] {
   const v = imageFieldName ? record[imageFieldName] : undefined
@@ -137,9 +146,11 @@ export function ListCards({
             <div className="space-y-2 p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="truncate font-medium">{record[titleField] ?? '—'}</div>
-                  {subtitleField && record[subtitleField] && (
-                    <div className="truncate text-sm text-muted-foreground">{record[subtitleField]}</div>
+                  <div className="truncate font-medium">{display(record, titleField) || '—'}</div>
+                  {display(record, subtitleField) && (
+                    <div className="truncate text-sm text-muted-foreground">
+                      {display(record, subtitleField)}
+                    </div>
                   )}
                 </div>
                 {!hasImage && (

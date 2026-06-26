@@ -15,6 +15,8 @@ export default defineConfig({
     host: true
   },
   build: {
+    // xlsx (SheetJS) is a ~500 kB lazy chunk loaded only on export/import.
+    chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
         manualChunks(id) {

@@ -250,8 +250,8 @@ export const mockManifest: Manifest = {
       icon: 'users',
       group: 'settings',
       order: 5,
-      titleField: 'email',
-      subtitleField: 'username',
+      titleField: ['firstName', 'lastName'],
+      subtitleField: 'email',
       tenantScoped: false,
       permissions: {
         list: ['admin'],

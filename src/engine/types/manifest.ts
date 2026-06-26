@@ -148,8 +148,10 @@ export interface ResourceSpec {
   group?: string
   order?: number
   idField?: string
-  titleField?: string
-  subtitleField?: string
+  /** Display field(s) for titles/references; an array is joined with spaces. */
+  titleField?: string | string[]
+  /** Secondary display field(s); an array is joined with spaces. */
+  subtitleField?: string | string[]
   tenantScoped?: boolean
   softDelete?: boolean
   singleton?: boolean

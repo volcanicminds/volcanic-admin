@@ -25,7 +25,16 @@ export function ShowView({ model }: { model: ResourceModel }) {
       ? model.formSections
       : [{ group: 'default', fields: model.fields }]
 
-  const title = record?.[spec.titleField ?? 'name'] ?? t(spec.label.singular)
+  const titleParts = Array.isArray(spec.titleField)
+    ? spec.titleField
+    : [spec.titleField ?? 'name']
+  const title =
+    (record &&
+      titleParts
+        .map((f) => record[f])
+        .filter((v) => v != null && v !== '')
+        .join(' ')) ||
+    t(spec.label.singular)
 
   return (
     <div className="space-y-6">
