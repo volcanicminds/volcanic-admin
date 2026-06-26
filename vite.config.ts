@@ -19,11 +19,9 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return
+          // Split the two heaviest, self-contained groups; React + router + the
+          // rest stay together in `vendor` to keep the chunk graph acyclic.
           if (id.includes('@refinedev') || id.includes('@tanstack')) return 'refine'
-          // Keep the react chunk a leaf (no deps on other chunks) to avoid
-          // circular chunks; react-router pulls in vendor deps, so it stays in vendor.
-          if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/scheduler/'))
-            return 'react'
           if (
             id.includes('@radix-ui') ||
             id.includes('lucide-react') ||
