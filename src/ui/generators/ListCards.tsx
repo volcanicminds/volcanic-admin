@@ -103,6 +103,9 @@ export function ListCards({
   const subtitleField = spec.subtitleField
   const badgeFields = listFields.filter((f) => f.type === 'enum')
   const numberField = listFields.find((f) => f.type === 'number' || f.type === 'integer')
+  const cardFields = (spec.cardFields ?? []).map((n) => model.field(n)).filter(Boolean) as NonNullable<
+    ReturnType<typeof model.field>
+  >[]
 
   if (isLoading) {
     return <div className="py-10 text-center text-muted-foreground">{t('state.loading')}</div>
@@ -165,6 +168,18 @@ export function ListCards({
               {numberField && record[numberField.name] != null && (
                 <div className="text-sm font-semibold">
                   <FieldCell record={record} field={numberField} t={t} />
+                </div>
+              )}
+              {cardFields.length > 0 && (
+                <div className="space-y-1 border-t pt-2">
+                  {cardFields.map((f) => (
+                    <div key={f.name} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="text-muted-foreground">
+                        {t(f.label ?? `field.${spec.name}.${f.name}`)}
+                      </span>
+                      <FieldCell record={record} field={f} t={t} />
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

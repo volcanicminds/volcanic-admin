@@ -163,6 +163,8 @@ export interface ResourceSpec {
   listLayouts?: ListLayout[]
   /** Default list layout (falls back to the first of listLayouts, else 'table'). */
   defaultListLayout?: ListLayout
+  /** Extra fields rendered as labeled info rows on the card layout. */
+  cardFields?: string[]
   fields: FieldSpec[]
   actions?: ActionSpec[]
   views?: ResourceViews

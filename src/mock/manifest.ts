@@ -219,6 +219,9 @@ export const mockManifest: Manifest = {
       capabilities: { create: true, update: false, delete: true, bulkDelete: true, export: true, search: true },
       defaultSort: [{ field: 'subscribedAt', order: 'desc' }],
       search: { fields: ['email'], operator: 'containsi' },
+      listLayouts: ['table', 'card'],
+      defaultListLayout: 'table',
+      cardFields: ['subscribedAt', 'privacyAccepted'],
       fields: [
         { name: 'email', type: 'email', required: true, list: { visible: true, sortable: true } },
         {
