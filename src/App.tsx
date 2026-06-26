@@ -82,6 +82,8 @@ function RefineApp({ model }: { model: AdminModel }) {
 
   const accessControlProvider = useMemo(() => createVolcanicAccessControlProvider(model), [model])
 
+  const registry = useMemo(() => createOverrideRegistry({ widget: defaultWidgets }), [])
+
   const fetchTenants = useMemo<() => Promise<TenantOption[]>>(
     () =>
       IS_MOCK
@@ -105,7 +107,7 @@ function RefineApp({ model }: { model: AdminModel }) {
       defaultLocale={manifest.i18n.defaultLocale}
       locales={manifest.i18n.locales}
     >
-      <RegistryProvider registry={createOverrideRegistry()}>
+      <RegistryProvider registry={registry}>
         <TenantProvider tenancy={manifest.tenancy} fetchTenants={fetchTenants}>
           <Refine
             dataProvider={dataProvider}
