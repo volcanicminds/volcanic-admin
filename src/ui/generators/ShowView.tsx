@@ -107,7 +107,14 @@ export function ShowView({ model }: { model: ResourceModel }) {
             )}
             <CardContent className="grid grid-cols-1 gap-4 pt-6 md:grid-cols-2">
               {section.fields.map((field) => (
-                <div key={field.name} className="space-y-1">
+                <div
+                  key={field.name}
+                  className={
+                    field.form?.colSpan === 2 || field.type === 'image' || field.type === 'richtext'
+                      ? 'space-y-1 md:col-span-2'
+                      : 'space-y-1'
+                  }
+                >
                   <div className="text-xs font-medium text-muted-foreground">
                     {t(field.label ?? `field.${spec.name}.${field.name}`)}
                   </div>

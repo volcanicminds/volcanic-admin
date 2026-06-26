@@ -71,7 +71,33 @@ export function FieldCell({ record, field, t }: CellProps) {
   }
 }
 
+/** All image URLs for an image field (cover first), used by the show gallery. */
+function imageUrls(record: Record<string, any>, field: ResolvedField): string[] {
+  const v = record[field.name]
+  if (Array.isArray(v) && v.length) return v.map((it) => it?.url ?? it).filter(Boolean)
+  if (record.coverUrl) return [record.coverUrl]
+  return typeof v === 'string' && v ? [v] : []
+}
+
 export function FieldValue({ record, field, t }: CellProps) {
+  // Image/gallery fields render as a thumbnail grid (read-only mirror of the edit widget).
+  if (field.type === 'image' || field.type === 'file') {
+    const urls = imageUrls(record, field)
+    if (!urls.length) return <span className="text-muted-foreground">—</span>
+    return (
+      <div className="flex flex-wrap gap-2">
+        {urls.map((url, i) => (
+          <img
+            key={i}
+            src={url}
+            alt=""
+            className="h-24 w-32 rounded-md border object-cover"
+          />
+        ))}
+      </div>
+    )
+  }
+
   if (field.type === 'richtext') {
     const html = record[field.name]
     // NOTE: richtext is sanitized server-side before persistence (blueprint §11.2.9).
