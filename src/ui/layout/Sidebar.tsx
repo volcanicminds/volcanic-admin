@@ -6,7 +6,7 @@
  */
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router'
-import { PanelLeftClose, PanelLeft } from 'lucide-react'
+import { PanelLeftClose, PanelLeft, UserCog } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useModel, useT } from '@/engine'
 import { Icon } from './icons'
@@ -107,6 +107,26 @@ export function Sidebar() {
             {sortRes(ungrouped).map(renderItem)}
           </div>
         )}
+
+        <div className="space-y-1">
+          {collapsed && <div className="mx-2 border-t" />}
+          <NavLink
+            to="/account"
+            title={collapsed ? t('nav.account') : undefined}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-2 rounded-md py-2 text-sm transition-colors',
+                collapsed ? 'justify-center px-0' : 'px-3',
+                isActive
+                  ? 'bg-primary/10 font-medium text-primary'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+              )
+            }
+          >
+            <UserCog className="h-4 w-4 shrink-0" />
+            {!collapsed && <span className="truncate">{t('nav.account')}</span>}
+          </NavLink>
+        </div>
       </nav>
 
       <div className="border-t p-2">

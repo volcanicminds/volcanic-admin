@@ -16,6 +16,7 @@ const it: Record<string, string> = {
   'group.social': 'Social',
   'group.profile': 'Profilo',
   'group.access': 'Accesso',
+  'nav.account': 'Account',
   // resources
   'res.brand.singular': 'Brand',
   'res.brand.plural': 'Brands',
@@ -132,6 +133,7 @@ const en: Record<string, string> = {
   'res.newsletter.plural': 'Newsletter',
   'res.company.plural': 'Company',
   'res.user.plural': 'Operators',
+  'nav.account': 'Account',
   'action.new': 'New',
   'action.save': 'Save',
   'action.search': 'Search',
