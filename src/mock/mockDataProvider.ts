@@ -14,7 +14,8 @@ const store: Record<string, Row[]> = Object.fromEntries(
 const SEARCH_FIELDS: Record<string, string[]> = {
   vehicle: ['name', 'trimLevel', 'description', 'tag'],
   brand: ['name'],
-  newsletter: ['email']
+  newsletter: ['email'],
+  user: ['email', 'firstName', 'lastName', 'username']
 }
 
 function expand(resource: string, row: Row): Row {

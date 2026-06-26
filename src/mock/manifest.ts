@@ -47,6 +47,11 @@ export const mockManifest: Manifest = {
     gearboxType: [
       { value: 'manual', label: 'enum.gearboxType.manual' },
       { value: 'automatic', label: 'enum.gearboxType.automatic' }
+    ],
+    userRole: [
+      { value: 'admin', label: 'enum.userRole.admin', color: '#6366f1' },
+      { value: 'editor', label: 'enum.userRole.editor', color: '#22c55e' },
+      { value: 'viewer', label: 'enum.userRole.viewer', color: '#9ca3af' }
     ]
   },
   resources: [
@@ -237,6 +242,57 @@ export const mockManifest: Manifest = {
         }
       ],
       views: { list: 'auto', create: 'auto', show: 'auto' }
+    },
+    {
+      name: 'user',
+      path: 'users',
+      label: { singular: 'res.user.singular', plural: 'res.user.plural' },
+      icon: 'users',
+      group: 'settings',
+      order: 5,
+      titleField: 'email',
+      subtitleField: 'username',
+      tenantScoped: false,
+      permissions: {
+        list: ['admin'],
+        read: ['admin'],
+        create: ['admin'],
+        update: ['admin'],
+        delete: ['admin']
+      },
+      capabilities: { create: true, update: true, delete: true, search: true },
+      defaultSort: [{ field: 'createdAt', order: 'desc' }],
+      listLayouts: ['table', 'card'],
+      defaultListLayout: 'table',
+      search: { fields: ['email', 'firstName', 'lastName', 'username'], operator: 'containsi' },
+      fields: [
+        { name: 'firstName', type: 'string', list: { visible: true, sortable: true }, form: { group: 'profile' } },
+        { name: 'lastName', type: 'string', list: { visible: true, sortable: true }, form: { group: 'profile' } },
+        {
+          name: 'email',
+          type: 'email',
+          required: true,
+          list: { visible: true, sortable: true },
+          form: { group: 'profile' }
+        },
+        { name: 'username', type: 'string', list: { visible: true }, form: { group: 'profile' } },
+        {
+          name: 'role',
+          type: 'enum',
+          enumRef: 'userRole',
+          list: { visible: true, filterable: true, operators: ['eq', 'in'] },
+          form: { group: 'access', widget: 'select' }
+        },
+        { name: 'blocked', type: 'boolean', default: false, list: { visible: true }, form: { group: 'access' } },
+        {
+          name: 'password',
+          type: 'string',
+          list: { visible: false },
+          form: { group: 'access', widget: 'password', placeholder: 'field.user.password.ph' }
+        },
+        { name: 'createdAt', type: 'datetime', readOnly: true, list: { visible: true, sortable: true } }
+      ],
+      views: { list: 'auto', create: 'auto', edit: 'auto', show: 'auto' }
     },
     {
       name: 'company',

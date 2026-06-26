@@ -23,7 +23,13 @@ import type { WidgetProps } from './types'
 
 function TextWidget({ field, value, onChange, disabled, t }: WidgetProps) {
   const type =
-    field.type === 'email' ? 'email' : field.type === 'url' ? 'url' : 'text'
+    field.form?.widget === 'password'
+      ? 'password'
+      : field.type === 'email'
+        ? 'email'
+        : field.type === 'url'
+          ? 'url'
+          : 'text'
   return (
     <Input
       type={type}

@@ -65,6 +65,20 @@ export const seed: Record<string, Row[]> = {
       images: [], coverUrl: null, createdAt: now, updatedAt: now
     }
   ],
+  user: [
+    {
+      id: 'u1', firstName: 'Admin', lastName: 'Dionisi', email: 'admin@dionisi-to.it',
+      username: 'admin', role: 'admin', blocked: false, createdAt: now
+    },
+    {
+      id: 'u2', firstName: 'Viviana', lastName: 'Dionisi', email: 'viviana@dionisi-to.it',
+      username: 'viviana', role: 'admin', blocked: false, createdAt: now
+    },
+    {
+      id: 'u3', firstName: 'Marco', lastName: 'Bianchi', email: 'marco@dionisi-to.it',
+      username: 'marco', role: 'editor', blocked: false, createdAt: now
+    }
+  ],
   newsletter: [
     { id: 'n1', email: 'marracris@libero.it', subscribedAt: '2026-06-14T16:07:04Z', privacyAccepted: true },
     { id: 'n2', email: 'mario.rossi@gmail.com', subscribedAt: '2026-06-12T10:22:00Z', privacyAccepted: true },
