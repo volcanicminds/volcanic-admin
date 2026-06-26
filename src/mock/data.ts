@@ -23,8 +23,12 @@ export const seed: Record<string, Row[]> = {
       engine: 'diesel', category: 'suv_crossover', gearbox: 'automatic', doors: 5, seats: 5,
       optional: 'Navigatore, Cerchi 19"', svcKasko: true, svcMaintenance: true, svcRca: true, svcRoadside: true,
       monthlyVatExcl: 520, months: 48, km: 15000, readyDelivery: true,
-      images: [{ id: 'i1', url: 'https://picsum.photos/seed/x3/320/200', position: 0, altView: 'front' }],
-      coverUrl: 'https://picsum.photos/seed/x3/320/200', createdAt: now, updatedAt: now
+      images: [
+        { id: 'i1a', url: 'https://picsum.photos/seed/x3a/320/200', position: 0, altView: 'front' },
+        { id: 'i1b', url: 'https://picsum.photos/seed/x3b/320/200', position: 1, altView: 'side' },
+        { id: 'i1c', url: 'https://picsum.photos/seed/x3c/320/200', position: 2, altView: 'interior' }
+      ],
+      coverUrl: 'https://picsum.photos/seed/x3a/320/200', createdAt: now, updatedAt: now
     },
     {
       id: 'v2', status: 'published', visible: true, featured: false, importance: 90, brandId: 'b2',
@@ -33,8 +37,11 @@ export const seed: Record<string, Row[]> = {
       engine: 'diesel', category: 'suv_crossover', gearbox: 'automatic', doors: 5, seats: 5,
       optional: 'Fari LED Matrix', svcKasko: true, svcMaintenance: true, svcRca: true, svcRoadside: false,
       monthlyVatExcl: 458, months: 48, km: 15000, readyDelivery: false,
-      images: [{ id: 'i2', url: 'https://picsum.photos/seed/q3/320/200', position: 0, altView: 'side' }],
-      coverUrl: 'https://picsum.photos/seed/q3/320/200', createdAt: now, updatedAt: now
+      images: [
+        { id: 'i2a', url: 'https://picsum.photos/seed/q3a/320/200', position: 0, altView: 'front' },
+        { id: 'i2b', url: 'https://picsum.photos/seed/q3b/320/200', position: 1, altView: 'rear' }
+      ],
+      coverUrl: 'https://picsum.photos/seed/q3a/320/200', createdAt: now, updatedAt: now
     },
     {
       id: 'v3', status: 'draft', visible: false, featured: false, importance: 50, brandId: 'b4',

@@ -1,20 +1,78 @@
 /**
  * Card presentation for the generated list. Card content is derived from the
- * manifest metadata (no extra config): cover image, title/subtitle fields,
- * enum badges, and a primary numeric field.
+ * manifest metadata (no extra config): cover image (a mini carousel when the
+ * record has multiple images), title/subtitle fields, enum badges, and a
+ * primary numeric field. The image block is omitted for resources with no
+ * image field.
  */
-import { Pencil, Trash2, ImageOff } from 'lucide-react'
+import { useState } from 'react'
+import { Pencil, Trash2, ImageOff, ChevronLeft, ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/ui/components/ui/button'
 import { Card } from '@/ui/components/ui/card'
 import { FieldCell } from '@/ui/widgets/display'
 import type { ListPresentationProps } from './listShared'
 
-function coverOf(record: any, imageFieldName?: string): string | undefined {
-  if (record.coverUrl) return record.coverUrl
-  if (!imageFieldName) return undefined
-  const v = record[imageFieldName]
-  if (Array.isArray(v)) return v[0]?.url
-  return typeof v === 'string' ? v : undefined
+/** All displayable image URLs for a record, cover first. */
+function imageUrls(record: any, imageFieldName?: string): string[] {
+  const v = imageFieldName ? record[imageFieldName] : undefined
+  if (Array.isArray(v) && v.length) {
+    return v.map((it) => it?.url ?? it).filter(Boolean)
+  }
+  if (record.coverUrl) return [record.coverUrl]
+  if (typeof v === 'string' && v) return [v]
+  return []
+}
+
+function CardCarousel({ urls }: { urls: string[] }) {
+  const [i, setI] = useState(0)
+  const multi = urls.length > 1
+  const go = (e: React.MouseEvent, dir: number) => {
+    e.stopPropagation()
+    setI((p) => (p + dir + urls.length) % urls.length)
+  }
+  const index = Math.min(i, Math.max(0, urls.length - 1))
+
+  return (
+    <div className="relative flex aspect-video items-center justify-center overflow-hidden bg-muted/40">
+      {urls.length ? (
+        <img src={urls[index]} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <ImageOff className="h-8 w-8 text-muted-foreground/50" />
+      )}
+      {multi && (
+        <>
+          <button
+            type="button"
+            onClick={(e) => go(e, -1)}
+            className="absolute left-1 top-1/2 -translate-y-1/2 rounded-full bg-background/70 p-1 opacity-0 transition-opacity hover:bg-background group-hover:opacity-100"
+            aria-label="Previous image"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => go(e, 1)}
+            className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full bg-background/70 p-1 opacity-0 transition-opacity hover:bg-background group-hover:opacity-100"
+            aria-label="Next image"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          <div className="absolute bottom-1.5 left-1/2 flex -translate-x-1/2 gap-1">
+            {urls.map((_, d) => (
+              <span
+                key={d}
+                className={cn(
+                  'h-1.5 w-1.5 rounded-full transition-colors',
+                  d === index ? 'bg-white' : 'bg-white/50'
+                )}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
 }
 
 export function ListCards({
@@ -47,7 +105,7 @@ export function ListCards({
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {records.map((record: any) => {
-        const cover = hasImage ? coverOf(record, imageField?.name) : undefined
+        const urls = hasImage ? imageUrls(record, imageField?.name) : []
         const actions = (canEdit || canDelete) && (
           <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
             {canEdit && (
@@ -69,12 +127,8 @@ export function ListCards({
             onClick={() => onShow(record.id)}
           >
             {hasImage && (
-              <div className="relative flex aspect-video items-center justify-center bg-muted/40">
-                {cover ? (
-                  <img src={cover} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <ImageOff className="h-8 w-8 text-muted-foreground/50" />
-                )}
+              <div className="relative">
+                <CardCarousel urls={urls} />
                 <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
                   {actions}
                 </div>
