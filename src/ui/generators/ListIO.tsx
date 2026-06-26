@@ -95,11 +95,21 @@ export function ListIO({ model, filters, sorters, canWrite }: ListIOProps) {
       const buf = await file.arrayBuffer()
       const wb = XLSX.read(buf, { type: 'array' })
       const ws = wb.Sheets[wb.SheetNames[0]]
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws)
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { blankrows: false })
       const dp = getDataProvider()
+      let skipped = 0
 
       for (const raw of rows) {
-        const id = raw.id != null && raw.id !== '' ? String(raw.id) : undefined
+        // Ignore empty rows (all cells blank/whitespace).
+        const allBlank = Object.values(raw).every(
+          (v) => v == null || String(v).trim() === ''
+        )
+        if (allBlank) {
+          skipped++
+          continue
+        }
+
+        const id = raw.id != null && String(raw.id).trim() !== '' ? String(raw.id) : undefined
         const variables: Record<string, unknown> = {}
         for (const [key, value] of Object.entries(raw)) {
           if (key === 'id') continue
@@ -108,6 +118,13 @@ export function ListIO({ model, filters, sorters, canWrite }: ListIOProps) {
           const v = coerce(field, value)
           if (v !== undefined) variables[key] = v
         }
+
+        // Nothing to create and no id to update → skip.
+        if (!id && Object.keys(variables).length === 0) {
+          skipped++
+          continue
+        }
+
         try {
           if (id) {
             await dp.update({ resource: spec.name, id, variables })
@@ -122,7 +139,10 @@ export function ListIO({ model, filters, sorters, canWrite }: ListIOProps) {
       }
 
       invalidate({ resource: spec.name, invalidates: ['list', 'many'] })
-      toast.success(`Import done — ${created} created, ${updated} updated${failed ? `, ${failed} failed` : ''}`)
+      toast.success(
+        `Import done — ${created} created, ${updated} updated` +
+          `${failed ? `, ${failed} failed` : ''}${skipped ? `, ${skipped} skipped` : ''}`
+      )
     } catch (e: any) {
       toast.error(e?.message ?? 'Import failed')
     } finally {
