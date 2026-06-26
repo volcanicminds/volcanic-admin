@@ -41,8 +41,8 @@ export function AdminLayout() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 items-center justify-between gap-4 border-b px-6">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b px-6">
           <TenantSwitcher />
           <div className="ml-auto flex items-center gap-2">
             {locales.length > 1 && (
@@ -81,7 +81,7 @@ export function AdminLayout() {
             </DropdownMenu>
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="relative min-h-0 flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
       </div>
