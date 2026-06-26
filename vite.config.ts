@@ -19,6 +19,8 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return
+          // Keep xlsx in its own chunk so it stays lazily loaded (dynamic import).
+          if (id.includes('xlsx')) return 'xlsx'
           // Split the two heaviest, self-contained groups; React + router + the
           // rest stay together in `vendor` to keep the chunk graph acyclic.
           if (id.includes('@refinedev') || id.includes('@tanstack')) return 'refine'
