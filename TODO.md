@@ -15,3 +15,6 @@
 - aggiungere per ogni campo / etichetta possibilità di un tip ossia spunta iconcina help che se premuto apre la spiegazione di quel campo
 - possibilità nei dettagli di avere anche su 3/4 colonne e non solo sempre 1 o 2
 - possibilità di definire una o più dashboard con grafici e widget
+- mobile responsive ossia la sidebar deve diventare un hamburger menu
+- se il tenant è singolo allora il selettore a discesa dropdown diventa solo una etichetta
+- se comodo tabelle di log e attività
