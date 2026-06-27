@@ -14,3 +14,4 @@
 - aggiungere funzione copia o duplica scheda
 - aggiungere per ogni campo / etichetta possibilità di un tip ossia spunta iconcina help che se premuto apre la spiegazione di quel campo
 - possibilità nei dettagli di avere anche su 3/4 colonne e non solo sempre 1 o 2
+- possibilità di definire una o più dashboard con grafici e widget
