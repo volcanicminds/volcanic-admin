@@ -15,6 +15,8 @@ export default defineConfig({
     host: true
   },
   build: {
+    // Demo app output (the library publishes to ./dist via vite.config.lib.ts).
+    outDir: 'dist-demo',
     // xlsx (SheetJS) is a ~500 kB lazy chunk loaded only on export/import.
     chunkSizeWarningLimit: 700,
     rollupOptions: {

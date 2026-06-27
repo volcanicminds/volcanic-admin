@@ -27,3 +27,6 @@ export { defaultWidgets, ImageSingle, GalleryReorder } from './widgets/upload'
 
 export { notificationProvider } from './notification'
 export { Toaster } from './components/ui/sonner'
+
+export { AdminConfigProvider, useAdminConfig } from './config'
+export type { AdminNavItem } from './config'

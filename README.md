@@ -9,6 +9,40 @@ The admin is **auto-generated** from a manifest (`GET /admin/manifest`) yet
 **customizable** via targeted overrides. It is single- and multi-tenant ready.
 See `VOLCANIC_ADMIN_BLUEPRINT.md` for the full design.
 
+## Use it in a client project
+
+`@volcanicminds/admin` is consumed as a library. A client backoffice is usually one file:
+
+```bash
+npm i @volcanicminds/admin \
+  react react-dom react-router \
+  @refinedev/core @refinedev/react-router @refinedev/react-hook-form react-hook-form
+```
+
+```tsx
+import { createRoot } from 'react-dom/client'
+import { VolcanicAdmin } from '@volcanicminds/admin'
+import '@volcanicminds/admin/styles.css'
+import { dictionaries } from './i18n'
+
+createRoot(document.getElementById('root')!).render(
+  <VolcanicAdmin
+    apiUrl={import.meta.env.VITE_API_BASE_URL} // backend with /admin/manifest
+    authMode="cookie"
+    dictionaries={dictionaries}
+  />
+)
+```
+
+The engine builds list/create/edit/show, filters, search, pagination, XLS import/export,
+auth + MFA and multi-tenant from the manifest. Customize via `<VolcanicAdmin>` props
+(`overrides` for widgets/views, `routes` for dashboards/custom pages, CSS variables for
+theming).
+
+- **Full guide:** [`docs/CONSUMING.md`](docs/CONSUMING.md) (simple + complex cases).
+- **Starters:** [`examples/client-starter`](examples/client-starter) (simple),
+  [`examples/client-advanced`](examples/client-advanced) (overrides, dashboard, theming).
+
 ## Architecture (internal split)
 
 ```
@@ -65,8 +99,12 @@ Register overrides on the `OverrideRegistry` passed to `RegistryProvider`.
 ## Scripts
 
 ```bash
-npm run dev          # Vite dev server (mock by default)
-npm run build        # tsc -b + vite build
+npm run dev          # demo/dev app (mock by default → dist-demo)
+npm run build        # build the publishable library → dist (JS + style.css + d.ts)
+npm run build:demo   # build the demo app → dist-demo
 npm run type-check   # tsc --noEmit
 npm run lint         # eslint
 ```
+
+The repo is both the **library** (`src/engine`, `src/ui`, `src/VolcanicAdmin.tsx`,
+published via `dist`) and a **demo app** (`src/App.tsx` + `src/mock`) used to develop it.

@@ -1,0 +1,4 @@
+/* Utilities for this project's own components/pages.
+   Base/preflight + the theme tokens come from '@volcanicminds/admin/styles.css'. */
+@tailwind components;
+@tailwind utilities;

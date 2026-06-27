@@ -10,12 +10,14 @@ import { PanelLeftClose, PanelLeft, UserCog } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useModel, useT } from '@/engine'
 import { Icon } from './icons'
+import { useAdminConfig } from '@/ui/config'
 
 const COLLAPSE_KEY = 'volcanic.admin.sidebar.collapsed'
 
 export function Sidebar() {
   const model = useModel()
   const t = useT()
+  const { navExtras } = useAdminConfig()
 
   const [collapsed, setCollapsed] = useState<boolean>(
     () => localStorage.getItem(COLLAPSE_KEY) === '1'
@@ -106,6 +108,31 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden p-2">
+        {navExtras.length > 0 && (
+          <div className="space-y-1">
+            {[...navExtras]
+              .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+              .map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  title={collapsed ? t(item.label) : undefined}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-2 rounded-md py-2 text-sm transition-colors',
+                      collapsed ? 'justify-center px-0' : 'px-3',
+                      isActive
+                        ? 'bg-primary/10 font-medium text-primary'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                    )
+                  }
+                >
+                  <Icon name={item.icon} fallbackLabel={t(item.label)} className="h-4 w-4 shrink-0" />
+                  {!collapsed && <span className="truncate">{t(item.label)}</span>}
+                </NavLink>
+              ))}
+          </div>
+        )}
         {visibleGroups.map((group, i) => (
           <div key={group.name} className="space-y-1">
             {collapsed ? (
