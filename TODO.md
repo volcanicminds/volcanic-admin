@@ -8,3 +8,9 @@
 - aggiungere collection provider noleggi (leasys, arval, avis, ..)
 - nel menu utente in alto a destra c'è nome + congome full.. mettiamo il nome ma con cognome solo 1 lettera puntata
 - nella sidebar aggiungere un chip col numero totali elementi per lista se fattibile e veloce (che si aggiorna sull'apertura della lsita interessata)
+- permettere di rendere i dettagli in modalità sempre edit ossia non esiste xxx/show/:id ma solo xxx/edit/:id
+- nei vari dettagli e liste l'header di contenuto (es filtri o action buttons ecc) deve essere fisso e non scrollare in alto
+- aggiungere metodo alla odoo o directus per i filtri su colonne con possibilità di salvare in locale storage eventuali filtri comodi
+- aggiungere funzione copia o duplica scheda
+- aggiungere per ogni campo / etichetta possibilità di un tip ossia spunta iconcina help che se premuto apre la spiegazione di quel campo
+- possibilità nei dettagli di avere anche su 3/4 colonne e non solo sempre 1 o 2
