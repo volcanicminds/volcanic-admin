@@ -8,9 +8,12 @@ import './globals.css'
 export * from './engine'
 export * from './ui'
 
-export { VolcanicAdmin } from './VolcanicAdmin'
+export { VolcanicAdmin, defineAdminPlugin } from './VolcanicAdmin'
 export type {
   VolcanicAdminProps,
   AdminCustomRoute,
-  AdminOverrides
+  AdminOverrides,
+  AdminPlugin,
+  AdminTheme,
+  AdminThemeTokens
 } from './VolcanicAdmin'

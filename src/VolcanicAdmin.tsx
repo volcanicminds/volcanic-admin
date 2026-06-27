@@ -18,7 +18,7 @@ import routerProvider, {
   UnsavedChangesNotifier,
   DocumentTitleHandler
 } from '@refinedev/react-router'
-import { BrowserRouter, Routes, Route } from 'react-router'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 
 import {
   ManifestProvider,
@@ -75,6 +75,56 @@ export interface AdminOverrides {
   action?: Record<string, ComponentType<any>>
 }
 
+/** Theme tokens — CSS variable values. Colors are HSL channels ("221 83% 53%"). */
+export interface AdminThemeTokens {
+  background?: string
+  foreground?: string
+  card?: string
+  cardForeground?: string
+  popover?: string
+  popoverForeground?: string
+  primary?: string
+  primaryForeground?: string
+  secondary?: string
+  secondaryForeground?: string
+  muted?: string
+  mutedForeground?: string
+  accent?: string
+  accentForeground?: string
+  destructive?: string
+  destructiveForeground?: string
+  border?: string
+  input?: string
+  ring?: string
+  /** Any CSS length, e.g. "0.75rem". */
+  radius?: string
+}
+
+export interface AdminTheme extends AdminThemeTokens {
+  /** Overrides applied under the `.dark` class. */
+  dark?: AdminThemeTokens
+}
+
+/**
+ * A composable bundle of customizations. Drop one per concern (theme, widgets,
+ * a feature's pages…) into a client app, or publish it as its own npm package
+ * and share it across client repos — no fork, no monorepo.
+ */
+export interface AdminPlugin {
+  name?: string
+  widgets?: Record<string, ComponentType<any>>
+  views?: Record<string, ComponentType<any>>
+  actions?: Record<string, ComponentType<any>>
+  routes?: AdminCustomRoute[]
+  dictionaries?: Dictionaries
+  theme?: AdminTheme
+}
+
+/** Identity helper for authoring typed plugins. */
+export function defineAdminPlugin(plugin: AdminPlugin): AdminPlugin {
+  return plugin
+}
+
 export interface VolcanicAdminProps {
   /** Backend base URL (used to fetch the manifest and mount CRUD). */
   apiUrl?: string
@@ -98,6 +148,12 @@ export interface VolcanicAdminProps {
 
   /** Project overrides keyed by manifest componentId. */
   overrides?: AdminOverrides
+
+  /** Theme tokens injected as CSS variables (no Tailwind needed). */
+  theme?: AdminTheme
+
+  /** Composable customization bundles (widgets/views/actions/routes/i18n/theme). */
+  plugins?: AdminPlugin[]
 
   /** Tenant list loader (multi-tenant). Defaults to GET ${apiUrl}/tenants. */
   fetchTenants?: () => Promise<TenantOption[]>
@@ -219,13 +275,16 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
                       </Authenticated>
                     }
                   >
-                    <Route index element={indexRoute?.element ?? <NavigateToResource />} />
+                    <Route
+                      index
+                      element={
+                        indexRoute ? <Navigate to={indexRoute.path} replace /> : <NavigateToResource />
+                      }
+                    />
                     <Route path="/account" element={<AccountView />} />
-                    {customRoutes
-                      .filter((r) => !r.index)
-                      .map((r) => (
-                        <Route key={r.path} path={r.path} element={r.element} />
-                      ))}
+                    {customRoutes.map((r) => (
+                      <Route key={r.path} path={r.path} element={r.element} />
+                    ))}
                     {resourceRouteElements(model)}
                     <Route path="*" element={<NavigateToResource />} />
                   </Route>
@@ -242,8 +301,107 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
   )
 }
 
+const TOKEN_VARS: Record<string, string> = {
+  background: '--background',
+  foreground: '--foreground',
+  card: '--card',
+  cardForeground: '--card-foreground',
+  popover: '--popover',
+  popoverForeground: '--popover-foreground',
+  primary: '--primary',
+  primaryForeground: '--primary-foreground',
+  secondary: '--secondary',
+  secondaryForeground: '--secondary-foreground',
+  muted: '--muted',
+  mutedForeground: '--muted-foreground',
+  accent: '--accent',
+  accentForeground: '--accent-foreground',
+  destructive: '--destructive',
+  destructiveForeground: '--destructive-foreground',
+  border: '--border',
+  input: '--input',
+  ring: '--ring',
+  radius: '--radius'
+}
+
+function themeBlock(tokens?: AdminThemeTokens): string {
+  if (!tokens) return ''
+  return Object.entries(tokens)
+    .filter(([k, v]) => TOKEN_VARS[k] && v != null)
+    .map(([k, v]) => `${TOKEN_VARS[k]}: ${v};`)
+    .join('')
+}
+
+/** Injects theme tokens as CSS variables (applies during loading too). */
+function ThemeStyle({ theme }: { theme?: AdminTheme }) {
+  const css = useMemo(() => {
+    if (!theme) return ''
+    const { dark, ...light } = theme
+    const root = themeBlock(light)
+    const dk = themeBlock(dark)
+    return `${root ? `:root{${root}}` : ''}${dk ? `.dark{${dk}}` : ''}`
+  }, [theme])
+  return css ? <style>{css}</style> : null
+}
+
+function mergeDictionaries(list: (Dictionaries | undefined)[]): Dictionaries {
+  const out: Dictionaries = {}
+  for (const d of list) {
+    if (!d) continue
+    for (const [loc, map] of Object.entries(d)) out[loc] = { ...(out[loc] ?? {}), ...map }
+  }
+  return out
+}
+
+function mergeTheme(list: (AdminTheme | undefined)[]): AdminTheme | undefined {
+  let any = false
+  const out: AdminTheme = {}
+  for (const t of list) {
+    if (!t) continue
+    any = true
+    const { dark, ...rest } = t
+    Object.assign(out, rest)
+    if (dark) out.dark = { ...(out.dark ?? {}), ...dark }
+  }
+  return any ? out : undefined
+}
+
+function mergeRecords<T>(list: (Record<string, T> | undefined)[]): Record<string, T> | undefined {
+  let any = false
+  const out: Record<string, T> = {}
+  for (const r of list) {
+    if (r) {
+      any = true
+      Object.assign(out, r)
+    }
+  }
+  return any ? out : undefined
+}
+
 export function VolcanicAdmin(props: VolcanicAdminProps) {
   const apiUrl = props.apiUrl ?? API_FALLBACK
+  const plugins = props.plugins ?? []
+
+  // Compose plugins + direct props (direct props win on key collisions).
+  const effective = useMemo<VolcanicAdminProps>(
+    () => ({
+      ...props,
+      overrides: {
+        widget: mergeRecords([...plugins.map((p) => p.widgets), props.overrides?.widget]),
+        view: mergeRecords([...plugins.map((p) => p.views), props.overrides?.view]),
+        action: mergeRecords([...plugins.map((p) => p.actions), props.overrides?.action])
+      },
+      routes: [...plugins.flatMap((p) => p.routes ?? []), ...(props.routes ?? [])],
+      dictionaries: mergeDictionaries([...plugins.map((p) => p.dictionaries), props.dictionaries])
+    }),
+    [props]
+  )
+
+  const theme = useMemo(
+    () => mergeTheme([...plugins.map((p) => p.theme), props.theme]),
+    [props]
+  )
+
   const load = useMemo(() => {
     if (props.manifest) return undefined
     return (
@@ -261,8 +419,9 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
 
   return (
     <BrowserRouter basename={props.basename}>
+      <ThemeStyle theme={theme} />
       <ManifestProvider manifest={props.manifest} load={load} fallback={props.loading}>
-        {(model) => <AdminRuntime model={model} props={props} />}
+        {(model) => <AdminRuntime model={model} props={effective} />}
       </ManifestProvider>
     </BrowserRouter>
   )

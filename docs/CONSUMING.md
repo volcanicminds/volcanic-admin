@@ -59,41 +59,59 @@ multi-tenant — all from the manifest. `dictionaries` translate the manifest ke
 humanized label.
 
 > **Model A (no repo):** the very same build can serve many clients — deploy once and
-> set `VITE_API_BASE_URL` per environment/subdomain. Use B only when a client needs
-> custom React.
+> set `VITE_API_BASE_URL` per environment/subdomain.
+>
+> **Need custom React?** Stay on B — add **plugins** (§2) for theme, components, and
+> pages. Customization is injected, and shared customizations can be their own npm
+> package reused across clients — no fork, no monorepo.
 
 ---
 
-## 2. Complex case — overrides, custom components, dashboards, theming
+## 2. Complex case — plugins (theme, components, pages)
 
-Everything custom is passed as props to `<VolcanicAdmin>`. Nothing is monkey-patched;
-the manifest references your components by **id** and the engine resolves them.
+Customization is **injected**, never forked or monkey-patched. The manifest references
+your components by **id**; the engine resolves them. You can pass customization inline as
+props (`overrides`, `routes`, `theme`, `dictionaries`) — but the clean way to keep
+`main.tsx` tiny and customization modular is a **plugin**.
+
+A plugin is a plain object that contributes any of: `widgets`, `views`, `actions`,
+`routes`, `dictionaries`, `theme`. Plugins **compose** (later wins on key collisions;
+direct props win over plugins). Put one plugin per concern in its own file — or publish it
+as its own npm package and **share it across client repos** (no fork, no monorepo).
 
 ```tsx
+// main.tsx stays tiny — concerns live in plugin files
 import { VolcanicAdmin } from '@volcanicminds/admin'
 import '@volcanicminds/admin/styles.css'
-import './theme.css'                 // §2.3 brand colors
+import { themePlugin } from './plugins/theme.plugin'       // §2.3
+import { catalogPlugin } from './plugins/catalog.plugin'   // §2.1 + §2.2
+import { dashboardPlugin } from './plugins/dashboard.plugin' // §2.4
 import { dictionaries } from './i18n'
-import { RatingWidget } from './widgets/RatingWidget'      // §2.1
-import { VehicleShow } from './views/VehicleShow'          // §2.2
-import { Dashboard } from './pages/Dashboard'              // §2.4
 
 createRoot(document.getElementById('root')!).render(
   <VolcanicAdmin
     apiUrl={import.meta.env.VITE_API_BASE_URL}
     dictionaries={dictionaries}
-    overrides={{
-      widget: { rating: RatingWidget },            // field.form.widget === "rating"
-      view: { 'vehicle-show': VehicleShow }         // views.show === "vehicle-show"
-    }}
-    routes={[
-      // a custom landing dashboard + extra pages
-      { path: '/dashboard', element: <Dashboard />, index: true,
-        nav: { label: 'nav.dashboard', icon: 'layers', order: 0 } }
-    ]}
+    plugins={[themePlugin, catalogPlugin, dashboardPlugin]}
   />
 )
 ```
+
+```ts
+// plugins/catalog.plugin.tsx
+import { defineAdminPlugin } from '@volcanicminds/admin'
+import { RatingWidget } from '../widgets/RatingWidget'
+import { VehicleShow } from '../views/VehicleShow'
+
+export const catalogPlugin = defineAdminPlugin({
+  name: 'catalog',
+  widgets: { rating: RatingWidget },
+  views: { 'vehicle-show': VehicleShow }
+})
+```
+
+> The inline props (`overrides`/`routes`/`theme`/`dictionaries`) and plugins are merged,
+> so you can mix both. Everything below works either way.
 
 ### 2.1 Custom field widget
 
@@ -146,21 +164,27 @@ screen is used.
 
 ### 2.3 Theming / graphical style
 
-The theme is driven by CSS variables (shadcn tokens). Override them **after** importing the
-stylesheet — no rebuild required:
+Pass theme tokens as **data** (a `theme` prop or `plugin.theme`) — injected as CSS
+variables at runtime, no CSS file or rebuild. Colors are HSL channels.
 
-```css
-/* theme.css */
-:root {
-  --primary: 221 83% 53%;        /* brand color (HSL channels) */
-  --primary-foreground: 0 0% 100%;
-  --ring: 221 83% 53%;
-  --radius: 0.75rem;
-}
-.dark {
-  --primary: 217 91% 60%;
-}
+```ts
+// plugins/theme.plugin.ts
+import { defineAdminPlugin } from '@volcanicminds/admin'
+
+export const themePlugin = defineAdminPlugin({
+  name: 'brand-theme',
+  theme: {
+    primary: '221 83% 53%',
+    primaryForeground: '0 0% 100%',
+    ring: '221 83% 53%',
+    radius: '0.75rem',
+    dark: { primary: '217 91% 60%' }
+  }
+})
 ```
+
+(Equivalent inline: `<VolcanicAdmin theme={{ primary: '221 83% 53%', … }} />`.) You can
+still override the CSS variables in a stylesheet if you prefer; both work.
 
 If you build your **own** components with Tailwind and want the same tokens/utilities,
 extend the shipped preset:
@@ -196,6 +220,48 @@ export function Dashboard() {
 }
 ```
 
+### 2.5 Share customizations across client repos (no fork, no monorepo)
+
+A plugin is just an object, so extract the customizations that several clients share into
+their **own npm package** and install it in each client repo:
+
+```ts
+// @acme/admin-plugin-catalog  (its own repo/package)
+import { defineAdminPlugin } from '@volcanicminds/admin'
+export const catalogPlugin = defineAdminPlugin({ /* widgets, views, theme, … */ })
+```
+
+```tsx
+// each client app
+import { catalogPlugin } from '@acme/admin-plugin-catalog'
+<VolcanicAdmin apiUrl={…} plugins={[catalogPlugin]} />
+```
+
+Bump the shared package → every client picks it up via `npm update`. Each client keeps its
+own thin repo; nothing is forked and there is no shared monorepo.
+
+### 2.6 Auto-load plugins by convention (optional)
+
+To avoid editing `main.tsx` when you add a file, let the build collect plugins from a
+folder using Vite's `import.meta.glob`:
+
+```ts
+// src/plugins/index.ts
+import type { AdminPlugin } from '@volcanicminds/admin'
+
+const mods = import.meta.glob('./*.plugin.{ts,tsx}', { eager: true })
+export const plugins: AdminPlugin[] = Object.values(mods).flatMap((m: any) =>
+  Object.values(m).filter((x) => x && typeof x === 'object' && ('widgets' in x || 'views' in x || 'routes' in x || 'theme' in x || 'actions' in x))
+)
+```
+
+```tsx
+import { plugins } from './plugins'
+<VolcanicAdmin apiUrl={…} plugins={plugins} />
+```
+
+Now dropping a new `*.plugin.ts(x)` under `src/plugins/` registers it automatically.
+
 ---
 
 ## 3. `<VolcanicAdmin>` props (reference)
@@ -210,6 +276,8 @@ export function Dashboard() {
 | `dictionaries`, `defaultLocale`, `locales` | i18n. |
 | `overrides` | `{ widget, view, action }` keyed by manifest componentId. |
 | `routes` | Custom pages: `{ path, element, index?, nav? }`. |
+| `theme` | Theme tokens injected as CSS variables (`{ primary, ring, radius, …, dark }`). |
+| `plugins` | Composable bundles: `{ widgets, views, actions, routes, dictionaries, theme }` (use `defineAdminPlugin`). |
 | `fetchTenants` | Tenant list loader (multi-tenant); default `GET /tenants`. |
 
 ## 4. Dev without a backend
