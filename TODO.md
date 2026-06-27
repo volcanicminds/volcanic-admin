@@ -18,3 +18,4 @@
 - mobile responsive ossia la sidebar deve diventare un hamburger menu
 - se il tenant è singolo allora il selettore a discesa dropdown diventa solo una etichetta
 - se comodo tabelle di log e attività
+- i18n lato backend o frontend
