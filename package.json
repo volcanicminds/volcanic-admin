@@ -48,7 +48,8 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "validate:manifest": "node scripts/validate-manifest.mjs"
   },
   "peerDependencies": {
     "@refinedev/core": "^4.57.0",
@@ -83,6 +84,8 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",
     "globals": "^15.14.0",

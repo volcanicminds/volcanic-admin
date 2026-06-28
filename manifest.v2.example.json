@@ -1,0 +1,98 @@
+{
+  "version": 2,
+  "generatedAt": "2026-06-28T10:00:00Z",
+  "i18n": { "defaultLocale": "it", "locales": ["it", "en"] },
+  "auth": {
+    "mode": "bearer",
+    "endpoints": { "login": "/auth/login", "refresh": "/auth/refresh-token", "logout": "/auth/logout" }
+  },
+  "tenancy": { "mode": "single" },
+  "groups": [{ "name": "catalog", "label": "group.catalog", "icon": "layers", "order": 10 }],
+  "enums": {
+    "vehicleStatus": [
+      { "value": "draft", "label": "enum.vehicleStatus.draft", "color": "#9ca3af" },
+      { "value": "published", "label": "enum.vehicleStatus.published", "color": "#22c55e" },
+      { "value": "archived", "label": "enum.vehicleStatus.archived", "color": "#f59e0b" }
+    ]
+  },
+  "resources": [
+    {
+      "name": "vehicle",
+      "path": "vehicles",
+      "label": { "singular": "res.vehicle.singular", "plural": "res.vehicle.plural" },
+      "icon": "car",
+      "group": "catalog",
+      "titleField": "name",
+      "subtitleField": "trimLevel",
+      "tenantScoped": false,
+      "capabilities": [
+        { "name": "list", "kind": "list", "method": "GET", "path": "/vehicles", "roles": ["admin"] },
+        { "name": "read", "kind": "read", "method": "GET", "path": "/vehicles/:id", "roles": ["admin"] },
+        { "name": "create", "kind": "create", "method": "POST", "path": "/vehicles", "roles": ["admin"] },
+        { "name": "update", "kind": "update", "method": "PUT", "path": "/vehicles/:id", "roles": ["admin"] },
+        {
+          "name": "delete",
+          "kind": "delete",
+          "method": "DELETE",
+          "path": "/vehicles/:id",
+          "roles": ["admin"],
+          "target": ["row", "bulk"]
+        },
+        {
+          "name": "publish",
+          "kind": "action",
+          "method": "PATCH",
+          "path": "/vehicles/:id/status",
+          "roles": ["admin"],
+          "label": "action.vehicle.publish",
+          "icon": "check",
+          "target": ["row", "bulk"],
+          "payload": { "status": "published" },
+          "visibleWhen": { "status": { "neq": "published" } },
+          "refresh": true
+        }
+      ],
+      "search": { "fields": ["name", "trimLevel", "description", "tag"], "operator": "containsi" },
+      "defaultSort": [{ "field": "importance", "order": "desc" }],
+      "listLayouts": ["table", "card"],
+      "defaultListLayout": "card",
+      "fields": [
+        {
+          "name": "status",
+          "type": "enum",
+          "enumRef": "vehicleStatus",
+          "list": { "visible": true, "filterable": true, "operators": ["eq", "in"] },
+          "form": { "group": "header", "widget": "select" }
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "list": { "visible": true, "sortable": true },
+          "form": { "group": "header", "colSpan": 2 }
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "relation": { "resource": "brand", "titleField": "name" },
+          "list": { "visible": true, "filterable": true, "operators": ["eq", "in"] },
+          "form": { "widget": "reference-select", "group": "header" }
+        }
+      ],
+      "views": { "list": "auto", "create": "auto", "edit": "auto", "show": "auto" }
+    }
+  ],
+  "capabilities": [
+    {
+      "name": "rebuildSitemap",
+      "kind": "action",
+      "method": "POST",
+      "path": "/public/sitemap/rebuild",
+      "roles": ["admin"],
+      "label": "op.sitemap.rebuild",
+      "icon": "refresh",
+      "target": ["collection"],
+      "confirm": true
+    }
+  ]
+}

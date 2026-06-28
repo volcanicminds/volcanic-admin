@@ -73,6 +73,9 @@
 - [x] **M0-3** **JSON Schema del Manifest v2** → `manifest.v2.schema.json` (draft 2020-12, `$id` volcanicminds).
       Contratto di confine BE↔admin: il BE produce JSON validato, l'engine lo interpreta. Il tipo TS `Manifest`
       resta nell'engine (`src/engine/types/manifest.ts`, da migrare a v2 in ADM-1) e deve coincidere con questo schema.
+      **Validatore eseguibile**: `npm run validate:manifest` (Ajv 2020 + `ajv-formats`, `scripts/validate-manifest.mjs`)
+      valida un manifest contro lo schema; default = `manifest.v2.example.json` (fixture v2 valida, smoke CI). Da
+      cablare in CI e nel generatore BE (BE-3/BE-5).
 - [x] **M0-4** Spec degli **structural hints** in `config` del `routes.ts` (`resource.name/titleField/subtitleField/
       globalSearch`, `group`) → specificata in `MANIFEST_DESIGN.md §3.4`. (Implementazione tipo = BE-2.)
 
