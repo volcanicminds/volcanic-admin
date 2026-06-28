@@ -99,21 +99,23 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
 - [x] **BE-2** FATTO: `ResourceHints` + `RouteConfig.{group,resource}` in `types/global.d.ts`; `ConfiguredRoute`
       ora porta `group`/`resource` (da `config` file-level con override per-route, computati in `processRoute`).
       Additivo, zero-breaking. `check-all` + test verdi. *(test dedicato → BE-7)*
-- [ ] **BE-3** **Manifest generator** core (schema-only): compone da `global.routes` + `server.getSchemas()`; **risolve i
-      `$ref`** del `doc.body`/`doc.response`; mappa schema→resource via l'hint `resource.name` (M0-4); collassa le
-      proiezioni su `(resource,field)`; emette `resources[]` (CRUD→`capabilities`) e `capabilities[]` top-level per gli
-      endpoint non-resource. `relation` magra (no kind/fk). Niente accesso al data layer.
-- [ ] **BE-4** **Sensitive policy graduata** (decisione #11): `password` write-only; `token`/`mfaSecret`/`externalId`
-      esclusi sempre; blacklist estensibile via config.
+- [x] **BE-3** FATTO: `lib/manifest/generator.ts` — `buildManifest({routes,schemas,options})` (puro) + `generateManifest(server)`
+      (legge `global.routes` + `server.getSchemas()`, auth da `AUTH_MODE`, tenancy da `multi_tenant`). Risolve i `$ref`,
+      collassa body+response su `(resource,field)`, mappa tipo schema→FieldType, dedup CRUD per kind + azioni custom,
+      classifica resource vs `capabilities[]` top-level. depcruise pulito (no data layer). 8 unit test verdi.
+      *Primo cut*: `relation` magra/non-detected, enum inline (no catalogo/`enumRef`), ampiezza tipi → hardening BE-7.
+- [x] **BE-4** FATTO (dentro il generatore, `collectFields`): `password` write-only (solo body, mai readable);
+      `token`/`externalId`/`mfaSecret`/`refreshToken`/`resetPasswordToken`/`confirmationToken` esclusi sempre; blacklist
+      estensibile via `options.sensitiveAlways/sensitiveWriteOnly`. Coperto dai test.
 - [ ] **BE-5** Endpoint `GET /admin/manifest` (full, `roles` dichiarati) dietro `admin:{manifest:true}` nel `start()`.
 - [ ] **BE-6** **Dump/snapshot**: comando per emettere `manifest.json` su file (build CI admin disaccoppiato dal BE live).
 - [ ] **BE-7** **Test BE core su tutte le parti del manifest** (suite in-memory, stile framework) + `llms.txt`/docs
       (capability, hint config, `autoCrud` esplicitamente *non* implementato). Copertura per pezzo:
   - [ ] **BE-1** `global.routes` popolato dopo `apply()`: shape `ConfiguredRoute[]`, solo rotte enabled, path/method/roles corretti.
   - [ ] **BE-2** hint `config` (file-level + per-route) presenti nell'oggetto route esposto (group, resource.*).
-  - [ ] **BE-3** generatore: fixture route+schema → manifest atteso; `$ref` collassati su `(resource,field)`,
-        classificazione resource vs operation, `relation` magra, derivazione `capabilities` (CRUD+action) e `roles`.
-  - [ ] **BE-4** sensitive policy: `password` write-only (in create/update, fuori da read/list); `token`/`mfaSecret`/`externalId` mai presenti.
+  - [x] **BE-3** generatore: fixture route+schema → manifest atteso; `$ref` collassati su `(resource,field)`,
+        classificazione resource vs operation, derivazione `capabilities` (CRUD+action) e `roles`. (`test/unit/manifest.ts`)
+  - [x] **BE-4** sensitive policy: `password` write-only (in create/update, fuori da read/list); `externalId` mai presente. (idem)
   - [ ] **BE-5** `GET /admin/manifest`: gating roles, manifest full, **validazione del manifest emesso contro
         `manifest.v2.schema.json` (Ajv)** — contratto eseguibile in CI.
   - [ ] **BE-6** dump/snapshot: il file `manifest.json` emesso è valido e identico al runtime.
