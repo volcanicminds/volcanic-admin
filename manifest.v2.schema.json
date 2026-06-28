@@ -1,0 +1,323 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://volcanicminds.com/schemas/manifest.v2.schema.json",
+  "title": "Volcanic Manifest v2",
+  "description": "Contratto di confine BE↔admin per il backoffice manifest-driven. Sorgente: MANIFEST_DESIGN.md §2. Il BE produce JSON validato contro questo schema; l'engine admin lo interpreta.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "generatedAt", "i18n", "auth", "tenancy", "groups", "enums", "resources"],
+  "properties": {
+    "version": { "const": 2 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "i18n": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["defaultLocale", "locales"],
+      "properties": {
+        "defaultLocale": { "type": "string" },
+        "locales": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "auth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "endpoints"],
+      "properties": {
+        "mode": { "enum": ["cookie", "bearer"] },
+        "endpoints": {
+          "type": "object",
+          "required": ["login", "refresh", "logout"],
+          "additionalProperties": { "type": "string" },
+          "properties": {
+            "login": { "type": "string" },
+            "refresh": { "type": "string" },
+            "logout": { "type": "string" }
+          }
+        }
+      }
+    },
+    "tenancy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["single", "multi"] },
+        "switchable": { "type": "boolean" },
+        "header": { "type": "string" },
+        "listEndpoint": { "type": "string" }
+      }
+    },
+    "groups": { "type": "array", "items": { "$ref": "#/$defs/GroupSpec" } },
+    "enums": {
+      "type": "object",
+      "additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/EnumOption" } }
+    },
+    "resources": { "type": "array", "items": { "$ref": "#/$defs/ResourceSpec" } },
+    "capabilities": {
+      "description": "Sezioni 'operation' standalone (non legate a una risorsa).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/CapabilitySpec" }
+    }
+  },
+  "$defs": {
+    "I18nKey": { "type": "string" },
+    "HttpMethod": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+    "SortOrder": { "enum": ["asc", "desc"] },
+    "CapabilityKind": { "enum": ["list", "read", "create", "update", "delete", "action"] },
+    "FieldType": {
+      "enum": [
+        "string", "text", "richtext", "integer", "number", "boolean", "date", "datetime",
+        "enum", "relation", "email", "url", "uuid", "json", "image", "file"
+      ]
+    },
+    "RelationKind": { "enum": ["many-to-one", "one-to-many", "many-to-many"] },
+    "FilterOperator": {
+      "enum": [
+        "eq", "neq", "contains", "containsi", "ncontains", "ncontainsi",
+        "starts", "startsi", "ends", "endsi", "gt", "ge", "lt", "le",
+        "between", "in", "nin", "null", "notNull"
+      ]
+    },
+    "ListLayout": { "enum": ["table", "card"] },
+    "ViewMode": { "type": "string", "description": "'auto' oppure un componentId dell'override registry." },
+    "SortSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "order"],
+      "properties": {
+        "field": { "type": "string" },
+        "order": { "$ref": "#/$defs/SortOrder" }
+      }
+    },
+    "GroupSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "label"],
+      "properties": {
+        "name": { "type": "string" },
+        "label": { "$ref": "#/$defs/I18nKey" },
+        "icon": { "type": "string" },
+        "order": { "type": "number" }
+      }
+    },
+    "EnumOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "label"],
+      "properties": {
+        "value": { "type": "string" },
+        "label": { "$ref": "#/$defs/I18nKey" },
+        "color": { "type": "string", "description": "Hint UI per badge/tag." }
+      }
+    },
+    "SearchSpec": {
+      "description": "globalSearch: OR su più campi. Config di lista, NON una capability.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fields"],
+      "properties": {
+        "fields": { "type": "array", "items": { "type": "string" } },
+        "operator": { "$ref": "#/$defs/FilterOperator" }
+      }
+    },
+    "CapabilitySpec": {
+      "description": "Verbo eseguibile: CRUD standard o azione custom. Unifica i v1 permissions+capabilities+actions; roles in un posto solo.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "method", "path", "roles"],
+      "properties": {
+        "name": { "type": "string", "description": "Univoco nello scope: 'list'|'create'|...|'publish'|'export'." },
+        "kind": { "$ref": "#/$defs/CapabilityKind" },
+        "method": { "$ref": "#/$defs/HttpMethod" },
+        "path": { "type": "string", "description": "Binding all'endpoint reale." },
+        "roles": { "type": "array", "items": { "type": "string" } },
+        "enabled": { "type": "boolean", "default": true },
+        "label": { "$ref": "#/$defs/I18nKey" },
+        "icon": { "type": "string" },
+        "target": {
+          "type": "array",
+          "items": { "enum": ["row", "bulk", "collection"] }
+        },
+        "payload": { "type": "object", "description": "Body statico merge-ato nella richiesta." },
+        "confirm": { "type": "boolean" },
+        "confirmText": { "$ref": "#/$defs/I18nKey" },
+        "visibleWhen": {
+          "type": "object",
+          "description": "Condizione di riga: field → operator → value.",
+          "additionalProperties": { "type": "object" }
+        },
+        "refresh": { "type": "boolean" },
+        "download": { "type": "string", "description": "Mime-type quando l'azione ritorna un file." },
+        "component": { "type": ["string", "null"], "description": "Override registry id; null → handler generico." }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "action" } } },
+          "then": {},
+          "else": {
+            "description": "Per i verbi CRUD i campi specifici dell'azione non si usano.",
+            "properties": {
+              "payload": false,
+              "confirm": false,
+              "visibleWhen": false,
+              "download": false
+            }
+          }
+        }
+      ]
+    },
+    "RelationSpec": {
+      "description": "Schema-only: il BE emette solo 'resource' (+ titleField se inferibile). kind/foreignKey arrivano dagli overrides admin.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource"],
+      "properties": {
+        "resource": { "type": "string" },
+        "titleField": { "type": "string" },
+        "kind": { "$ref": "#/$defs/RelationKind" },
+        "foreignKey": { "type": "string" },
+        "inverse": { "type": "string" }
+      }
+    },
+    "ImageSpec": {
+      "description": "Popolato solo via override admin (il BE non lo genera).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "multiple": { "type": "boolean" },
+        "ordered": { "type": "boolean" },
+        "cover": { "enum": ["first", "flag"] },
+        "altField": { "type": "string" },
+        "accept": { "type": "array", "items": { "type": "string" } },
+        "maxSize": { "type": "number" },
+        "endpoints": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "upload": { "$ref": "#/$defs/EndpointSpec" },
+            "reorder": { "$ref": "#/$defs/EndpointSpec" },
+            "update": { "$ref": "#/$defs/EndpointSpec" },
+            "remove": { "$ref": "#/$defs/EndpointSpec" }
+          }
+        },
+        "storage": { "type": "string" }
+      }
+    },
+    "EndpointSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "path"],
+      "properties": {
+        "method": { "$ref": "#/$defs/HttpMethod" },
+        "path": { "type": "string" }
+      }
+    },
+    "ValidationSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required": { "type": "boolean" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "minLength": { "type": "number" },
+        "maxLength": { "type": "number" },
+        "pattern": { "type": "string" },
+        "step": { "type": "number" }
+      }
+    },
+    "FieldListSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "visible": { "type": "boolean" },
+        "sortable": { "type": "boolean" },
+        "filterable": { "type": "boolean" },
+        "operators": { "type": "array", "items": { "$ref": "#/$defs/FilterOperator" } },
+        "width": { "type": "number" },
+        "align": { "enum": ["left", "center", "right"] }
+      }
+    },
+    "FieldFormSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "visible": { "type": "boolean" },
+        "widget": { "type": "string" },
+        "group": { "type": "string" },
+        "colSpan": { "type": "number" },
+        "placeholder": { "$ref": "#/$defs/I18nKey" }
+      }
+    },
+    "FieldSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "$ref": "#/$defs/FieldType" },
+        "label": { "$ref": "#/$defs/I18nKey" },
+        "required": { "type": "boolean" },
+        "readOnly": { "type": "boolean" },
+        "nullable": { "type": "boolean" },
+        "default": {},
+        "help": { "$ref": "#/$defs/I18nKey" },
+        "enum": { "type": "array", "items": { "$ref": "#/$defs/EnumOption" } },
+        "enumRef": { "type": "string" },
+        "relation": { "$ref": "#/$defs/RelationSpec" },
+        "image": { "$ref": "#/$defs/ImageSpec" },
+        "validation": { "$ref": "#/$defs/ValidationSpec" },
+        "list": { "$ref": "#/$defs/FieldListSpec" },
+        "form": { "$ref": "#/$defs/FieldFormSpec" }
+      }
+    },
+    "ResourceViews": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list": { "$ref": "#/$defs/ViewMode" },
+        "create": { "$ref": "#/$defs/ViewMode" },
+        "edit": { "$ref": "#/$defs/ViewMode" },
+        "show": { "$ref": "#/$defs/ViewMode" }
+      }
+    },
+    "ResourceSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "path", "label", "capabilities", "fields"],
+      "properties": {
+        "name": { "type": "string", "description": "Singolare canonico; chiave del mapping schema→resource." },
+        "path": { "type": "string", "description": "Segmento URL plurale." },
+        "label": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["singular", "plural"],
+          "properties": {
+            "singular": { "$ref": "#/$defs/I18nKey" },
+            "plural": { "$ref": "#/$defs/I18nKey" }
+          }
+        },
+        "icon": { "type": "string" },
+        "group": { "type": "string" },
+        "order": { "type": "number" },
+        "idField": { "type": "string" },
+        "titleField": {
+          "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }]
+        },
+        "subtitleField": {
+          "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }]
+        },
+        "tenantScoped": { "type": "boolean" },
+        "softDelete": { "type": "boolean" },
+        "singleton": { "type": "boolean" },
+        "capabilities": { "type": "array", "items": { "$ref": "#/$defs/CapabilitySpec" } },
+        "defaultSort": { "type": "array", "items": { "$ref": "#/$defs/SortSpec" } },
+        "search": { "$ref": "#/$defs/SearchSpec" },
+        "listLayouts": { "type": "array", "items": { "$ref": "#/$defs/ListLayout" } },
+        "defaultListLayout": { "$ref": "#/$defs/ListLayout" },
+        "cardFields": { "type": "array", "items": { "type": "string" } },
+        "fields": { "type": "array", "items": { "$ref": "#/$defs/FieldSpec" } },
+        "views": { "$ref": "#/$defs/ResourceViews" }
+      }
+    }
+  }
+}

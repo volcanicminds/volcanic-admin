@@ -7,7 +7,7 @@
 
 The admin is **auto-generated** from a manifest (`GET /admin/manifest`) yet
 **customizable** via targeted overrides. It is single- and multi-tenant ready.
-See `VOLCANIC_ADMIN_BLUEPRINT.md` for the full design.
+See `MANIFEST_DESIGN.md` for the full design (manifest v2 contract + engine architecture).
 
 ## Use it in a client project
 
