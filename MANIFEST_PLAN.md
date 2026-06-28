@@ -107,7 +107,10 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
 - [x] **BE-4** FATTO (dentro il generatore, `collectFields`): `password` write-only (solo body, mai readable);
       `token`/`externalId`/`mfaSecret`/`refreshToken`/`resetPasswordToken`/`confirmationToken` esclusi sempre; blacklist
       estensibile via `options.sensitiveAlways/sensitiveWriteOnly`. Coperto dai test.
-- [ ] **BE-5** Endpoint `GET /admin/manifest` (full, `roles` dichiarati) dietro `admin:{manifest:true}` nel `start()`.
+- [x] **BE-5** FATTO: endpoint `GET /admin/manifest` (full, `roles:[admin]`) come **API nativa** `lib/api/admin`
+      (route+controller, chiama `generateManifest(req.server)`). Opt-in via **`config.options.manifest.enabled`**
+      (NON nel `start()` — coerente con `scheduler`/`multi_tenant`; tipo + default in `general.ts`). Smoke runtime:
+      ON→401 (montata+gated), OFF→404 (assente). *(e2e con token admin + validazione Ajv → BE-7)*
 - [ ] **BE-6** **Dump/snapshot**: comando per emettere `manifest.json` su file (build CI admin disaccoppiato dal BE live).
 - [ ] **BE-7** **Test BE core su tutte le parti del manifest** (suite in-memory, stile framework) + `llms.txt`/docs
       (capability, hint config, `autoCrud` esplicitamente *non* implementato). Copertura per pezzo:
