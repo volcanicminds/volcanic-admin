@@ -111,7 +111,10 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
       (route+controller, chiama `generateManifest(req.server)`). Opt-in via **`config.options.manifest.enabled`**
       (NON nel `start()` — coerente con `scheduler`/`multi_tenant`; tipo + default in `general.ts`). Smoke runtime:
       ON→401 (montata+gated), OFF→404 (assente). *(e2e con token admin + validazione Ajv → BE-7)*
-- [ ] **BE-6** **Dump/snapshot**: comando per emettere `manifest.json` su file (build CI admin disaccoppiato dal BE live).
+- [x] **BE-6** FATTO: hook env in `start()` — `MANIFEST_DUMP=<path>` scrive il manifest su file; `MANIFEST_DUMP_EXIT=true`
+      salta `listen()` e ritorna (comando di dump puro per la CI). `generateManifest`/`buildManifest` esportati da `index.ts`.
+      **Cross-check verificato**: il manifest dumpato dalle route native del framework **valida contro `manifest.v2.schema.json`
+      (Ajv)** ✓. *(npm script lato consumer + e2e committato → BE-7)*
 - [ ] **BE-7** **Test BE core su tutte le parti del manifest** (suite in-memory, stile framework) + `llms.txt`/docs
       (capability, hint config, `autoCrud` esplicitamente *non* implementato). Copertura per pezzo:
   - [ ] **BE-1** `global.routes` popolato dopo `apply()`: shape `ConfiguredRoute[]`, solo rotte enabled, path/method/roles corretti.
@@ -119,9 +122,10 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
   - [x] **BE-3** generatore: fixture route+schema → manifest atteso; `$ref` collassati su `(resource,field)`,
         classificazione resource vs operation, derivazione `capabilities` (CRUD+action) e `roles`. (`test/unit/manifest.ts`)
   - [x] **BE-4** sensitive policy: `password` write-only (in create/update, fuori da read/list); `externalId` mai presente. (idem)
-  - [ ] **BE-5** `GET /admin/manifest`: gating roles, manifest full, **validazione del manifest emesso contro
-        `manifest.v2.schema.json` (Ajv)** — contratto eseguibile in CI.
-  - [ ] **BE-6** dump/snapshot: il file `manifest.json` emesso è valido e identico al runtime.
+  - [ ] **BE-5** `GET /admin/manifest`: gating roles (smoke ON→401/OFF→404 ✅ manuale), manifest full → **e2e committato
+        con token admin** ancora da scrivere.
+  - [~] **BE-6** dump/snapshot: file emesso valido contro lo schema Ajv — **verificato manualmente** (manifest nativo ⊨ v2);
+        e2e committato ancora da scrivere.
 
 ## M2 — Sample `volcanic-backend-sample` *(opzionale ma consigliato)*
 
