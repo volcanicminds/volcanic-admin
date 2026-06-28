@@ -96,9 +96,9 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
 - [x] **BE-1** Esporre `global.routes` (+ tipo `var routes: ConfiguredRoute[]` in `types/global.d.ts`). FATTO:
       `apply()` (`lib/loader/router.ts`) ora salva le rotte montate (enabled+valid) in `global.routes` prima di
       `applyRoutes`. `check-all` (lint/type-check/depcruise) + test suite verdi. *(test dedicato → BE-7)*
-- [ ] **BE-2** Estendere `RouteConfig` (`types/global.d.ts:40`) con gli hint M0-4 e **far passare il `config` file-level +
-      per-route fin dentro l'oggetto route esposto** (oggi `defaultConfig` in `router.ts:217` è usato solo per
-      `controller`/`tenantContext` e NON è preservato in `ConfiguredRoute`). Additivo, opzionale, zero-breaking.
+- [x] **BE-2** FATTO: `ResourceHints` + `RouteConfig.{group,resource}` in `types/global.d.ts`; `ConfiguredRoute`
+      ora porta `group`/`resource` (da `config` file-level con override per-route, computati in `processRoute`).
+      Additivo, zero-breaking. `check-all` + test verdi. *(test dedicato → BE-7)*
 - [ ] **BE-3** **Manifest generator** core (schema-only): compone da `global.routes` + `server.getSchemas()`; **risolve i
       `$ref`** del `doc.body`/`doc.response`; mappa schema→resource via l'hint `resource.name` (M0-4); collassa le
       proiezioni su `(resource,field)`; emette `resources[]` (CRUD→`capabilities`) e `capabilities[]` top-level per gli
