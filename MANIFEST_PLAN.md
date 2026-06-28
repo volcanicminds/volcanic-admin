@@ -115,8 +115,8 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
       salta `listen()` e ritorna (comando di dump puro per la CI). `generateManifest`/`buildManifest` esportati da `index.ts`.
       **Cross-check verificato**: il manifest dumpato dalle route native del framework **valida contro `manifest.v2.schema.json`
       (Ajv)** ✓. *(npm script lato consumer + e2e committato → BE-7)*
-- [ ] **BE-7** **Test BE core su tutte le parti del manifest** (suite in-memory, stile framework) + `llms.txt`/docs
-      (capability, hint config, `autoCrud` esplicitamente *non* implementato). Copertura per pezzo:
+- [x] **BE-7** Test BE core (core 64 + typeorm 52 verdi) + **docs `llms.txt §11.4`** (capability, opt-in config,
+      schema-only, hint, sensitive, dump, `autoCrud` *non* implementato). Unico residuo: e2e committato del file dump (BE-6). Copertura per pezzo:
   - [x] **BE-1** `global.routes` popolato dopo boot: array, path con slash, roles, include `/admin/manifest`. (`test/unit/routes.ts`)
   - [x] **BE-2** hint `config` file-level + override per-route nell'oggetto route (group, resource.*). (idem, via `processRoute`)
   - [x] **BE-3** generatore: fixture route+schema → manifest atteso; `$ref` collassati su `(resource,field)`,
