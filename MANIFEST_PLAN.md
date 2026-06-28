@@ -117,15 +117,15 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
       (Ajv)** ✓. *(npm script lato consumer + e2e committato → BE-7)*
 - [ ] **BE-7** **Test BE core su tutte le parti del manifest** (suite in-memory, stile framework) + `llms.txt`/docs
       (capability, hint config, `autoCrud` esplicitamente *non* implementato). Copertura per pezzo:
-  - [ ] **BE-1** `global.routes` popolato dopo `apply()`: shape `ConfiguredRoute[]`, solo rotte enabled, path/method/roles corretti.
-  - [ ] **BE-2** hint `config` (file-level + per-route) presenti nell'oggetto route esposto (group, resource.*).
+  - [x] **BE-1** `global.routes` popolato dopo boot: array, path con slash, roles, include `/admin/manifest`. (`test/unit/routes.ts`)
+  - [x] **BE-2** hint `config` file-level + override per-route nell'oggetto route (group, resource.*). (idem, via `processRoute`)
   - [x] **BE-3** generatore: fixture route+schema → manifest atteso; `$ref` collassati su `(resource,field)`,
         classificazione resource vs operation, derivazione `capabilities` (CRUD+action) e `roles`. (`test/unit/manifest.ts`)
   - [x] **BE-4** sensitive policy: `password` write-only (in create/update, fuori da read/list); `externalId` mai presente. (idem)
-  - [ ] **BE-5** `GET /admin/manifest`: gating roles (smoke ON→401/OFF→404 ✅ manuale), manifest full → **e2e committato
-        con token admin** ancora da scrivere.
+  - [x] **BE-5** e2e committato (`test/e2e/manifest.ts`): `GET /admin/manifest` → 401 senza token; `generateManifest(server)`
+        sulle route live → manifest v2 valido (kind ammessi, include `/admin/manifest`). (200 con token admin: manca seed utente → follow-up)
   - [~] **BE-6** dump/snapshot: file emesso valido contro lo schema Ajv — **verificato manualmente** (manifest nativo ⊨ v2);
-        e2e committato ancora da scrivere.
+        e2e committato del file dump ancora da scrivere.
 
 ## M2 — Sample `volcanic-backend-sample` *(opzionale ma consigliato)*
 
