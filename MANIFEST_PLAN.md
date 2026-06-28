@@ -93,8 +93,9 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
 
 ## M1 — Framework backend `@volcanicminds/backend`
 
-- [ ] **BE-1** Esporre `global.routes` (+ tipo `var routes` in `types/global.d.ts`). Oggi `apply()` (`lib/loader/router.ts:294`)
-      scarta `validRoutes`: salvarlo nel global. *(primo passo, costo ~nullo, sblocca tutto)*
+- [x] **BE-1** Esporre `global.routes` (+ tipo `var routes: ConfiguredRoute[]` in `types/global.d.ts`). FATTO:
+      `apply()` (`lib/loader/router.ts`) ora salva le rotte montate (enabled+valid) in `global.routes` prima di
+      `applyRoutes`. `check-all` (lint/type-check/depcruise) + test suite verdi. *(test dedicato → BE-7)*
 - [ ] **BE-2** Estendere `RouteConfig` (`types/global.d.ts:40`) con gli hint M0-4 e **far passare il `config` file-level +
       per-route fin dentro l'oggetto route esposto** (oggi `defaultConfig` in `router.ts:217` è usato solo per
       `controller`/`tenantContext` e NON è preservato in `ConfiguredRoute`). Additivo, opzionale, zero-breaking.
@@ -106,8 +107,16 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
       esclusi sempre; blacklist estensibile via config.
 - [ ] **BE-5** Endpoint `GET /admin/manifest` (full, `roles` dichiarati) dietro `admin:{manifest:true}` nel `start()`.
 - [ ] **BE-6** **Dump/snapshot**: comando per emettere `manifest.json` su file (build CI admin disaccoppiato dal BE live).
-- [ ] **BE-7** Test del generatore (fixture route/schema) + `llms.txt`/docs (capability, hint config, `autoCrud`
-      esplicitamente *non* implementato).
+- [ ] **BE-7** **Test BE core su tutte le parti del manifest** (suite in-memory, stile framework) + `llms.txt`/docs
+      (capability, hint config, `autoCrud` esplicitamente *non* implementato). Copertura per pezzo:
+  - [ ] **BE-1** `global.routes` popolato dopo `apply()`: shape `ConfiguredRoute[]`, solo rotte enabled, path/method/roles corretti.
+  - [ ] **BE-2** hint `config` (file-level + per-route) presenti nell'oggetto route esposto (group, resource.*).
+  - [ ] **BE-3** generatore: fixture route+schema → manifest atteso; `$ref` collassati su `(resource,field)`,
+        classificazione resource vs operation, `relation` magra, derivazione `capabilities` (CRUD+action) e `roles`.
+  - [ ] **BE-4** sensitive policy: `password` write-only (in create/update, fuori da read/list); `token`/`mfaSecret`/`externalId` mai presenti.
+  - [ ] **BE-5** `GET /admin/manifest`: gating roles, manifest full, **validazione del manifest emesso contro
+        `manifest.v2.schema.json` (Ajv)** — contratto eseguibile in CI.
+  - [ ] **BE-6** dump/snapshot: il file `manifest.json` emesso è valido e identico al runtime.
 
 ## M2 — Sample `volcanic-backend-sample` *(opzionale ma consigliato)*
 
