@@ -191,11 +191,11 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
       (Bozza: Pubblica+Archivia; Pubblicato: solo Archivia), sidebar a gruppi, **enum IT**, company singleton (vista edit).
       **Fix engine emersi**: prop **`apiBasePath`** (= '' per rotte reali) + **niente `x-tenant-id` in single-tenant**
       (`5a9cbdc`); **singleton data-load** su base path `GET/PUT /company` senza id (`c95c8dd`, via `meta.singleton`) →
-      **company round-trip verificato** (load + edit + Save → PUT persiste). Campi company editabili via override
-      `readOnly:false` (BO `765d9cd`). Resta (cosmetico/follow-up): theming/logo Dionisi; label company complete nel dict IT.
-      📌 **Miglioramento generatore consigliato (framework 3.2.x)**: raccogliere il body schema anche da rotte
-      PUT/PATCH/POST classificate `action` (es. `PUT /company`), così i campi singleton risultano writable senza override;
-      + `MANIFEST_DUMP_EXIT` deve chiudere la connessione DB.
+      **company round-trip verificato** (load + edit + Save → PUT persiste).
+      ✅ **Miglioramenti framework `3.2.1` (pubblicato)**: il generatore raccoglie il body del **PUT sul base path**
+      (singleton update) → **campi singleton writable nativamente** (workaround `readOnly:false` **rimosso** dal BO,
+      commit `3613fbf`); **`MANIFEST_DUMP_EXIT` chiude la connessione DB** → il processo esce da solo (~2s). Verificato
+      E2E: company editabile **senza override**, dati persistiti. Resta solo cosmetico: theming/logo Dionisi; label company complete nel dict IT.
 
 ## Trasversale
 
