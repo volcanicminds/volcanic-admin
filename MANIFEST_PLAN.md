@@ -205,7 +205,14 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
       ✅ **Miglioramenti framework `3.2.1` (pubblicato)**: il generatore raccoglie il body del **PUT sul base path**
       (singleton update) → **campi singleton writable nativamente** (workaround `readOnly:false` **rimosso** dal BO,
       commit `3613fbf`); **`MANIFEST_DUMP_EXIT` chiude la connessione DB** → il processo esce da solo (~2s). Verificato
-      E2E: company editabile **senza override**, dati persistiti. Resta solo cosmetico: theming/logo Dionisi; label company complete nel dict IT.
+      E2E: company editabile **senza override**, dati persistiti.
+      ✅ **Cosmetico FATTO (smoke live)**: dizionario IT completo (23 campi `company` + sezioni form); **branding Dionisi**
+      (logo wordmark + tema rosso `#ED1C24` via prop `branding`+`theme`, engine ADM-5b); raggruppamento form `company`
+      in sezioni; **fix risorsa `users`**: il generatore la nomina `users` (plurale, dal path, niente `resource.name`
+      hint sull'API nativa) → realineate le chiavi override/i18n a `users` (prima la sidebar mostrava "Plural" non
+      tradotto, ora "Operatori" sotto Impostazioni). ⚠️ *Follow-up framework opzionale*: dare alle API native
+      (`users`/`tenants`/`token`/`health`) un `resource.name` hint per nomi singolari + chiavi label coerenti, così i
+      consumer non devono rimappare `res.users.*`.
 
 ## Trasversale
 
