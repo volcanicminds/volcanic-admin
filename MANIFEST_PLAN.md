@@ -156,8 +156,14 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
       + toast + invalidate + download CSV; `ActionButtons` con override registry `action` + confirm). Cablato in
       ListView (collection), ListTable/ListCards (row, `visibleWhen`), ShowView. Mock `custom` (status/export).
       **Smoke verde**: archivia BMW X3 → stato cambia + Pubblica riappare; Download CSV esporta il file. 0 errori.
-      Resta del registry esteso (separato): widget/view già esistenti, sidebar exclude/add, logo, theming, dashboard,
-      shortcut, `titleField` template i18n, **relation kind/foreignKey** override.
+      Resta del registry esteso (separato): widget/view già esistenti, sidebar exclude/add, ~~logo~~ (FATTO, vedi sotto),
+      theming (già via prop `theme`), dashboard, shortcut, `titleField` template i18n, **relation kind/foreignKey** override.
+- [x] **ADM-5b (branding/logo)** FATTO: prima il logo + nome app erano hardcoded ("V" + "Volcanic Admin" in
+      `ui/layout/Sidebar.tsx`). Aggiunto prop **`branding?: AdminBranding`** (`{appName, logo, logoCollapsed}`) su
+      `<VolcanicAdmin>` **e** su `AdminPlugin` (compone come `theme`, prop diretta vince), propagato via
+      `AdminConfigProvider`/`useAdminConfig` e consumato in `Sidebar` (logo esteso/collapsed con fallback al badge
+      iniziale del nome). Tipo esportato dall'API pubblica; documentato in `CONSUMING.md` (§3.3 + tabella prop).
+      type-check + lint + build verdi.
 - [x] **ADM-6** FATTO: `docs/CONSUMING.md` riscritto col flusso **build-time pull (generated + overrides)** in testa
       (§1.1 `volcanic-admin-pull` + `manifest`/`manifestOverrides`; §1.2 runtime-fetch come variante), tabella prop
       aggiornata (`apiBasePath`, `manifestOverrides`, nota `manifest` vs `overrides`), corretta la nota roadmap stale

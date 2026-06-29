@@ -17,7 +17,8 @@ const COLLAPSE_KEY = 'volcanic.admin.sidebar.collapsed'
 export function Sidebar() {
   const model = useModel()
   const t = useT()
-  const { navExtras } = useAdminConfig()
+  const { navExtras, branding } = useAdminConfig()
+  const appName = branding?.appName ?? 'Volcanic Admin'
 
   const [collapsed, setCollapsed] = useState<boolean>(
     () => localStorage.getItem(COLLAPSE_KEY) === '1'
@@ -101,10 +102,18 @@ export function Sidebar() {
           collapsed ? 'justify-center px-0' : 'px-4'
         )}
       >
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <span className="text-sm font-bold">V</span>
-        </div>
-        {!collapsed && <span className="truncate font-semibold">Volcanic Admin</span>}
+        {branding?.logo && !collapsed ? (
+          <img src={branding.logo} alt={appName} className="h-7 w-auto max-w-[170px] object-contain" />
+        ) : branding?.logoCollapsed && collapsed ? (
+          <img src={branding.logoCollapsed} alt={appName} className="h-7 w-7 object-contain" />
+        ) : (
+          <>
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <span className="text-sm font-bold">{appName.charAt(0).toUpperCase()}</span>
+            </div>
+            {!collapsed && <span className="truncate font-semibold">{appName}</span>}
+          </>
+        )}
       </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden p-2">

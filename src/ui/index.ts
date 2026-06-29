@@ -29,4 +29,4 @@ export { notificationProvider } from './notification'
 export { Toaster } from './components/ui/sonner'
 
 export { AdminConfigProvider, useAdminConfig } from './config'
-export type { AdminNavItem } from './config'
+export type { AdminNavItem, AdminBranding } from './config'

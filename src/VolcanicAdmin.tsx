@@ -57,7 +57,7 @@ import {
   Toaster,
   defaultWidgets
 } from './ui'
-import type { AdminNavItem } from './ui'
+import type { AdminNavItem, AdminBranding } from './ui'
 
 /** A project-defined screen mounted inside the admin shell. */
 export interface AdminCustomRoute {
@@ -119,6 +119,7 @@ export interface AdminPlugin {
   routes?: AdminCustomRoute[]
   dictionaries?: Dictionaries
   theme?: AdminTheme
+  branding?: AdminBranding
 }
 
 /** Identity helper for authoring typed plugins. */
@@ -156,6 +157,9 @@ export interface VolcanicAdminProps {
 
   /** Theme tokens injected as CSS variables (no Tailwind needed). */
   theme?: AdminTheme
+
+  /** Brand identity (logo + app name) shown in the sidebar header. */
+  branding?: AdminBranding
 
   /** Composable customization bundles (widgets/views/actions/routes/i18n/theme). */
   plugins?: AdminPlugin[]
@@ -248,7 +252,7 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
       <RegistryProvider registry={registry}>
         <AuthClientProvider client={authClient}>
           <TenantProvider tenancy={manifest.tenancy} fetchTenants={fetchTenants}>
-            <AdminConfigProvider navExtras={navExtras}>
+            <AdminConfigProvider navExtras={navExtras} branding={props.branding}>
               <Refine
                 dataProvider={dataProvider}
                 authProvider={authProvider}
@@ -372,6 +376,17 @@ function mergeTheme(list: (AdminTheme | undefined)[]): AdminTheme | undefined {
   return any ? out : undefined
 }
 
+function mergeBranding(list: (AdminBranding | undefined)[]): AdminBranding | undefined {
+  let any = false
+  const out: AdminBranding = {}
+  for (const b of list) {
+    if (!b) continue
+    any = true
+    Object.assign(out, b)
+  }
+  return any ? out : undefined
+}
+
 function mergeRecords<T>(list: (Record<string, T> | undefined)[]): Record<string, T> | undefined {
   let any = false
   const out: Record<string, T> = {}
@@ -398,7 +413,8 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
         action: mergeRecords([...plugins.map((p) => p.actions), props.overrides?.action])
       },
       routes: [...plugins.flatMap((p) => p.routes ?? []), ...(props.routes ?? [])],
-      dictionaries: mergeDictionaries([...plugins.map((p) => p.dictionaries), props.dictionaries])
+      dictionaries: mergeDictionaries([...plugins.map((p) => p.dictionaries), props.dictionaries]),
+      branding: mergeBranding([...plugins.map((p) => p.branding), props.branding])
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `plugins` is derived from `props`
     [props]

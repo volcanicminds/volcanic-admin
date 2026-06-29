@@ -179,7 +179,7 @@ components by **id**; the engine resolves them. You can pass customization inlin
 and customization modular is a **plugin**.
 
 A plugin is a plain object that contributes any of: `widgets`, `views`, `actions`, `routes`,
-`dictionaries`, `theme`. Plugins **compose** (later wins on key collisions; direct props win
+`dictionaries`, `theme`, `branding`. Plugins **compose** (later wins on key collisions; direct props win
 over plugins). Put one plugin per concern in its own file — or publish it as its own npm
 package and **share it across client repos** (no fork, no monorepo).
 
@@ -295,6 +295,15 @@ export const themePlugin = defineAdminPlugin({
 (Equivalent inline: `<VolcanicAdmin theme={{ primary: '221 83% 53%', … }} />`.) You can still
 override the CSS variables in a stylesheet if you prefer; both work.
 
+**Logo & app name.** The sidebar header shows your brand via the `branding` prop (or
+`plugin.branding`): `logo` (image src for the expanded sidebar), `logoCollapsed` (small
+mark for the collapsed rail), and `appName` (label + the fallback badge initial). Without
+it the engine shows a neutral badge + "Volcanic Admin".
+
+```tsx
+<VolcanicAdmin branding={{ appName: 'Acme', logo: '/logo.svg' }} … />
+```
+
 If you build your **own** components with Tailwind and want the same tokens/utilities, extend
 the shipped preset:
 
@@ -387,7 +396,8 @@ Now dropping a new `*.plugin.ts(x)` under `src/plugins/` registers it automatica
 | `overrides` | Component registry: `{ widget, view, action }` keyed by manifest componentId. |
 | `routes` | Custom pages: `{ path, element, index?, nav? }`. |
 | `theme` | Theme tokens injected as CSS variables (`{ primary, ring, radius, …, dark }`). |
-| `plugins` | Composable bundles: `{ widgets, views, actions, routes, dictionaries, theme }` (use `defineAdminPlugin`). |
+| `branding` | Sidebar brand: `{ appName, logo, logoCollapsed }`. |
+| `plugins` | Composable bundles: `{ widgets, views, actions, routes, dictionaries, theme, branding }` (use `defineAdminPlugin`). |
 | `fetchTenants` | Tenant list loader (multi-tenant); default `GET /tenants`. |
 
 > **`manifest` vs `manifestOverrides`.** `manifest` is the generated description (don't edit);
