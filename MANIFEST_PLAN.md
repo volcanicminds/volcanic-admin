@@ -186,12 +186,19 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
       vehicle (brand thin→relation+reference-select, hide brandId, gallery-reorder, status→**publish/archive** row+bulk
       con payload/visibleWhen, sezioni form); **company singleton** (read/update); user=Operatori; brand logo image-single.
       type-check **type-corretto contro i tipi reali del manifest** + build verdi.
-- [~] **DIO-BO-3** **Dizionario i18n IT** FATTO (`src/i18n.ts`, copre DIO-BE-3) + build con snapshot FATTO. Resta:
-      theming/logo Dionisi e **smoke E2E live** del pannello (richiede BE Dionisi avviato + admin seedato + login).
+- [x] **DIO-BO-3** i18n IT (`src/i18n.ts`) + **smoke E2E live FATTO**: seed Dionisi (`seed.ts`: admin + brand/veicoli
+      + azienda) → BE pglite + BO → **login** → lista veicoli con **dati reali**, **publish/archive** con `visibleWhen`
+      (Bozza: Pubblica+Archivia; Pubblicato: solo Archivia), sidebar a gruppi, **enum IT**, company singleton (vista edit).
+      **Fix engine emersi** (commit `5a9cbdc`): prop **`apiBasePath`** (= '' per rotte reali, non `/admin/<res>`) +
+      **niente `x-tenant-id` in single-tenant** (era CORS-bloccato). Resta (cosmetico/follow-up): theming/logo Dionisi;
+      ⚠️ **gap engine**: data-load **singleton** usa `/company/:id` invece di `GET /company`; alcune label company non nel dict IT.
 
 ## Trasversale
 
-- [ ] **E2E-1** Validazione fine-a-fine Dionisi: BE genera → admin builda → pannello usabile zero-config → override
+- [~] **E2E-1** Validazione fine-a-fine Dionisi **FATTA** (vehicles): BE 3.2.0 genera → BO pulla → override merge →
+      pannello live con dati reali + azioni + i18n. Misura "gratis vs override": liste/form/enum/relazioni/azioni **gratis**
+      dal generato+merge; override = gruppi/icone, publish-vs-archive split, gallery, singleton, exclude native. Resta:
+      smoke su company singleton (post-fix data-load) + theming.
       applicati. Misura **quanto del mock è "gratis" vs override**.
 
 ---
