@@ -215,19 +215,27 @@ progetto fornisce le traduzioni; chiavi mancanti → fallback alla chiave o a un
 
 ### 3.4 Hint strutturali nel `routes.ts` (L1, lato BE)
 
-Additivi, opzionali, dominio (niente UI). Nel `config` (file-level) e/o per-route:
+Additivi, opzionali, dominio (niente UI). Raggruppati sotto **`config.manifest`** (file-level e/o per-route), per
+tenerli separati dalla config operativa della rotta (schema Fastify, controller, …):
 
 ```ts
 export const config = {
-  resource: {
-    name: 'vehicle',                 // mapping schema→resource (autorevole)
-    titleField: 'name',
-    subtitleField: 'trimLevel',
-    globalSearch: ['name', 'trimLevel', 'description', 'tag', 'brand.name']
-  },
-  group: 'catalog'
+  // …config operativa (title, controller, tags, …)…
+  manifest: {
+    group: 'catalog',
+    resource: {
+      name: 'vehicle',               // mapping schema→resource (autorevole); path 'vehicles' → name 'vehicle'
+      titleField: 'name',
+      subtitleField: 'trimLevel',
+      globalSearch: ['name', 'trimLevel', 'description', 'tag', 'brand.name']
+    }
+  }
 }
 ```
+
+> **Convenzione (≥ 3.3.0)**: gli hint vivono sotto `config.manifest`; la forma flat `config.{group,resource}` **non è
+> più supportata** (nessuna retro-compatibilità). Le API native del framework (`users`/`tenants`) dichiarano già gli
+> hint → risorse `user`/`tenant` (nome singolare, `path` plurale invariato), gruppo `system`.
 
 Se `group` manca → fallback al nome cartella dell'API. Se `titleField` manca → euristica (`name`→`title`→`label`→
 primo `string`). `globalSearch` è la **fonte unica** dei campi omni-search (lato controller si legge da qui,
