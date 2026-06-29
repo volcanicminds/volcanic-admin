@@ -11,6 +11,7 @@ import {
 } from '@/ui/components/ui/table'
 import { FieldCell } from '@/ui/widgets/display'
 import type { ListPresentationProps } from './listShared'
+import { RowActions } from '../actions/ActionButtons'
 
 export function ListTable({
   model,
@@ -86,6 +87,7 @@ export function ListTable({
                 ))}
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className="flex justify-end gap-1">
+                    <RowActions model={model} record={record} t={t} />
                     <Button size="icon" variant="ghost" onClick={() => onShow(record.id)}>
                       <Eye />
                     </Button>

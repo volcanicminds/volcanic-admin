@@ -7,6 +7,7 @@ export * from './types/manifest.js'
 export * from './types/model.js'
 
 export { interpretManifest, toRefineResources } from './interpreter.js'
+export { interpolatePath, matchVisibleWhen, actionsByTarget } from './actions.js'
 export { buildMagicQuery, readTotal } from './magic-query.js'
 
 export { createVolcanicDataProvider } from './providers/data.js'

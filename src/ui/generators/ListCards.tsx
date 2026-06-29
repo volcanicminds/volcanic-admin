@@ -12,6 +12,7 @@ import { Button } from '@/ui/components/ui/button'
 import { Card } from '@/ui/components/ui/card'
 import { FieldCell } from '@/ui/widgets/display'
 import type { ListPresentationProps } from './listShared'
+import { RowActions } from '../actions/ActionButtons'
 
 /** Resolve a display string from one or more fields (joined with spaces). */
 function display(record: any, field?: string | string[]): string {
@@ -118,8 +119,10 @@ export function ListCards({
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {records.map((record: any) => {
         const urls = hasImage ? imageUrls(record, imageField?.name) : []
-        const actions = (canEdit || canDelete) && (
+        const hasRowActions = model.actions.some((a) => !a.target || a.target.includes('row'))
+        const actions = (canEdit || canDelete || hasRowActions) && (
           <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+            <RowActions model={model} record={record} t={t} />
             {canEdit && (
               <Button size="icon" variant="secondary" className="h-7 w-7" onClick={() => onEdit(record.id)}>
                 <Pencil />

@@ -19,6 +19,7 @@ import {
 import { useT } from '@/engine'
 import type { ResourceModel } from '@/engine'
 import { FieldValue } from '@/ui/widgets/display'
+import { RowActions } from '@/ui/actions/ActionButtons'
 
 export function ShowView({ model }: { model: ResourceModel }) {
   const t = useT()
@@ -57,6 +58,7 @@ export function ShowView({ model }: { model: ResourceModel }) {
           <Button variant="outline" onClick={() => list(spec.name)}>
             <ArrowLeft /> {t('action.back')}
           </Button>
+          {record && <RowActions model={model} record={record} t={t} compact={false} />}
           {model.hasAction('update') && (
             <Button onClick={() => id && edit(spec.name, id)}>
               <Pencil /> {t('action.edit')}

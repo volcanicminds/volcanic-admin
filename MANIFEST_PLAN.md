@@ -145,8 +145,13 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
       vuoto alla prima generazione.
 - [ ] **ADM-4** **Zero-config rendering dal manifest generato** (i generator esistono già: pilotarli dal generated):
       sidebar da `resources`+`groups`, lista table/card, dettaglio layout standard, **sezioni operation** top-level.
-- [ ] **ADM-5** **Override registry esteso**: widget custom, escludi/aggiungi voci sidebar, logo, dizionari, theming,
-      dashboard, capability↔endpoint, shortcut, `titleField` template i18n, **relation kind/foreignKey** (colma il limite schema-only).
+- [~] **ADM-5** **Rendering azioni manifest FATTO** (capability↔endpoint, il pezzo chiave): `engine/actions.ts`
+      (`interpolatePath`/`matchVisibleWhen`/`actionsByTarget`); `ui/actions/` (`useCapabilityRunner` via `dataProvider.custom`
+      + toast + invalidate + download CSV; `ActionButtons` con override registry `action` + confirm). Cablato in
+      ListView (collection), ListTable/ListCards (row, `visibleWhen`), ShowView. Mock `custom` (status/export).
+      **Smoke verde**: archivia BMW X3 → stato cambia + Pubblica riappare; Download CSV esporta il file. 0 errori.
+      Resta del registry esteso (separato): widget/view già esistenti, sidebar exclude/add, logo, theming, dashboard,
+      shortcut, `titleField` template i18n, **relation kind/foreignKey** override.
 - [ ] **ADM-6** Aggiornare `examples/client-starter` (+ `client-advanced`) e `docs/CONSUMING.md`: manifest "creato in
       automatico (generated + overrides), personalizzabile".
 

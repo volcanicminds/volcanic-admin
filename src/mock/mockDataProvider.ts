@@ -146,5 +146,28 @@ export const mockDataProvider: DataProvider = {
     const removed = (store[resource] ?? []).filter((r) => set.has(String(r.id)))
     store[resource] = (store[resource] ?? []).filter((r) => !set.has(String(r.id)))
     return { data: removed as any }
+  },
+
+  // Manifest actions (kind:'action') hit their real endpoint via custom().
+  custom: async ({ url, payload }) => {
+    const segs = String(url).split('?')[0].split('/').filter(Boolean)
+    const last = segs[segs.length - 1]
+
+    // status workflow: /<plural>/:id/status
+    if (last === 'status' && segs.length >= 3) {
+      const id = segs[segs.length - 2]
+      const row = (store.vehicle ?? []).find((r) => String(r.id) === String(id))
+      if (row) Object.assign(row, (payload as object) ?? {}, { updatedAt: new Date().toISOString() })
+      return { data: (row ? expand('vehicle', row) : {}) as any }
+    }
+
+    // export: /<plural>/export → return the rows for client-side download
+    if (last === 'export') {
+      const seg = segs[segs.length - 2] ?? ''
+      const resource = store[seg] ? seg : store[seg.replace(/s$/, '')] ? seg.replace(/s$/, '') : seg
+      return { data: (store[resource] ?? []) as any }
+    }
+
+    return { data: {} as any }
   }
 }

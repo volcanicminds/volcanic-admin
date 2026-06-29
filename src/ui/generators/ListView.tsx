@@ -31,6 +31,7 @@ import type { ResourceModel, ListLayout } from '@/engine'
 import { ListTable } from './ListTable'
 import { ListCards } from './ListCards'
 import { ListIO } from './ListIO'
+import { CollectionActions } from '../actions/ActionButtons'
 
 const layoutKey = (name: string) => `volcanic.admin.list.${name}.layout`
 const pageSizeKey = (name: string) => `volcanic.admin.list.${name}.pageSize`
@@ -139,6 +140,7 @@ export function ListView({ model }: { model: ResourceModel }) {
               </Button>
             </div>
           )}
+          <CollectionActions model={model} t={t} />
           {canCreate && (
             <Button onClick={() => create(spec.name)}>
               <Plus /> {t('action.new')}
