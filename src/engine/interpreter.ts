@@ -2,7 +2,7 @@
  * Manifest interpreter — turns a Manifest into a normalized AdminModel and the
  * Refine `resources` array. Pure, no React, no UI dependency.
  */
-import type { Manifest, ResourceSpec, FieldSpec, EnumOption } from './types/manifest.js'
+import type { Manifest, ResourceSpec, FieldSpec, EnumOption, CrudAction } from './types/manifest.js'
 import type { AdminModel, ResourceModel, ResolvedField, FormSection } from './types/model.js'
 import type { IResourceItem } from '@refinedev/core'
 
@@ -47,28 +47,30 @@ function buildResourceModel(spec: ResourceSpec, manifest: Manifest): ResourceMod
   const listFields = fields.filter(isListVisible)
   const formSections = buildFormSections(fields)
 
+  // v2: capabilities is a single array of CRUD verbs + custom actions.
+  const caps = spec.capabilities ?? []
+  const crud = (action: CrudAction) => caps.find((c) => c.kind === action && c.enabled !== false)
+
   return {
     spec,
     fields,
     listFields,
     formSections,
     field: (name) => byName.get(name),
-    hasAction(action) {
-      // The manifest is already role-filtered server-side; presence of permission
-      // entry (or capability) signals the action is available to this user.
-      const perm = spec.permissions?.[action]
-      if (perm) return perm.length > 0
-      // Fallback: derive from capabilities for write actions.
-      const caps = spec.capabilities
-      if (action === 'create') return caps?.create ?? true
-      if (action === 'update') return caps?.update ?? true
-      if (action === 'delete') return caps?.delete ?? true
-      return true
-    }
+    // The manifest is already role-filtered server-side; presence of the capability
+    // signals the action is available to this user.
+    hasAction: (action) => !!crud(action),
+    roles: (action) => crud(action)?.roles,
+    actions: caps.filter((c) => c.kind === 'action' && c.enabled !== false)
   }
 }
 
 export function interpretManifest(manifest: Manifest): AdminModel {
+  // Lightweight runtime guard: the contract is Manifest v2 (full validation against
+  // manifest.v2.schema.json runs at build time via scripts/validate-manifest.mjs).
+  if (manifest?.version !== 2) {
+    console.warn(`[volcanic-admin] expected Manifest v2, got version=${(manifest as { version?: unknown })?.version}`)
+  }
   const resources = manifest.resources.map((r) => buildResourceModel(r, manifest))
   const byName = new Map(resources.map((r) => [r.spec.name, r]))
 

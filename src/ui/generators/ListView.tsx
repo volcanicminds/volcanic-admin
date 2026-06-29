@@ -95,9 +95,9 @@ export function ListView({ model }: { model: ResourceModel }) {
     })
   }
 
-  const canCreate = spec.capabilities?.create !== false && model.hasAction('create')
-  const canEdit = spec.capabilities?.update !== false && model.hasAction('update')
-  const canDelete = spec.capabilities?.delete !== false && model.hasAction('delete')
+  const canCreate = model.hasAction('create')
+  const canEdit = model.hasAction('update')
+  const canDelete = model.hasAction('delete')
 
   const presentation = {
     model,
@@ -147,7 +147,7 @@ export function ListView({ model }: { model: ResourceModel }) {
         </div>
       </div>
 
-      {spec.capabilities?.search !== false && spec.search && (
+      {spec.search && (
         <form
           className="flex max-w-sm items-center gap-2"
           onSubmit={(e) => {

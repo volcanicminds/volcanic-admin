@@ -1,13 +1,13 @@
 /**
  * Mock manifest modelled on the Dionisi Rent & Service backoffice
- * (BACKOFFICE_BLUEPRINT.md). Exercises the full spec v1: groups, shared enums,
+ * (BACKOFFICE_BLUEPRINT.md). Exercises the full spec v2: groups, shared enums,
  * a relation (vehicle→brand), a singleton (company), capabilities, search,
  * defaultSort, per-field list/form behavior, and a multi-tenant header.
  */
 import type { Manifest } from '@/engine'
 
 export const mockManifest: Manifest = {
-  version: 1,
+  version: 2,
   generatedAt: '2026-06-26T10:00:00Z',
   i18n: { defaultLocale: 'it', locales: ['it', 'en'] },
   auth: {
@@ -64,14 +64,13 @@ export const mockManifest: Manifest = {
       order: 5,
       titleField: 'name',
       tenantScoped: false,
-      permissions: {
-        list: ['admin'],
-        read: ['admin'],
-        create: ['admin'],
-        update: ['admin'],
-        delete: ['admin']
-      },
-      capabilities: { create: true, update: true, delete: true, search: true },
+      capabilities: [
+        { name: 'list',   kind: 'list',   method: 'GET',    path: '/brands',     roles: ['admin'] },
+        { name: 'read',   kind: 'read',   method: 'GET',    path: '/brands/:id', roles: ['admin'] },
+        { name: 'create', kind: 'create', method: 'POST',   path: '/brands',     roles: ['admin'] },
+        { name: 'update', kind: 'update', method: 'PUT',    path: '/brands/:id', roles: ['admin'] },
+        { name: 'delete', kind: 'delete', method: 'DELETE', path: '/brands/:id', roles: ['admin'] }
+      ],
       defaultSort: [{ field: 'name', order: 'asc' }],
       search: { fields: ['name'], operator: 'containsi' },
       listLayouts: ['table', 'card'],
@@ -98,14 +97,38 @@ export const mockManifest: Manifest = {
       titleField: 'name',
       subtitleField: 'trimLevel',
       tenantScoped: true,
-      permissions: {
-        list: ['admin'],
-        read: ['admin'],
-        create: ['admin'],
-        update: ['admin'],
-        delete: ['admin']
-      },
-      capabilities: { create: true, update: true, delete: true, bulkDelete: true, search: true },
+      capabilities: [
+        { name: 'list',   kind: 'list',   method: 'GET',    path: '/vehicles',     roles: ['admin'] },
+        { name: 'read',   kind: 'read',   method: 'GET',    path: '/vehicles/:id', roles: ['admin'] },
+        { name: 'create', kind: 'create', method: 'POST',   path: '/vehicles',     roles: ['admin'] },
+        { name: 'update', kind: 'update', method: 'PUT',    path: '/vehicles/:id', roles: ['admin'] },
+        { name: 'delete', kind: 'delete', method: 'DELETE', path: '/vehicles/:id', roles: ['admin'], target: ['row', 'bulk'] },
+        {
+          name: 'publish',
+          kind: 'action',
+          method: 'PATCH',
+          path: '/vehicles/:id/status',
+          roles: ['admin'],
+          label: 'action.vehicle.publish',
+          icon: 'check',
+          target: ['row', 'bulk'],
+          payload: { status: 'published' },
+          visibleWhen: { status: { neq: 'published' } },
+          refresh: true
+        },
+        {
+          name: 'archive',
+          kind: 'action',
+          method: 'PATCH',
+          path: '/vehicles/:id/status',
+          roles: ['admin'],
+          label: 'action.vehicle.archive',
+          icon: 'archive',
+          target: ['row', 'bulk'],
+          payload: { status: 'archived' },
+          refresh: true
+        }
+      ],
       defaultSort: [{ field: 'importance', order: 'desc' }],
       search: { fields: ['name', 'trimLevel', 'description', 'tag'], operator: 'containsi' },
       listLayouts: ['table', 'card'],
@@ -179,31 +202,6 @@ export const mockManifest: Manifest = {
           }
         }
       ],
-      actions: [
-        {
-          name: 'publish',
-          label: 'action.vehicle.publish',
-          icon: 'check',
-          kind: ['row', 'bulk'],
-          method: 'PATCH',
-          path: '/vehicles/:id/status',
-          payload: { status: 'published' },
-          visibleWhen: { status: { neq: 'published' } },
-          roles: ['admin'],
-          refresh: true
-        },
-        {
-          name: 'archive',
-          label: 'action.vehicle.archive',
-          icon: 'archive',
-          kind: ['row', 'bulk'],
-          method: 'PATCH',
-          path: '/vehicles/:id/status',
-          payload: { status: 'archived' },
-          roles: ['admin'],
-          refresh: true
-        }
-      ],
       views: { list: 'auto', create: 'auto', edit: 'auto', show: 'auto' }
     },
     {
@@ -215,8 +213,23 @@ export const mockManifest: Manifest = {
       order: 10,
       titleField: 'email',
       tenantScoped: true,
-      permissions: { list: ['admin'], read: ['admin'], create: ['admin'], delete: ['admin'] },
-      capabilities: { create: true, update: false, delete: true, bulkDelete: true, export: true, search: true },
+      capabilities: [
+        { name: 'list',   kind: 'list',   method: 'GET',    path: '/newsletter',     roles: ['admin'] },
+        { name: 'read',   kind: 'read',   method: 'GET',    path: '/newsletter/:id', roles: ['admin'] },
+        { name: 'create', kind: 'create', method: 'POST',   path: '/newsletter',     roles: ['admin'] },
+        { name: 'delete', kind: 'delete', method: 'DELETE', path: '/newsletter/:id', roles: ['admin'], target: ['row', 'bulk'] },
+        {
+          name: 'export',
+          kind: 'action',
+          method: 'GET',
+          path: '/newsletter/export',
+          roles: ['admin'],
+          label: 'action.newsletter.export',
+          icon: 'download',
+          target: ['collection'],
+          download: 'text/csv'
+        }
+      ],
       defaultSort: [{ field: 'subscribedAt', order: 'desc' }],
       search: { fields: ['email'], operator: 'containsi' },
       listLayouts: ['table', 'card'],
@@ -232,18 +245,6 @@ export const mockManifest: Manifest = {
         },
         { name: 'privacyAccepted', type: 'boolean', default: true, list: { visible: true } }
       ],
-      actions: [
-        {
-          name: 'export',
-          label: 'action.newsletter.export',
-          icon: 'download',
-          kind: 'collection',
-          method: 'GET',
-          path: '/newsletter/export',
-          download: 'text/csv',
-          roles: ['admin']
-        }
-      ],
       views: { list: 'auto', create: 'auto', show: 'auto' }
     },
     {
@@ -256,14 +257,13 @@ export const mockManifest: Manifest = {
       titleField: ['firstName', 'lastName'],
       subtitleField: 'email',
       tenantScoped: false,
-      permissions: {
-        list: ['admin'],
-        read: ['admin'],
-        create: ['admin'],
-        update: ['admin'],
-        delete: ['admin']
-      },
-      capabilities: { create: true, update: true, delete: true, search: true },
+      capabilities: [
+        { name: 'list',   kind: 'list',   method: 'GET',    path: '/users',     roles: ['admin'] },
+        { name: 'read',   kind: 'read',   method: 'GET',    path: '/users/:id', roles: ['admin'] },
+        { name: 'create', kind: 'create', method: 'POST',   path: '/users',     roles: ['admin'] },
+        { name: 'update', kind: 'update', method: 'PUT',    path: '/users/:id', roles: ['admin'] },
+        { name: 'delete', kind: 'delete', method: 'DELETE', path: '/users/:id', roles: ['admin'] }
+      ],
       defaultSort: [{ field: 'createdAt', order: 'desc' }],
       listLayouts: ['table', 'card'],
       defaultListLayout: 'table',
@@ -306,7 +306,10 @@ export const mockManifest: Manifest = {
       order: 10,
       singleton: true,
       tenantScoped: false,
-      permissions: { read: ['admin'], update: ['admin'] },
+      capabilities: [
+        { name: 'read',   kind: 'read',   method: 'GET', path: '/company', roles: ['admin'] },
+        { name: 'update', kind: 'update', method: 'PUT', path: '/company', roles: ['admin'] }
+      ],
       fields: [
         { name: 'legalName', type: 'string', required: true, form: { group: 'company' } },
         { name: 'vatNumber', type: 'string', form: { group: 'company' } },

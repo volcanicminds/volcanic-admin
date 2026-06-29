@@ -1,13 +1,13 @@
 /**
  * Mock manifest modelled on the Dionisi Rent & Service backoffice
- * (BACKOFFICE_BLUEPRINT.md). Exercises the full spec v1: groups, shared enums,
+ * (BACKOFFICE_BLUEPRINT.md). Exercises the full spec v2: groups, shared enums,
  * a relation (vehicle→brand), a singleton (company), capabilities, search,
  * defaultSort, per-field list/form behavior, and a multi-tenant header.
  */
 import type { Manifest } from "@/engine";
 
 export const mockManifest: Manifest = {
-  version: 1,
+  version: 2,
   generatedAt: "2026-06-26T10:00:00Z",
   i18n: { defaultLocale: "it", locales: ["it", "en"] },
   auth: {
@@ -23,15 +23,6 @@ export const mockManifest: Manifest = {
     switchable: true,
     header: "x-tenant-id",
     listEndpoint: "/tenants",
-  },
-  defaults: {
-    list: {
-      pageSizes: [10, 25, 50, 100], // elenco page size disponibili nel menu a tendina
-      pageSize: 25, //size page di default selezionato
-    },
-    delete: {
-      bulk: 10, // elementi alla volta
-    }
   },
   groups: [
     { name: "catalog", label: "group.catalog", icon: undefined, order: 10 },
@@ -110,66 +101,42 @@ export const mockManifest: Manifest = {
       titleField: "name", // <- titleField: ['name', 'altrofield'], -> es name: pippo altrofield: x -> renderizza "Pippo X" o altro modo comodo
       subtitleField: ["fieldA", "fieldB"], // <-- o semplicemente "fieldC" ossia come titleField stessa def
       tenantScoped: false,
-      permissions: {
-        list: ["admin"],
-        read: ["admin"],
-        create: ["admin"],
-        update: ["admin"],
-        delete: ["admin"],
-      },
-      capabilities: { 
-        create: {
-          label: "action.brands.create",
-          icon: undefined,
-          // kind: ["row", "bulk"], // non applicabile
-          method: "POST",
-          path: "/vehicles",
-          payload: { .. },
-          visibleWhen: { ... },
+      capabilities: [
+        { name: "list",   kind: "list",   method: "GET",    path: "/brands",     roles: ["admin"] },
+        { name: "read",   kind: "read",   method: "GET",    path: "/brands/:id", roles: ["admin"] },
+        { name: "create", kind: "create", method: "POST",   path: "/brands",     roles: ["admin"] },
+        // update: omitted — v1 capabilities.update was false
+        { name: "delete", kind: "delete", method: "DELETE", path: "/brands/:id", roles: ["admin"], target: ["row", "bulk"] },
+        {
+          name: "publish",
+          kind: "action",
+          method: "PATCH",
+          path: "/vehicles/:id/status",
           roles: ["admin"],
-          refresh: true,
-        }, 
-        update: false,  //es ma in realtà è definito come gli altri
-        delete: {
-          label: "action.brands.create",
-          icon: undefined,
-          kind: ["row", "bulk"], // <- nel caso bulk esegue promise di tot alla volta records
-          method: "DELETE",
-          path: "/vehicles/:id",
-          payload: { .. },
-          visibleWhen: { ... },
-          roles: ["admin"],
+          label: "action.vehicle.publish",
+          icon: "check",
+          target: ["row", "bulk"],
+          payload: { status: "published" },
+          visibleWhen: { status: { neq: "published" } },
           refresh: true,
         },
-        search: {
-          label: "action.brands.search",
-          icon: undefined,
-          // kind: ["row", "bulk"], // non applicabile
-          method: "GET",
-          path: "/vehicles",
-          payload: { .. },
-          visibleWhen: { ... },
+        {
+          name: "archive",
+          kind: "action",
+          method: "PATCH",
+          path: "/vehicles/:id/status",
           roles: ["admin"],
+          label: "action.vehicle.archive",
+          icon: "archive",
+          target: ["row", "bulk"],
+          payload: { status: "archived" },
           refresh: true,
         },
-        detail: {
-          label: "action.brands.detail",
-          icon: undefined,
-          // kind: ["row", "bulk"], // non applicabile
-          method: "GET",
-          path: "/vehicles/:id",
-          payload: { .. },
-          visibleWhen: { ... },
-          roles: ["admin"],
-          refresh: true,
-        }
-      },
-      list: {
-        defaultSort: [{ field: "name", order: "asc" }],
-        search: { fields: ["name"], operator: "containsi" }, // omni search, piuttosto rinominiamolo in altro es searchField o gloabalSearch o simili chiari
-        layouts: ["table", "card"],
-        defaultLayout: "card",
-      },
+      ],
+      defaultSort: [{ field: "name", order: "asc" }],
+      search: { fields: ["name"], operator: "containsi" }, // omni search, piuttosto rinominiamolo in altro es searchField o gloabalSearch o simili chiari
+      listLayouts: ["table", "card"],
+      defaultListLayout: "card",
       fields: [
         // esempi pratici finali post manipolazione utente lato bo / admin panel
         {
@@ -194,33 +161,6 @@ export const mockManifest: Manifest = {
           type: "datetime",
           readOnly: true,
           list: { visible: true, sortable: true },
-        },
-      ],
-      actions: [
-        {
-          name: "publish",
-          label: "action.vehicle.publish",
-          icon: "check",
-          kind: ["row", "bulk"],
-          method: "PATCH",
-          path: "/vehicles/:id/status",
-          payload: { status: "published" },
-          visibleWhen: { status: { neq: "published" } },
-          visibleWhere: ['list', 'detail'],
-          roles: ["admin"],
-          refresh: true,
-        },
-        {
-          name: "archive",
-          label: "action.vehicle.archive",
-          icon: "archive",
-          kind: ["row", "bulk"],
-          method: "PATCH",
-          path: "/vehicles/:id/status",
-          payload: { status: "archived" },
-          visibleWhere: ['detail'],
-          roles: ["admin"],
-          refresh: true,
         },
       ],
       views: { list: "auto", create: "auto", edit: "auto", show: "auto" },

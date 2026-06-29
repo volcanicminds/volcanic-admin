@@ -4,6 +4,8 @@
  * field subsets and form sections are precomputed.
  */
 import type {
+  CapabilitySpec,
+  CrudAction,
   EnumOption,
   FieldSpec,
   Manifest,
@@ -31,7 +33,12 @@ export interface ResourceModel {
   /** Fields visible in forms, grouped into sections. */
   formSections: FormSection[]
   field(name: string): ResolvedField | undefined
-  hasAction(action: 'list' | 'read' | 'create' | 'update' | 'delete'): boolean
+  /** True when an enabled CRUD capability of this kind exists (v2). */
+  hasAction(action: CrudAction): boolean
+  /** Declared roles for a CRUD capability (v2), or undefined if absent. */
+  roles(action: CrudAction): string[] | undefined
+  /** Custom action capabilities (kind:'action'), enabled only. */
+  actions: CapabilitySpec[]
 }
 
 export interface AdminModel {

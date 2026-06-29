@@ -1,7 +1,8 @@
 /**
- * Volcanic access-control provider — crosses the manifest `permissions` with the
- * current user's roles. The manifest is already role-filtered server-side; this
- * gates the UI (hide/disable) as defense-in-depth. The backend still enforces.
+ * Volcanic access-control provider — crosses each capability's declared `roles`
+ * (v2) with the current user's roles. The manifest is already role-filtered
+ * server-side; this gates the UI (hide/disable) as defense-in-depth. The backend
+ * still enforces.
  */
 import type { AccessControlProvider } from '@refinedev/core'
 import type { AdminModel } from '../types/model.js'
@@ -38,9 +39,9 @@ export function createVolcanicAccessControlProvider(
       if (!res) return { can: true }
 
       const crudAction = ACTION_MAP[action] ?? (action as CrudAction)
-      const allowed = res.spec.permissions?.[crudAction]
+      const allowed = res.roles(crudAction)
 
-      // No explicit permission list → fall back to capability-derived availability.
+      // No roles declared for this capability → fall back to availability.
       if (!allowed) return { can: res.hasAction(crudAction) }
 
       const roles = getRoles()

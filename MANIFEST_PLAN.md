@@ -134,9 +134,12 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
 
 ## M3 — Admin `@volcanicminds/admin` (engine/ui + libreria)
 
-- [ ] **ADM-1** **Migrazione tipo v1→v2**: riscrivere `src/engine/types/manifest.ts` (`CapabilitySpec`, `capabilities[]`),
-      e i consumer: `interpreter.ts:59-62`, `providers/accessControl.ts:41`, `ui/generators/ListView.tsx:98-100/150`,
-      `ui/generators/ShowView.tsx`, più `src/mock/manifest.ts` + `manifestUnchanged.ts`. + validazione runtime (JSON Schema M0-3).
+- [x] **ADM-1** FATTO: `types/manifest.ts` riscritto v2 (`CapabilitySpec` unificato); `ResourceModel` espone
+      `hasAction`/`roles`/`actions`; migrati `interpreter`, `accessControl`, `ListView`, `ShowView`; mock
+      `manifest.ts` + `manifestUnchanged.ts` riscritti a v2 (subagent sonnet). Guardia runtime `version===2`
+      (validazione Ajv piena = build script). **type-check + build verdi.** NB: `manifestUnchanged.ts` è scratch
+      non importato (artefatti copy-paste) → candidato a rimozione; lint repo ha **2 errori pre-esistenti** in file
+      non toccati (`tenant.tsx`/`display.tsx`: regole eslint `react-hooks`/`react` senza plugin) → fix a parte.
 - [ ] **ADM-2** **Fetch build-time + snapshot**: DEV = fetch all'avvio, BUILD = legge snapshot; genera `manifest.generated.ts`.
 - [ ] **ADM-3** **Split generated/overrides + merge** per identità `(resource,field)`; scaffold `manifest.overrides.ts`
       vuoto alla prima generazione.

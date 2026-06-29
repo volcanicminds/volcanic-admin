@@ -31,7 +31,7 @@ export function ShowView({ model }: { model: ResourceModel }) {
   const { data, isLoading } = useOne({ resource: spec.name, id })
   const record = data?.data
 
-  const canDelete = spec.capabilities?.delete !== false && model.hasAction('delete')
+  const canDelete = model.hasAction('delete')
 
   const sections =
     model.formSections.length > 0

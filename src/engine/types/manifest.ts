@@ -1,19 +1,24 @@
 /**
- * Volcanic Admin — Manifest spec v1.
+ * Volcanic Admin — Manifest spec v2.
  *
  * The manifest is the single source of truth for the admin UI. It is emitted by
- * the backend (`GET /admin/manifest`, per-role + cached) and interpreted by the
- * engine. Every human-facing label is an i18n KEY, never literal text.
+ * the backend (`GET /admin/manifest`) and interpreted by the engine. Every
+ * human-facing label is an i18n KEY, never literal text.
  *
- * Mirrors VOLCANIC_ADMIN_BLUEPRINT.md §3.
+ * Contract: MANIFEST_DESIGN.md §2 + manifest.v2.schema.json. v2 unifies the v1
+ * `permissions` + `capabilities`(boolean) + `actions` into a single
+ * `capabilities: CapabilitySpec[]` (roles in one place).
  */
 
 export type I18nKey = string
 
-/** Action verbs gated by role / capability. */
+/** CRUD verbs (subset of CapabilityKind). */
 export type CrudAction = 'list' | 'read' | 'create' | 'update' | 'delete'
 
-/** Field primitive types (§3.3). */
+/** A capability is either a CRUD verb or a custom action. */
+export type CapabilityKind = CrudAction | 'action'
+
+/** Field primitive types (§2.4). */
 export type FieldType =
   | 'string'
   | 'text'
@@ -32,7 +37,7 @@ export type FieldType =
   | 'image'
   | 'file'
 
-/** Magic Query operator subset exposed to the UI (§3.6). `raw` is never exposed. */
+/** Magic Query operator subset exposed to the UI (§2.4). `raw` is never exposed. */
 export type FilterOperator =
   | 'eq'
   | 'neq'
@@ -64,7 +69,7 @@ export interface SortSpec {
 // ─── Top level ──────────────────────────────────────────────────────────────
 
 export interface Manifest {
-  version: 1
+  version: 2
   generatedAt: string
   i18n: {
     defaultLocale: string
@@ -88,6 +93,8 @@ export interface Manifest {
   groups: GroupSpec[]
   enums: Record<string, EnumOption[]>
   resources: ResourceSpec[]
+  /** Standalone "operation" sections — endpoints not bound to a resource. */
+  capabilities?: CapabilitySpec[]
 }
 
 export interface GroupSpec {
@@ -104,6 +111,49 @@ export interface EnumOption {
   color?: string
 }
 
+// ─── Capability (unified CRUD + actions) ─────────────────────────────────────
+
+/** Where an action surfaces. */
+export type ActionKind = 'row' | 'bulk' | 'collection'
+
+export interface EndpointSpec {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+  path: string
+}
+
+/**
+ * A capability is an executable verb bound to a real endpoint, with its own roles.
+ * Used both inside a resource (CRUD + custom actions) and at the manifest top level
+ * (standalone operation sections). Replaces v1 permissions + capabilities + actions.
+ */
+export interface CapabilitySpec {
+  /** Unique within scope: 'list' | 'create' | ... | 'publish' | 'export'. */
+  name: string
+  kind: CapabilityKind
+  method: EndpointSpec['method']
+  /** Binding to the real endpoint. */
+  path: string
+  /** Authorization (declared); effective gating is admin runtime + BE enforcement. */
+  roles: string[]
+  enabled?: boolean
+  // ── action-only presentation/behavior ──
+  label?: I18nKey
+  icon?: string
+  /** One or more of row/bulk/collection. */
+  target?: ActionKind[]
+  /** Static payload merged into the request body. */
+  payload?: Record<string, unknown>
+  confirm?: boolean
+  confirmText?: I18nKey
+  /** Row condition (field → operator → value) controlling visibility. */
+  visibleWhen?: Record<string, Record<string, unknown>>
+  refresh?: boolean
+  /** Download mime-type when the action returns a file. */
+  download?: string
+  /** Override registry id; null/undefined → generic handler. */
+  component?: string | null
+}
+
 // ─── Resource ───────────────────────────────────────────────────────────────
 
 export interface ResourceLabel {
@@ -111,19 +161,8 @@ export interface ResourceLabel {
   plural: I18nKey
 }
 
-export type PermissionMap = Partial<Record<CrudAction, string[]>>
-
-export interface ResourceCapabilities {
-  create?: boolean
-  update?: boolean
-  delete?: boolean
-  bulkDelete?: boolean
-  search?: boolean
-  export?: boolean
-}
-
 export interface SearchSpec {
-  /** Fields included in the OR omni-search (may use dot-notation). */
+  /** Fields included in the OR globalSearch (may use dot-notation). */
   fields: string[]
   operator?: FilterOperator
 }
@@ -155,9 +194,10 @@ export interface ResourceSpec {
   tenantScoped?: boolean
   softDelete?: boolean
   singleton?: boolean
-  permissions?: PermissionMap
-  capabilities?: ResourceCapabilities
+  /** CRUD verbs + custom actions (replaces v1 permissions + capabilities + actions). */
+  capabilities: CapabilitySpec[]
   defaultSort?: SortSpec[]
+  /** globalSearch config; presence enables the search box. */
   search?: SearchSpec
   /** Available list layouts; when more than one, the UI shows a layout toggle. */
   listLayouts?: ListLayout[]
@@ -166,7 +206,6 @@ export interface ResourceSpec {
   /** Extra fields rendered as labeled info rows on the card layout. */
   cardFields?: string[]
   fields: FieldSpec[]
-  actions?: ActionSpec[]
   views?: ResourceViews
 }
 
@@ -174,7 +213,8 @@ export interface ResourceSpec {
 
 export interface RelationSpec {
   resource: string
-  kind: 'many-to-one' | 'one-to-many' | 'many-to-many'
+  /** Emitted "magre" by the BE (schema-only); kind/foreignKey come from overrides. */
+  kind?: 'many-to-one' | 'one-to-many' | 'many-to-many'
   titleField?: string
   foreignKey?: string
   inverse?: string
@@ -244,35 +284,4 @@ export interface FieldSpec {
   validation?: ValidationSpec
   list?: FieldListSpec
   form?: FieldFormSpec
-}
-
-// ─── Actions ────────────────────────────────────────────────────────────────
-
-export type ActionKind = 'row' | 'bulk' | 'collection'
-
-export interface EndpointSpec {
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
-  path: string
-}
-
-export interface ActionSpec {
-  name: string
-  label?: I18nKey
-  icon?: string
-  /** One or more of row/bulk/collection. */
-  kind: ActionKind | ActionKind[]
-  method: EndpointSpec['method']
-  path: string
-  /** Static payload merged into the request body. */
-  payload?: Record<string, unknown>
-  confirm?: boolean
-  confirmText?: I18nKey
-  /** Row condition (field → operator → value) controlling visibility. */
-  visibleWhen?: Record<string, Record<string, unknown>>
-  roles?: string[]
-  refresh?: boolean
-  /** Download mime-type when the action returns a file. */
-  download?: string
-  /** Override registry id; null/undefined → generic handler. */
-  component?: string | null
 }
