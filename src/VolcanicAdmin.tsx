@@ -137,6 +137,8 @@ export interface VolcanicAdminProps {
   manifest?: Manifest
   /** Custom manifest loader (defaults to GET ${apiUrl}/admin/manifest). */
   loadManifest?: () => Promise<Manifest>
+  /** Base path for CRUD calls. Default '/admin' (generic CRUD); set '' for real hand-written routes. */
+  apiBasePath?: string
   /** Project overrides merged onto the generated/fetched manifest by (resource, field). */
   manifestOverrides?: ManifestOverrides
 
@@ -198,11 +200,12 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
     return createVolcanicDataProvider({
       apiUrl,
       authMode,
+      basePath: props.apiBasePath,
       resolvePath: (name) => pathByName.get(name) ?? name,
       getToken: () => tokenStore.get(),
       getContextHeaders: () => tenantStore.headers()
     })
-  }, [props.dataProvider, model, apiUrl, authMode])
+  }, [props.dataProvider, props.apiBasePath, model, apiUrl, authMode])
 
   const accessControlProvider = useMemo(() => createVolcanicAccessControlProvider(model), [model])
 

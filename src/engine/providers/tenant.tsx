@@ -46,6 +46,8 @@ export function TenantProvider({ tenancy, fetchTenants, children }: TenantProvid
   )
 
   tenantStore.header = tenancy.header ?? 'x-tenant-id'
+  // Single-tenant: never emit the tenant header (avoids CORS preflight + leaking context).
+  tenantStore.id = tenancy.mode === 'multi' ? currentTenantId : undefined
 
   const setTenant = (id: string) => {
     setCurrentTenantId(id)
@@ -54,8 +56,8 @@ export function TenantProvider({ tenancy, fetchTenants, children }: TenantProvid
   }
 
   useEffect(() => {
-    tenantStore.id = currentTenantId
-  }, [currentTenantId])
+    tenantStore.id = tenancy.mode === 'multi' ? currentTenantId : undefined
+  }, [currentTenantId, tenancy.mode])
 
   useEffect(() => {
     if (tenancy.mode === 'multi' && fetchTenants) {
