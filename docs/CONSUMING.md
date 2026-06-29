@@ -246,6 +246,12 @@ Override (`manifest.overrides.ts`): `vehicle.fields.score = { type: 'integer', f
 The same `WidgetProps` shape is reused for read-only display if you also register a display
 variant.
 
+**Built-in extras** (no custom code needed):
+- **`multiselect`** widget — checkbox group for an array field; options come from the field's
+  `enum`. e.g. `user.fields.roles = { type: 'enum', enum: [{value:'admin',label:'role.admin'}], form: { widget: 'multiselect' } }`.
+- **`form.visibleOn`** — `'create' | 'edit'` restricts a field to one form mode (omitted = both).
+  e.g. `password: { form: { visibleOn: 'create' } }` hides it when editing.
+
 ### 3.2 Custom view
 
 A **view** override replaces a whole screen. It receives `{ model: ResourceModel; id?: string }`
@@ -253,9 +259,10 @@ A **view** override replaces a whole screen. It receives `{ model: ResourceModel
 freely.
 
 > **Actions:** manifest capabilities are rendered as row/bulk/collection buttons in the
-> generated list/show out of the box (`payload`, `visibleWhen`, `confirm`, CSV download). The
-> registry also has an `action` slot (`overrides.action`, resolved by `action.component`) to
-> swap in a fully custom button.
+> generated list/show out of the box (`payload`, `visibleWhen`, `confirm`, CSV download). Add
+> `input: { fields: [...] }` to prompt for values in a dialog and send them as the request body
+> (e.g. a "Reset password" action posting a typed password). The registry also has an `action`
+> slot (`overrides.action`, resolved by `action.component`) to swap in a fully custom button.
 
 ```tsx
 import { useResourceModel, useT } from '@volcanicminds/admin'

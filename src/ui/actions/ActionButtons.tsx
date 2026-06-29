@@ -8,6 +8,8 @@
 import { useState, type ComponentType } from 'react'
 import { Check, Archive, Download, RefreshCw, Send, Zap } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
+import { Input } from '@/ui/components/ui/input'
+import { Label } from '@/ui/components/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -22,7 +24,69 @@ import type { TFunc } from '../generators/listShared'
 import { useCapabilityRunner } from './useCapabilityRunner'
 
 type Rec = Record<string, any>
-type RunFn = (cap: CapabilitySpec, record?: Rec, label?: string) => void
+type RunFn = (cap: CapabilitySpec, record?: Rec, label?: string, body?: Rec) => void
+
+/** Dialog that prompts for `cap.input.fields` and runs the action with them as the body. */
+function ActionInputDialog({
+  cap,
+  record,
+  run,
+  label,
+  open,
+  onOpenChange,
+  t
+}: {
+  cap: CapabilitySpec
+  record?: Rec
+  run: RunFn
+  label: string
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  t: TFunc
+}) {
+  const [values, setValues] = useState<Rec>({})
+  const fields = cap.input?.fields ?? []
+  const missing = fields.some((f) => f.required && !values[f.name])
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent onClick={(e) => e.stopPropagation()}>
+        <DialogHeader>
+          <DialogTitle>{label}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          {fields.map((f) => (
+            <div key={f.name} className="space-y-1.5">
+              <Label>
+                {t(f.label ?? `field.${f.name}`)}
+                {f.required && <span className="ml-0.5 text-destructive">*</span>}
+              </Label>
+              <Input
+                type={f.widget === 'password' ? 'password' : 'text'}
+                placeholder={f.placeholder ? t(f.placeholder) : undefined}
+                value={values[f.name] ?? ''}
+                onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
+              />
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t('action.cancel')}
+          </Button>
+          <Button
+            disabled={missing}
+            onClick={() => {
+              run(cap, record, label, values)
+              onOpenChange(false)
+            }}
+          >
+            {t(cap.input?.submitLabel ?? cap.label ?? 'action.save')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   check: Check,
@@ -48,6 +112,7 @@ function ActionButton({
 }) {
   const registry = useRegistry()
   const [confirming, setConfirming] = useState(false)
+  const [prompting, setPrompting] = useState(false)
   const Icon = iconFor(cap.icon)
   const label = t(cap.label ?? `action.${cap.name}`)
 
@@ -59,7 +124,8 @@ function ActionButton({
   const fire = () => run(cap, record, label)
   const onClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (cap.confirm) setConfirming(true)
+    if (cap.input) setPrompting(true)
+    else if (cap.confirm) setConfirming(true)
     else fire()
   }
 
@@ -73,6 +139,17 @@ function ActionButton({
         <Button variant="outline" size="sm" onClick={onClick}>
           <Icon /> {label}
         </Button>
+      )}
+      {cap.input && (
+        <ActionInputDialog
+          cap={cap}
+          record={record}
+          run={run}
+          label={label}
+          open={prompting}
+          onOpenChange={setPrompting}
+          t={t}
+        />
       )}
       {cap.confirm && (
         <Dialog open={confirming} onOpenChange={setConfirming}>

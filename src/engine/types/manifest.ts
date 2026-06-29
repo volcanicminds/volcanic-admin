@@ -152,6 +152,24 @@ export interface CapabilitySpec {
   download?: string
   /** Override registry id; null/undefined → generic handler. */
   component?: string | null
+  /** Prompt for these fields in a dialog and send them as the request body (e.g. set password). */
+  input?: ActionInput
+}
+
+export interface ActionInputField {
+  name: string
+  label?: I18nKey
+  type?: FieldType
+  /** Built-in/registered widget id (e.g. 'password'). */
+  widget?: string
+  required?: boolean
+  placeholder?: I18nKey
+}
+
+export interface ActionInput {
+  fields: ActionInputField[]
+  /** Submit button label (defaults to the action label). */
+  submitLabel?: I18nKey
 }
 
 // ─── Resource ───────────────────────────────────────────────────────────────
@@ -258,6 +276,8 @@ export interface FieldListSpec {
 
 export interface FieldFormSpec {
   visible?: boolean
+  /** Restrict the field to one form mode (omitted = both create and edit). */
+  visibleOn?: 'create' | 'edit'
   /** Widget id; "auto" or a registered widget/componentId. */
   widget?: string
   /** Section grouping inside the form (e.g. "header", "contract"). */

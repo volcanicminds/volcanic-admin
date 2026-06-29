@@ -78,6 +78,31 @@ function BooleanWidget({ value, onChange, disabled }: WidgetProps) {
   )
 }
 
+/** Multi-select for an array-valued field (e.g. roles). Options come from `field.options`
+ *  (so declare the field as `enum` + `form.widget: 'multiselect'`). Value is a string[]. */
+function MultiSelectWidget({ field, value, onChange, disabled, t }: WidgetProps) {
+  const options = field.options ?? []
+  const selected: string[] = Array.isArray(value) ? value.map(String) : value ? [String(value)] : []
+  const toggle = (v: string) =>
+    onChange(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v])
+  return (
+    <div className="flex flex-col gap-2">
+      {options.map((opt) => (
+        <label key={opt.value} className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="h-4 w-4"
+            checked={selected.includes(opt.value)}
+            disabled={disabled}
+            onChange={() => toggle(opt.value)}
+          />
+          <span>{t(opt.label)}</span>
+        </label>
+      ))}
+    </div>
+  )
+}
+
 function EnumWidget({ field, value, onChange, disabled, t }: WidgetProps) {
   const options = field.options ?? []
   return (
@@ -143,6 +168,11 @@ function ImageWidget({ field }: WidgetProps) {
   )
 }
 
+/** Built-in widgets selectable by name via `field.form.widget` (not just by type). */
+const BUILTIN_WIDGETS: Record<string, (props: WidgetProps) => JSX.Element> = {
+  multiselect: MultiSelectWidget
+}
+
 function pickWidget(field: ResolvedField): (props: WidgetProps) => JSX.Element {
   if (field.type === 'relation') return ReferenceSelect
   switch (field.type) {
@@ -205,7 +235,8 @@ export function FieldInput({ field, control, t }: FieldInputProps) {
       defaultValue={(field.default as any) ?? (field.type === 'boolean' ? false : '')}
       render={({ field: rhf, fieldState }) => {
         const custom = registry.resolve('widget', field.form?.widget)
-        const Widget = custom ?? pickWidget(field)
+        const builtin = field.form?.widget ? BUILTIN_WIDGETS[field.form.widget] : undefined
+        const Widget = custom ?? builtin ?? pickWidget(field)
         return (
           <div className="space-y-1">
             <Widget

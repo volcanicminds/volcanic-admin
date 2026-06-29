@@ -30,9 +30,17 @@ function defaultsFor(fields: ResolvedField[]): Record<string, unknown> {
   return out
 }
 
+/** A field shows in the current form mode unless restricted via `form.visibleOn`. */
+function visibleForAction(field: ResolvedField, action: 'create' | 'edit'): boolean {
+  return !field.form?.visibleOn || field.form.visibleOn === action
+}
+
 export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFormProps) {
   const t = useT()
-  const editableFields = model.formSections.flatMap((s) => s.fields)
+  const sections = model.formSections
+    .map((s) => ({ ...s, fields: s.fields.filter((f) => visibleForAction(f, action)) }))
+    .filter((s) => s.fields.length > 0)
+  const editableFields = sections.flatMap((s) => s.fields)
 
   const {
     refineCore: { onFinish, formLoading },
@@ -69,7 +77,7 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
         </Button>
       </div>
 
-      {model.formSections.map((section) => (
+      {sections.map((section) => (
         <Card key={section.group}>
           {section.group !== 'default' && (
             <CardHeader>

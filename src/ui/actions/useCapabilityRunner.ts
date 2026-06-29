@@ -37,7 +37,7 @@ export function useCapabilityRunner(resource: string) {
   const invalidate = useInvalidate()
   const [isRunning, setIsRunning] = useState(false)
 
-  const run = async (cap: CapabilitySpec, record?: Rec, label?: string) => {
+  const run = async (cap: CapabilitySpec, record?: Rec, label?: string, body?: Rec) => {
     const provider = dataProvider()
     if (!provider.custom) {
       toast.error('Actions require a data provider with custom() support')
@@ -48,7 +48,7 @@ export function useCapabilityRunner(resource: string) {
       const { data } = await provider.custom({
         url: interpolatePath(cap.path, record),
         method: cap.method.toLowerCase() as 'get' | 'post' | 'put' | 'patch' | 'delete',
-        payload: cap.payload ?? {}
+        payload: { ...(cap.payload ?? {}), ...(body ?? {}) }
       })
       if (cap.download) download(data, cap, resource)
       else toast.success(label ?? cap.name)
