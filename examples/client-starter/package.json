@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "pull:manifest": "volcanic-admin-pull --url $VITE_API_BASE_URL --out src"
   },
   "dependencies": {
     "@refinedev/core": "^4.57.0",

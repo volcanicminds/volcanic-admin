@@ -10,13 +10,116 @@ There are three distribution models; pick per client:
 | **B — npm + thin app** | Some custom widgets/pages, own branding | Yes — a tiny Vite app (this guide) |
 | **C — scaffold/fork** | Heavily bespoke | Yes — a full copy |
 
-**B is the default.** A client app is usually one `main.tsx`.
+**B is the default.** A client app is usually one `main.tsx` plus two manifest files.
 
 ---
 
-## 1. Simple case (≈ 1 file)
+## 1. The manifest: auto-generated + your overrides
 
-A client that only needs the auto-generated CRUD from its backend manifest.
+The backend (`@volcanicminds/backend` ≥ 3.2) **generates the manifest automatically** from
+its routes + JSON Schemas — no hand-authoring of the resource map. The client never edits
+that generated description; it only adds a thin **overrides** layer for presentation
+(labels, groups, widgets, layouts). Two files, two owners:
+
+| File | Owner | Edited by hand? |
+|---|---|---|
+| `manifest.generated.ts` | the backend | **never** — overwritten on every refresh |
+| `manifest.overrides.ts` | the client | yes — your only manifest source-of-truth |
+
+The engine merges them by canonical identity `(resource, field)` / capability name:
+`merge(generated, overrides)`. The overrides survive every regeneration, so backend drift
+(a new field, a renamed enum) flows in on the next pull without clobbering your UI choices.
+
+### 1.1 Build-time pull (recommended)
+
+Pull the manifest into the repo at build time. It is **pinned, reviewable in a PR, and the
+build works offline** — no live backend needed to compile.
+
+```bash
+# fetch GET <url>/admin/manifest, validate against the v2 JSON Schema, and write
+#   src/manifest.generated.ts  (always — AUTO-GENERATED header)
+#   src/manifest.overrides.ts  (scaffolded once, only if absent — yours thereafter)
+npx volcanic-admin-pull --url https://api.acme.example --out src
+# or from a snapshot file instead of a live backend:
+npx volcanic-admin-pull --from ./manifest.snapshot.json --out src
+```
+
+Add it as a script so refreshing is one command:
+
+```jsonc
+// package.json
+{ "scripts": { "pull:manifest": "volcanic-admin-pull --url $VITE_API_BASE_URL --out src" } }
+```
+
+Wire both files into the app:
+
+```tsx
+import { VolcanicAdmin } from '@volcanicminds/admin'
+import '@volcanicminds/admin/styles.css'
+import { generatedManifest } from './manifest.generated' // pulled — never edit
+import { overrides } from './manifest.overrides'         // yours
+import { dictionaries } from './i18n'
+
+createRoot(document.getElementById('root')!).render(
+  <VolcanicAdmin
+    apiUrl={import.meta.env.VITE_API_BASE_URL}
+    apiBasePath="" // '' = real hand-written routes; '/admin' (default) = generic CRUD
+    authMode="bearer"
+    manifest={generatedManifest}
+    manifestOverrides={overrides}
+    dictionaries={dictionaries}
+    defaultLocale="it"
+    locales={['it']}
+  />
+)
+```
+
+`manifest.overrides.ts` is plain typed data — fill what the schema-only generator can't
+infer and trim noise (see §3 for the override surface):
+
+```ts
+import type { ManifestOverrides } from '@volcanicminds/admin'
+
+export const overrides: ManifestOverrides = {
+  excludeResources: ['token', 'health'], // keep on the backend, hide from the panel
+  groups: [{ name: 'catalog', label: 'group.catalog', icon: 'car', order: 10 }],
+  resources: {
+    vehicle: {
+      titleField: 'name',
+      defaultListLayout: 'card',
+      fields: {
+        // enrich the thin schema-only relation + hide the raw FK
+        brand: { type: 'relation', relation: { resource: 'brand', titleField: 'name' }, form: { widget: 'reference-select' } },
+        brandId: { list: { visible: false }, form: { visible: false } }
+      }
+    }
+  }
+}
+```
+
+### 1.2 Runtime fetch (no pull step)
+
+Skip the pull and let the engine fetch `GET ${apiUrl}/admin/manifest` at boot — drop the
+`manifest` prop and pass only `apiUrl`. Simplest to wire, but the build depends on a live
+backend and the manifest isn't pinned in the repo. Overrides still apply: pass
+`manifestOverrides` and they merge onto the fetched manifest.
+
+```tsx
+<VolcanicAdmin
+  apiUrl={import.meta.env.VITE_API_BASE_URL} // engine fetches /admin/manifest
+  manifestOverrides={overrides}              // still merged on top
+  dictionaries={dictionaries}
+/>
+```
+
+> **Model A (no repo):** the runtime-fetch build can serve many clients — deploy once and
+> set `VITE_API_BASE_URL` per environment/subdomain.
+
+---
+
+## 2. Simple case (≈ 1 file)
+
+A client that only needs the auto-generated CRUD from its backend manifest, no custom React.
 
 ```bash
 npm create vite@latest acme-admin -- --template react-ts
@@ -24,6 +127,7 @@ cd acme-admin
 npm i @volcanicminds/admin \
   react react-dom react-router \
   @refinedev/core @refinedev/react-router @refinedev/react-hook-form react-hook-form
+npx volcanic-admin-pull --url https://api.acme.example --out src   # §1.1
 ```
 
 `src/main.tsx`:
@@ -33,6 +137,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { VolcanicAdmin } from '@volcanicminds/admin'
 import '@volcanicminds/admin/styles.css' // prebuilt theme — no Tailwind needed
+import { generatedManifest } from './manifest.generated'
+import { overrides } from './manifest.overrides'
 import { dictionaries } from './i18n'
 
 createRoot(document.getElementById('root')!).render(
@@ -40,6 +146,8 @@ createRoot(document.getElementById('root')!).render(
     <VolcanicAdmin
       apiUrl={import.meta.env.VITE_API_BASE_URL} // backend exposing /admin/manifest
       authMode="cookie" // or "bearer"
+      manifest={generatedManifest}
+      manifestOverrides={overrides}
       dictionaries={dictionaries} // your i18n labels for the manifest keys
     />
   </StrictMode>
@@ -52,45 +160,45 @@ createRoot(document.getElementById('root')!).render(
 VITE_API_BASE_URL=https://api.acme.example
 ```
 
-That's it. The engine fetches `GET /admin/manifest`, builds resources, and renders
-list/create/edit/show, filters, omni-search, pagination, XLS import/export, auth + MFA,
-multi-tenant — all from the manifest. `dictionaries` translate the manifest keys
-(`res.*`, `field.*`, `enum.*`, `group.*`, `action.*`); missing keys fall back to a
-humanized label.
+That's it. The engine builds resources from the manifest and renders list/create/edit/show,
+filters, omni-search, pagination, XLS import/export, **row/bulk/collection actions**, auth +
+MFA, multi-tenant. `dictionaries` translate the manifest keys (`res.*`, `field.*`, `enum.*`,
+`group.*`, `action.*`); missing keys fall back to a humanized label.
 
-> **Model A (no repo):** the very same build can serve many clients — deploy once and
-> set `VITE_API_BASE_URL` per environment/subdomain.
->
-> **Need custom React?** Stay on B — add **plugins** (§2) for theme, components, and
-> pages. Customization is injected, and shared customizations can be their own npm
-> package reused across clients — no fork, no monorepo.
+> **Need custom React?** Stay on B — add **plugins** (§3) for theme, components, and pages.
+> Customization is injected, and shared customizations can be their own npm package reused
+> across clients — no fork, no monorepo.
 
 ---
 
-## 2. Complex case — plugins (theme, components, pages)
+## 3. Complex case — plugins (theme, components, pages)
 
-Customization is **injected**, never forked or monkey-patched. The manifest references
-your components by **id**; the engine resolves them. You can pass customization inline as
-props (`overrides`, `routes`, `theme`, `dictionaries`) — but the clean way to keep
-`main.tsx` tiny and customization modular is a **plugin**.
+Customization is **injected**, never forked or monkey-patched. The manifest references your
+components by **id**; the engine resolves them. You can pass customization inline as props
+(`overrides`, `routes`, `theme`, `dictionaries`) — but the clean way to keep `main.tsx` tiny
+and customization modular is a **plugin**.
 
-A plugin is a plain object that contributes any of: `widgets`, `views`, `actions`,
-`routes`, `dictionaries`, `theme`. Plugins **compose** (later wins on key collisions;
-direct props win over plugins). Put one plugin per concern in its own file — or publish it
-as its own npm package and **share it across client repos** (no fork, no monorepo).
+A plugin is a plain object that contributes any of: `widgets`, `views`, `actions`, `routes`,
+`dictionaries`, `theme`. Plugins **compose** (later wins on key collisions; direct props win
+over plugins). Put one plugin per concern in its own file — or publish it as its own npm
+package and **share it across client repos** (no fork, no monorepo).
 
 ```tsx
 // main.tsx stays tiny — concerns live in plugin files
 import { VolcanicAdmin } from '@volcanicminds/admin'
 import '@volcanicminds/admin/styles.css'
-import { themePlugin } from './plugins/theme.plugin'       // §2.3
-import { catalogPlugin } from './plugins/catalog.plugin'   // §2.1 + §2.2
-import { dashboardPlugin } from './plugins/dashboard.plugin' // §2.4
+import { generatedManifest } from './manifest.generated'
+import { overrides } from './manifest.overrides'
+import { themePlugin } from './plugins/theme.plugin'       // §3.3
+import { catalogPlugin } from './plugins/catalog.plugin'   // §3.1 + §3.2
+import { dashboardPlugin } from './plugins/dashboard.plugin' // §3.4
 import { dictionaries } from './i18n'
 
 createRoot(document.getElementById('root')!).render(
   <VolcanicAdmin
     apiUrl={import.meta.env.VITE_API_BASE_URL}
+    manifest={generatedManifest}
+    manifestOverrides={overrides}
     dictionaries={dictionaries}
     plugins={[themePlugin, catalogPlugin, dashboardPlugin]}
   />
@@ -110,10 +218,10 @@ export const catalogPlugin = defineAdminPlugin({
 })
 ```
 
-> The inline props (`overrides`/`routes`/`theme`/`dictionaries`) and plugins are merged,
-> so you can mix both. Everything below works either way.
+> The inline props (`overrides`/`routes`/`theme`/`dictionaries`) and plugins are merged, so
+> you can mix both. Everything below works either way.
 
-### 2.1 Custom field widget
+### 3.1 Custom field widget
 
 A widget renders one field. It receives `WidgetProps` (`value`, `onChange`, `field`, `t`,
 `disabled`) and is registered under the id used in the manifest (`field.form.widget`).
@@ -134,19 +242,20 @@ export function RatingWidget({ value, onChange, disabled }: WidgetProps) {
 }
 ```
 
-Manifest (server or `defineAdminResource`): `{ "name": "score", "type": "integer",
-"form": { "widget": "rating" } }`. The same `WidgetProps` shape is reused for read-only
-display if you also register a display variant.
+Override (`manifest.overrides.ts`): `vehicle.fields.score = { type: 'integer', form: { widget: 'rating' } }`.
+The same `WidgetProps` shape is reused for read-only display if you also register a display
+variant.
 
-### 2.2 Custom view
+### 3.2 Custom view
 
 A **view** override replaces a whole screen. It receives `{ model: ResourceModel; id?: string }`
 (`id` for edit/show). Reuse the engine pieces (`useResourceModel`, Refine hooks) or build
 freely.
 
-> **Actions:** the registry also has an `action` slot (`overrides.action`, resolved by
-> `action.component`) for custom row/bulk/collection buttons. Rendering of manifest
-> `actions` in the generated list/show is on the roadmap; the slot is already in place.
+> **Actions:** manifest capabilities are rendered as row/bulk/collection buttons in the
+> generated list/show out of the box (`payload`, `visibleWhen`, `confirm`, CSV download). The
+> registry also has an `action` slot (`overrides.action`, resolved by `action.component`) to
+> swap in a fully custom button.
 
 ```tsx
 import { useResourceModel, useT } from '@volcanicminds/admin'
@@ -159,13 +268,13 @@ export function VehicleShow({ model, id }: { model: ResourceModel; id?: string }
 }
 ```
 
-Manifest: `"views": { "show": "vehicle-show" }`. Where a view is `"auto"`, the generated
+Override: `vehicle.views = { show: 'vehicle-show' }`. Where a view is `'auto'`, the generated
 screen is used.
 
-### 2.3 Theming / graphical style
+### 3.3 Theming / graphical style
 
-Pass theme tokens as **data** (a `theme` prop or `plugin.theme`) — injected as CSS
-variables at runtime, no CSS file or rebuild. Colors are HSL channels.
+Pass theme tokens as **data** (a `theme` prop or `plugin.theme`) — injected as CSS variables
+at runtime, no CSS file or rebuild. Colors are HSL channels.
 
 ```ts
 // plugins/theme.plugin.ts
@@ -183,11 +292,11 @@ export const themePlugin = defineAdminPlugin({
 })
 ```
 
-(Equivalent inline: `<VolcanicAdmin theme={{ primary: '221 83% 53%', … }} />`.) You can
-still override the CSS variables in a stylesheet if you prefer; both work.
+(Equivalent inline: `<VolcanicAdmin theme={{ primary: '221 83% 53%', … }} />`.) You can still
+override the CSS variables in a stylesheet if you prefer; both work.
 
-If you build your **own** components with Tailwind and want the same tokens/utilities,
-extend the shipped preset:
+If you build your **own** components with Tailwind and want the same tokens/utilities, extend
+the shipped preset:
 
 ```js
 // tailwind.config.js
@@ -199,12 +308,11 @@ export default {
 }
 ```
 
-### 2.4 Custom pages & dashboards
+### 3.4 Custom pages & dashboards
 
-`routes` mounts arbitrary screens inside the admin shell (sidebar + topbar). Add `nav`
-to show a sidebar entry, and `index: true` to make it the landing page (replacing the
-default redirect to the first resource). Pages can use any Refine hook against the same
-data layer:
+`routes` mounts arbitrary screens inside the admin shell (sidebar + topbar). Add `nav` to
+show a sidebar entry, and `index: true` to make it the landing page (replacing the default
+redirect to the first resource). Pages can use any Refine hook against the same data layer:
 
 ```tsx
 import { useList } from '@refinedev/core'
@@ -220,7 +328,7 @@ export function Dashboard() {
 }
 ```
 
-### 2.5 Share customizations across client repos (no fork, no monorepo)
+### 3.5 Share customizations across client repos (no fork, no monorepo)
 
 A plugin is just an object, so extract the customizations that several clients share into
 their **own npm package** and install it in each client repo:
@@ -240,10 +348,10 @@ import { catalogPlugin } from '@acme/admin-plugin-catalog'
 Bump the shared package → every client picks it up via `npm update`. Each client keeps its
 own thin repo; nothing is forked and there is no shared monorepo.
 
-### 2.6 Auto-load plugins by convention (optional)
+### 3.6 Auto-load plugins by convention (optional)
 
-To avoid editing `main.tsx` when you add a file, let the build collect plugins from a
-folder using Vite's `import.meta.glob`:
+To avoid editing `main.tsx` when you add a file, let the build collect plugins from a folder
+using Vite's `import.meta.glob`:
 
 ```ts
 // src/plugins/index.ts
@@ -264,29 +372,35 @@ Now dropping a new `*.plugin.ts(x)` under `src/plugins/` registers it automatica
 
 ---
 
-## 3. `<VolcanicAdmin>` props (reference)
+## 4. `<VolcanicAdmin>` props (reference)
 
 | Prop | Purpose |
 |---|---|
 | `apiUrl` | Backend base URL (manifest + CRUD). |
+| `apiBasePath` | Base path for CRUD calls. Default `'/admin'` (generic CRUD); set `''` for real hand-written routes. |
 | `authMode` | `'cookie'` (default from manifest) or `'bearer'`. |
 | `basename` | Router base path when mounted under a sub-path. |
-| `manifest` / `loadManifest` | Provide a static manifest or a custom loader (default: `GET /admin/manifest`). |
+| `manifest` / `loadManifest` | Provide a pulled/static manifest (build-time, §1.1) or a custom loader; default = `GET /admin/manifest` (runtime, §1.2). |
+| `manifestOverrides` | Project overrides merged onto the generated/fetched manifest by `(resource, field)` / capability. |
 | `dataProvider` / `authClient` | Override the providers (e.g. an in-memory mock for dev). |
 | `dictionaries`, `defaultLocale`, `locales` | i18n. |
-| `overrides` | `{ widget, view, action }` keyed by manifest componentId. |
+| `overrides` | Component registry: `{ widget, view, action }` keyed by manifest componentId. |
 | `routes` | Custom pages: `{ path, element, index?, nav? }`. |
 | `theme` | Theme tokens injected as CSS variables (`{ primary, ring, radius, …, dark }`). |
 | `plugins` | Composable bundles: `{ widgets, views, actions, routes, dictionaries, theme }` (use `defineAdminPlugin`). |
 | `fetchTenants` | Tenant list loader (multi-tenant); default `GET /tenants`. |
 
-## 4. Dev without a backend
+> **`manifest` vs `manifestOverrides`.** `manifest` is the generated description (don't edit);
+> `manifestOverrides` is your `ManifestOverrides` layer merged on top. `overrides` is a
+> *different* prop — the React component registry that backs `form.widget` / `views` ids.
+
+## 5. Dev without a backend
 
 For local development you can drive the admin from a static manifest + an in-memory data
 provider (see this repo's `src/mock/*` and the demo `src/App.tsx`). Pass `manifest`,
 `dataProvider`, and `authClient` props instead of `apiUrl`.
 
-## 5. Publishing / registry
+## 6. Publishing / registry
 
 `@volcanicminds/admin` is a scoped package. Publish to npm (public) or a private registry
 (GitHub Packages / private npm org). Peers (`react`, `react-dom`, `react-router`,
