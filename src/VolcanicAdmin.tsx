@@ -394,11 +394,13 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
       routes: [...plugins.flatMap((p) => p.routes ?? []), ...(props.routes ?? [])],
       dictionaries: mergeDictionaries([...plugins.map((p) => p.dictionaries), props.dictionaries])
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `plugins` is derived from `props`
     [props]
   )
 
   const theme = useMemo(
     () => mergeTheme([...plugins.map((p) => p.theme), props.theme]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `plugins` is derived from `props`
     [props]
   )
 

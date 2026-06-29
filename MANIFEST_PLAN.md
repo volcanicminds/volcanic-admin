@@ -137,9 +137,9 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
 - [x] **ADM-1** FATTO: `types/manifest.ts` riscritto v2 (`CapabilitySpec` unificato); `ResourceModel` espone
       `hasAction`/`roles`/`actions`; migrati `interpreter`, `accessControl`, `ListView`, `ShowView`; mock
       `manifest.ts` + `manifestUnchanged.ts` riscritti a v2 (subagent sonnet). Guardia runtime `version===2`
-      (validazione Ajv piena = build script). **type-check + build verdi.** NB: `manifestUnchanged.ts` è scratch
-      non importato (artefatti copy-paste) → candidato a rimozione; lint repo ha **2 errori pre-esistenti** in file
-      non toccati (`tenant.tsx`/`display.tsx`: regole eslint `react-hooks`/`react` senza plugin) → fix a parte.
+      (validazione Ajv piena = build script). **type-check + lint + build verdi.** Pulizia: rimosso
+      `manifestUnchanged.ts` (scratch morto, non importato); aggiunti plugin eslint `react`/`react-hooks` alla
+      flat-config (risolti i 2 errori "rule not found" pre-esistenti) → `npm run lint` ora 0 errori/0 warning.
 - [ ] **ADM-2** **Fetch build-time + snapshot**: DEV = fetch all'avvio, BUILD = legge snapshot; genera `manifest.generated.ts`.
 - [ ] **ADM-3** **Split generated/overrides + merge** per identità `(resource,field)`; scaffold `manifest.overrides.ts`
       vuoto alla prima generazione.
