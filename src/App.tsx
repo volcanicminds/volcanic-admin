@@ -5,6 +5,7 @@
  */
 import { VolcanicAdmin } from './VolcanicAdmin'
 import { mockManifest } from './mock/manifest'
+import { mockOverrides } from './mock/overrides'
 import { mockDataProvider } from './mock/mockDataProvider'
 import { mockAuthClient } from './mock/mockAuthClient'
 import { mockDictionaries } from './mock/i18n'
@@ -19,6 +20,7 @@ export default function App() {
     return (
       <VolcanicAdmin
         manifest={mockManifest}
+        manifestOverrides={mockOverrides}
         dataProvider={mockDataProvider}
         authClient={mockAuthClient}
         dictionaries={mockDictionaries}

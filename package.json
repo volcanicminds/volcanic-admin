@@ -35,7 +35,9 @@
   "files": [
     "dist",
     "tailwind-preset.js",
-    "README.md"
+    "README.md",
+    "scripts",
+    "manifest.v2.schema.json"
   ],
   "sideEffects": [
     "**/*.css"
@@ -49,7 +51,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "prepublishOnly": "npm run build",
-    "validate:manifest": "node scripts/validate-manifest.mjs"
+    "validate:manifest": "node scripts/validate-manifest.mjs",
+    "pull:manifest": "node scripts/pull-manifest.mjs"
   },
   "peerDependencies": {
     "@refinedev/core": "^4.57.0",
@@ -108,5 +111,8 @@
     "url": "git+https://github.com/volcanicminds/volcanic-admin.git"
   },
   "homepage": "https://volcanicminds.com",
-  "author": "Volcanic Minds <developers@volcanicminds.com> (https://volcanicminds.com)"
+  "author": "Volcanic Minds <developers@volcanicminds.com> (https://volcanicminds.com)",
+  "bin": {
+    "volcanic-admin-pull": "scripts/pull-manifest.mjs"
+  }
 }

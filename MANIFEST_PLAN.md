@@ -140,9 +140,15 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
       (validazione Ajv piena = build script). **type-check + lint + build verdi.** Pulizia: rimosso
       `manifestUnchanged.ts` (scratch morto, non importato); aggiunti plugin eslint `react`/`react-hooks` alla
       flat-config (risolti i 2 errori "rule not found" pre-esistenti) → `npm run lint` ora 0 errori/0 warning.
-- [ ] **ADM-2** **Fetch build-time + snapshot**: DEV = fetch all'avvio, BUILD = legge snapshot; genera `manifest.generated.ts`.
-- [ ] **ADM-3** **Split generated/overrides + merge** per identità `(resource,field)`; scaffold `manifest.overrides.ts`
-      vuoto alla prima generazione.
+- [x] **ADM-2** FATTO: CLI **`scripts/pull-manifest.mjs`** (`bin: volcanic-admin-pull`, npm `pull:manifest`) —
+      fetch `GET <url>/admin/manifest` o `--from <file>`, **valida Ajv** vs `manifest.v2.schema.json`, scrive
+      `manifest.generated.ts` (sempre, header AUTO-GENERATED) e scaffolda `manifest.overrides.ts` **solo se assente**.
+      Schema + scripts aggiunti ai `files` del package. Smoke: re-run rigenera generated e **preserva overrides** ✅.
+- [x] **ADM-3** FATTO: **`engine/merge.ts`** — `mergeManifest(generated, overrides)` + `ManifestOverrides`/`ResourceOverride`/
+      `FieldOverride`/`CapabilityOverride` (merge per identità `(resource,field)`/capability-name; patch/add/exclude;
+      `deepMerge`). Cablato nel `ManifestProvider` (+ prop `manifestOverrides` su `<VolcanicAdmin>`), applicato sia al
+      manifest preloaded sia al fetch. Demo `mock/overrides.ts`. **Smoke verde**: override `tag.list.visible=false` →
+      colonna "Tag" sparita dalla lista veicoli. type-check + lint + build verdi.
 - [ ] **ADM-4** **Zero-config rendering dal manifest generato** (i generator esistono già: pilotarli dal generated):
       sidebar da `resources`+`groups`, lista table/card, dettaglio layout standard, **sezioni operation** top-level.
 - [~] **ADM-5** **Rendering azioni manifest FATTO** (capability↔endpoint, il pezzo chiave): `engine/actions.ts`

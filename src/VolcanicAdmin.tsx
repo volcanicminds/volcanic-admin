@@ -42,6 +42,7 @@ import type {
   AuthMode,
   Dictionaries,
   Manifest,
+  ManifestOverrides,
   TenantOption
 } from './engine'
 import {
@@ -136,6 +137,8 @@ export interface VolcanicAdminProps {
   manifest?: Manifest
   /** Custom manifest loader (defaults to GET ${apiUrl}/admin/manifest). */
   loadManifest?: () => Promise<Manifest>
+  /** Project overrides merged onto the generated/fetched manifest by (resource, field). */
+  manifestOverrides?: ManifestOverrides
 
   /** Override the data provider (e.g. an in-memory mock for development). */
   dataProvider?: DataProvider
@@ -422,7 +425,12 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
   return (
     <BrowserRouter basename={props.basename}>
       <ThemeStyle theme={theme} />
-      <ManifestProvider manifest={props.manifest} load={load} fallback={props.loading}>
+      <ManifestProvider
+        manifest={props.manifest}
+        load={load}
+        overrides={props.manifestOverrides}
+        fallback={props.loading}
+      >
         {(model) => <AdminRuntime model={model} props={effective} />}
       </ManifestProvider>
     </BrowserRouter>

@@ -13,6 +13,7 @@ import {
 import type { Manifest } from './types/manifest.js'
 import type { AdminModel, ResourceModel } from './types/model.js'
 import { interpretManifest } from './interpreter.js'
+import { mergeManifest, type ManifestOverrides } from './merge.js'
 
 const ModelContext = createContext<AdminModel | null>(null)
 
@@ -34,6 +35,8 @@ export interface ManifestSource {
   manifest?: Manifest
   /** Loader for runtime fetch (e.g. GET /admin/manifest). */
   load?: () => Promise<Manifest>
+  /** Project overrides merged onto the generated manifest by `(resource, field)`. */
+  overrides?: ManifestOverrides
 }
 
 export interface ManifestProviderProps extends ManifestSource {
@@ -45,12 +48,13 @@ export interface ManifestProviderProps extends ManifestSource {
 export function ManifestProvider({
   manifest,
   load,
+  overrides,
   children,
   fallback,
   renderError
 }: ManifestProviderProps) {
   const [model, setModel] = useState<AdminModel | null>(
-    manifest ? interpretManifest(manifest) : null
+    manifest ? interpretManifest(mergeManifest(manifest, overrides)) : null
   )
   const [error, setError] = useState<Error | null>(null)
 
@@ -58,12 +62,12 @@ export function ManifestProvider({
     if (manifest || !load) return
     let cancelled = false
     load()
-      .then((m) => !cancelled && setModel(interpretManifest(m)))
+      .then((m) => !cancelled && setModel(interpretManifest(mergeManifest(m, overrides))))
       .catch((e) => !cancelled && setError(e instanceof Error ? e : new Error(String(e))))
     return () => {
       cancelled = true
     }
-  }, [manifest, load])
+  }, [manifest, load, overrides])
 
   if (error) return <>{renderError ? renderError(error) : <DefaultError error={error} />}</>
   if (!model) return <>{fallback ?? <DefaultLoading />}</>
