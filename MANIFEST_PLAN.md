@@ -189,9 +189,13 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
 - [x] **DIO-BO-3** i18n IT (`src/i18n.ts`) + **smoke E2E live FATTO**: seed Dionisi (`seed.ts`: admin + brand/veicoli
       + azienda) → BE pglite + BO → **login** → lista veicoli con **dati reali**, **publish/archive** con `visibleWhen`
       (Bozza: Pubblica+Archivia; Pubblicato: solo Archivia), sidebar a gruppi, **enum IT**, company singleton (vista edit).
-      **Fix engine emersi** (commit `5a9cbdc`): prop **`apiBasePath`** (= '' per rotte reali, non `/admin/<res>`) +
-      **niente `x-tenant-id` in single-tenant** (era CORS-bloccato). Resta (cosmetico/follow-up): theming/logo Dionisi;
-      ⚠️ **gap engine**: data-load **singleton** usa `/company/:id` invece di `GET /company`; alcune label company non nel dict IT.
+      **Fix engine emersi**: prop **`apiBasePath`** (= '' per rotte reali) + **niente `x-tenant-id` in single-tenant**
+      (`5a9cbdc`); **singleton data-load** su base path `GET/PUT /company` senza id (`c95c8dd`, via `meta.singleton`) →
+      **company round-trip verificato** (load + edit + Save → PUT persiste). Campi company editabili via override
+      `readOnly:false` (BO `765d9cd`). Resta (cosmetico/follow-up): theming/logo Dionisi; label company complete nel dict IT.
+      📌 **Miglioramento generatore consigliato (framework 3.2.x)**: raccogliere il body schema anche da rotte
+      PUT/PATCH/POST classificate `action` (es. `PUT /company`), così i campi singleton risultano writable senza override;
+      + `MANIFEST_DUMP_EXIT` deve chiudere la connessione DB.
 
 ## Trasversale
 
