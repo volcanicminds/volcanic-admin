@@ -208,11 +208,17 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
       E2E: company editabile **senza override**, dati persistiti.
       ✅ **Cosmetico FATTO (smoke live)**: dizionario IT completo (23 campi `company` + sezioni form); **branding Dionisi**
       (logo wordmark + tema rosso `#ED1C24` via prop `branding`+`theme`, engine ADM-5b); raggruppamento form `company`
-      in sezioni; **fix risorsa `users`**: il generatore la nomina `users` (plurale, dal path, niente `resource.name`
-      hint sull'API nativa) → realineate le chiavi override/i18n a `users` (prima la sidebar mostrava "Plural" non
-      tradotto, ora "Operatori" sotto Impostazioni). ⚠️ *Follow-up framework opzionale*: dare alle API native
-      (`users`/`tenants`/`token`/`health`) un `resource.name` hint per nomi singolari + chiavi label coerenti, così i
-      consumer non devono rimappare `res.users.*`.
+      in sezioni; raggruppamento form `company` in sezioni; **fix risorsa `user`** (vedi 3.3.0 sotto).
+- [x] **Framework `3.3.0` (pubblicato) — giro coordinato** (BREAKING, niente retro-compat sul flat):
+      **(a) namespace hint** → gli hint strutturali si autorano sotto **`config.manifest: { group, resource }`** nei
+      `routes.ts` (separati dalla config operativa); il loader legge solo il nested (no fallback flat). `ManifestHints`
+      in `types/global.d.ts`. **(b) nomi nativi singolari** → le API native `users`/`tenants` dichiarano l'hint →
+      risorse **`user`/`tenant`** (`path` plurale invariato), gruppo `system`, `user.titleField=[firstName,lastName]`,
+      subtitle `email`. Così i consumer keyano override/i18n su `res.user.*` invece del path-derivato `res.users.*`.
+      Test (routes BE-2) + `llms.txt §11.4` + `MANIFEST_DESIGN §3.4` aggiornati; verificato via `MANIFEST_DUMP`.
+      **Dionisi adottato** (`c53b3ee`): 4 `routes.ts` migrati a `config.manifest`; re-pull; override/i18n `users`→`user`;
+      **smoke live**: "Operatori" sotto Impostazioni, logo + tema rosso, dati reali + enum IT. ⚠️ Restano fuori scope:
+      `token` (base già singolare) e `health` (non è una risorsa CRUD — semmai *non* emetterla, cambio generatore separato).
 
 ## Trasversale
 
