@@ -163,11 +163,19 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
 
 ## M4 — Dionisi backend `dionisi-group/backend`
 
-- [ ] **DIO-BE-1** Attivare `admin:{manifest:true}` nel wiring.
-- [ ] **DIO-BE-2** Aggiungere gli **hint `config`** ai `routes.ts` (group, resource.name/titleField/subtitleField, globalSearch);
-      far leggere al controller `globalSearch` dalla config (singola fonte, elimina la duplicazione con `omniSearch.ts`).
-- [ ] **DIO-BE-3** **Dizionario i18n IT** (chiavi `res./field./enum./action./group.`).
-- [ ] **DIO-BE-4** Verifica `GET /admin/manifest` Dionisi + snapshot.
+> **Prerequisito FATTO**: `@volcanicminds/backend` **3.2.0 pubblicato su npm** (con la capability manifest BE-1..7);
+> Dionisi aggiornato a `^3.2.0`. *(Lungo la strada: CI del framework era già rossa — rimosso `npm-upgrade` che rompeva
+> publint, aggiunto `JWT_SECRET` di test a `test:core`; ora verde. publish manuale `npm publish` come la 3.1.0.)*
+- [x] **DIO-BE-1** FATTO: `config.options.manifest.enabled = true` → `GET /admin/manifest` (generatore 3.2.0).
+- [x] **DIO-BE-2** FATTO: hint nei `routes.ts` (group + `resource{name,titleField,subtitleField,globalSearch}`) per
+      vehicle/brand/newsletter (catalog/crm) e company (settings); `globalSearch` **single-source** coi `SEARCH_FIELDS`
+      dei controller; aggiunto `splitOmniSearch` a brand/newsletter (la search dichiarata ora funziona).
+- [ ] **DIO-BE-3** **Dizionario i18n IT** — il manifest emette le chiavi (`res./field./enum./action./group.`); il
+      dizionario è **consumato lato BO** → lo produco in **M5** (backoffice).
+- [x] **DIO-BE-4** FATTO: `GET /admin/manifest` Dionisi generato e **valido contro `manifest.v2.schema.json` (Ajv)**;
+      snapshot via `MANIFEST_DUMP`. Limiti generatore emersi (→ override BO M5): company singleton (list+put), native
+      users/token/health, sezioni operation `/public`+`/auth`, enum inline, relazioni thin.
+      ⚠️ *Follow-up framework*: `MANIFEST_DUMP_EXIT` non chiude la connessione DB → il processo non esce da solo.
 
 ## M5 — Dionisi backoffice `dionisi-group/backoffice`
 
