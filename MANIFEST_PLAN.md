@@ -179,10 +179,15 @@ Consolidata la fonte canonica su `MANIFEST_DESIGN.md` (v2). Interventi:
 
 ## M5 — Dionisi backoffice `dionisi-group/backoffice`
 
-- [ ] **DIO-BO-1** Scaffold istanza `<VolcanicAdmin>` che consuma il manifest Dionisi (generated + overrides).
-- [ ] **DIO-BO-2** `overrides.ts` Dionisi: gruppi/icone/ordini, widget (gallery-reorder, rich-text, image-single),
-      layouts, payload capability publish/archive, export CSV, singleton company, link/dashboard, relation kind/fk.
-- [ ] **DIO-BO-3** Theming + logo + dizionari; build con snapshot; **smoke E2E** del pannello reale.
+- [x] **DIO-BO-1** FATTO: app Vite+React in `dionisi-group/backoffice` con `<VolcanicAdmin>`; dep `@volcanicminds/admin`
+      via **`file:`** (app privata frontend, niente issue reflect-metadata); `manifest.generated.ts` **pullato dal BE
+      Dionisi reale** (`volcanic-admin-pull`) + `manifest.overrides.ts`; main.tsx (apiUrl+manifest+overrides+i18n).
+- [x] **DIO-BO-2** FATTO: `overrides.ts` Dionisi — exclude token/health; gruppi+icone (catalog/crm/settings);
+      vehicle (brand thin→relation+reference-select, hide brandId, gallery-reorder, status→**publish/archive** row+bulk
+      con payload/visibleWhen, sezioni form); **company singleton** (read/update); user=Operatori; brand logo image-single.
+      type-check **type-corretto contro i tipi reali del manifest** + build verdi.
+- [~] **DIO-BO-3** **Dizionario i18n IT** FATTO (`src/i18n.ts`, copre DIO-BE-3) + build con snapshot FATTO. Resta:
+      theming/logo Dionisi e **smoke E2E live** del pannello (richiede BE Dionisi avviato + admin seedato + login).
 
 ## Trasversale
 
