@@ -43,7 +43,9 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
       resource: model.spec.name,
       action,
       id,
-      redirect
+      redirect,
+      // Singletons fetch/update on the base path (no :id) — see data provider.
+      meta: model.spec.singleton ? { singleton: true } : undefined
     },
     defaultValues: action === 'create' ? defaultsFor(editableFields) : undefined
   })

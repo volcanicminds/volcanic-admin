@@ -78,10 +78,9 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
     },
 
     getOne: async ({ resource, id, meta }) => {
-      const data = await json<any>(`${url(resource, `/${id}`)}`, {
-        method: 'GET',
-        headers: meta?.headers
-      })
+      // Singletons live at the base path (GET /company), not /company/:id.
+      const target = meta?.singleton ? url(resource) : url(resource, `/${id}`)
+      const data = await json<any>(target, { method: 'GET', headers: meta?.headers })
       return { data }
     },
 
@@ -101,7 +100,9 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
     },
 
     update: async ({ resource, id, variables, meta }) => {
-      const data = await json<any>(url(resource, `/${id}`), {
+      // Singletons update at the base path (PUT /company), not /company/:id.
+      const target = meta?.singleton ? url(resource) : url(resource, `/${id}`)
+      const data = await json<any>(target, {
         method: 'PUT',
         body: JSON.stringify(variables),
         headers: meta?.headers
