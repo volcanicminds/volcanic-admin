@@ -135,6 +135,7 @@ export function ListCards({
   >[]
   const highlightField = spec.highlightField
   const imageFit = imageField?.image?.fit
+  const centered = spec.cardAlign === 'center'
   // Fluid mode (cardMaxWidth set): cards auto-fill/wrap at min..max px, capped width,
   // adapting to any viewport. Otherwise: fixed responsive columns (cardColumns).
   const fluid = spec.cardMaxWidth != null
@@ -197,13 +198,13 @@ export function ListCards({
                 </div>
               </div>
             )}
-            <div className="space-y-2 p-3">
+            <div className={cn('space-y-2 p-3', centered && 'text-center')}>
               {featured && !hasImage && (
                 <div>
                   <FeaturedBadge t={t} />
                 </div>
               )}
-              <div className="flex items-start justify-between gap-2">
+              <div className={cn('flex items-start gap-2', centered ? 'justify-center' : 'justify-between')}>
                 <div className="min-w-0">
                   <div className="truncate font-medium">{display(record, titleField) || '—'}</div>
                   {display(record, subtitleField) && (
@@ -212,15 +213,17 @@ export function ListCards({
                     </div>
                   )}
                 </div>
-                {!hasImage && (
+                {!hasImage && !centered && (
                   <div className="opacity-0 transition-opacity group-hover:opacity-100">{actions}</div>
                 )}
               </div>
-              <div className="flex flex-wrap items-center gap-1">
-                {badgeFields.map((f) => (
-                  <FieldCell key={f.name} record={record} field={f} t={t} />
-                ))}
-              </div>
+              {badgeFields.length > 0 && (
+                <div className={cn('flex flex-wrap items-center gap-1', centered && 'justify-center')}>
+                  {badgeFields.map((f) => (
+                    <FieldCell key={f.name} record={record} field={f} t={t} />
+                  ))}
+                </div>
+              )}
               {numberField && record[numberField.name] != null && (
                 <div className="text-sm font-semibold">
                   <FieldCell record={record} field={numberField} t={t} />

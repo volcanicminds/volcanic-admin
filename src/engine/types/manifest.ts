@@ -236,6 +236,8 @@ export interface ResourceSpec {
   cardMaxWidth?: number
   /** Boolean field marking a record as "featured": card gets an accent ring + star. */
   highlightField?: string
+  /** Card content alignment: 'left' (default) or 'center' (e.g. logo grids). */
+  cardAlign?: 'left' | 'center'
   fields: FieldSpec[]
   views?: ResourceViews
 }
