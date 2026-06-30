@@ -55,7 +55,7 @@ function imageUrls(record: any, imageFieldName?: string): string[] {
   return []
 }
 
-function CardCarousel({ urls }: { urls: string[] }) {
+function CardCarousel({ urls, fit = 'cover' }: { urls: string[]; fit?: 'cover' | 'contain' }) {
   const [i, setI] = useState(0)
   const multi = urls.length > 1
   const go = (e: React.MouseEvent, dir: number) => {
@@ -65,9 +65,13 @@ function CardCarousel({ urls }: { urls: string[] }) {
   const index = Math.min(i, Math.max(0, urls.length - 1))
 
   return (
-    <div className="relative flex aspect-video items-center justify-center overflow-hidden bg-muted/40">
+    <div className={cn('relative flex aspect-video items-center justify-center overflow-hidden', fit === 'contain' ? 'bg-white' : 'bg-muted/40')}>
       {urls.length ? (
-        <img src={urls[index]} alt="" className="h-full w-full object-cover" />
+        <img
+          src={urls[index]}
+          alt=""
+          className={cn('h-full w-full', fit === 'contain' ? 'object-contain p-4' : 'object-cover')}
+        />
       ) : (
         <ImageOff className="h-8 w-8 text-muted-foreground/50" />
       )}
@@ -130,6 +134,7 @@ export function ListCards({
     ReturnType<typeof model.field>
   >[]
   const highlightField = spec.highlightField
+  const imageFit = imageField?.image?.fit
   const gridCols = GRID_BY_COLS[spec.cardColumns ?? 3] ?? GRID_BY_COLS[3]
 
   if (isLoading) {
@@ -171,7 +176,7 @@ export function ListCards({
           >
             {hasImage && (
               <div className="relative">
-                <CardCarousel urls={urls} />
+                <CardCarousel urls={urls} fit={imageFit} />
                 {featured && (
                   <div className="absolute left-2 top-2">
                     <FeaturedBadge t={t} />

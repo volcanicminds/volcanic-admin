@@ -248,6 +248,9 @@ export interface RelationSpec {
 export interface ImageSpec {
   multiple?: boolean
   ordered?: boolean
+  /** How previews fit their box: 'cover' fills/crops (photos, default), 'contain'
+   *  shows the whole image with padding (logos/icons). */
+  fit?: 'cover' | 'contain'
   /** "first" → first image is the cover (→ coverUrl); "flag" → per-image isCover. */
   cover?: 'first' | 'flag'
   altField?: string

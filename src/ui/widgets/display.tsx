@@ -6,7 +6,7 @@
 import { useApiUrl } from '@refinedev/core'
 import { Check, X, Minus } from 'lucide-react'
 import { Badge } from '@/ui/components/ui/badge'
-import { absoluteUrl } from '@/lib/utils'
+import { absoluteUrl, cn } from '@/lib/utils'
 import type { ResolvedField } from '@/engine'
 import type { WidgetProps } from './types'
 
@@ -62,7 +62,14 @@ export function FieldCell({ record, field, t }: CellProps) {
     case 'image': {
       const url = record.coverUrl ?? (Array.isArray(value) ? value[0]?.url : value)
       return url ? (
-        <img src={absoluteUrl(apiUrl, url)} alt="" className="h-8 w-12 rounded object-cover" />
+        <img
+          src={absoluteUrl(apiUrl, url)}
+          alt=""
+          className={cn(
+            'h-8 w-12 rounded',
+            field.image?.fit === 'contain' ? 'bg-white object-contain' : 'object-cover'
+          )}
+        />
       ) : (
         <span className="text-muted-foreground">—</span>
       )
@@ -95,7 +102,10 @@ export function FieldValue({ record, field, t }: CellProps) {
             key={i}
             src={absoluteUrl(apiUrl, url)}
             alt=""
-            className="h-24 w-32 rounded-md border object-cover"
+            className={cn(
+              'h-24 w-32 rounded-md border',
+              field.image?.fit === 'contain' ? 'bg-white object-contain p-2' : 'object-cover'
+            )}
           />
         ))}
       </div>
