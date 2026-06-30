@@ -58,6 +58,38 @@ function NumberWidget({ field, value, onChange, disabled, t }: WidgetProps) {
   )
 }
 
+/** Editable dropdown: a free input (numeric for integer/number fields) plus a
+ *  native datalist of non-binding suggestions from `field.form.suggestions`. */
+function ComboboxWidget({ field, value, onChange, disabled, t }: WidgetProps) {
+  const suggestions = field.form?.suggestions ?? []
+  const isInt = field.type === 'integer'
+  const isNum = isInt || field.type === 'number'
+  const listId = `cb-${field.name}`
+  return (
+    <>
+      <Input
+        type={isNum ? 'number' : 'text'}
+        step={isInt ? 1 : field.validation?.step}
+        list={suggestions.length ? listId : undefined}
+        value={value ?? ''}
+        disabled={disabled}
+        placeholder={field.form?.placeholder ? t(field.form.placeholder) : undefined}
+        onChange={(e) => {
+          const v = e.target.value
+          onChange(v === '' ? null : isInt ? parseInt(v, 10) : isNum ? parseFloat(v) : v)
+        }}
+      />
+      {suggestions.length > 0 && (
+        <datalist id={listId}>
+          {suggestions.map((s) => (
+            <option key={String(s)} value={String(s)} />
+          ))}
+        </datalist>
+      )}
+    </>
+  )
+}
+
 function TextareaWidget({ field, value, onChange, disabled, t }: WidgetProps) {
   return (
     <Textarea
@@ -170,7 +202,8 @@ function ImageWidget({ field }: WidgetProps) {
 
 /** Built-in widgets selectable by name via `field.form.widget` (not just by type). */
 const BUILTIN_WIDGETS: Record<string, (props: WidgetProps) => JSX.Element> = {
-  multiselect: MultiSelectWidget
+  multiselect: MultiSelectWidget,
+  combobox: ComboboxWidget
 }
 
 function pickWidget(field: ResolvedField): (props: WidgetProps) => JSX.Element {

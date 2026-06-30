@@ -288,6 +288,8 @@ export interface FieldFormSpec {
   group?: string
   colSpan?: number
   placeholder?: I18nKey
+  /** Non-binding suggested values for the 'combobox' widget (editable dropdown). */
+  suggestions?: Array<string | number>
 }
 
 export interface FieldSpec {
