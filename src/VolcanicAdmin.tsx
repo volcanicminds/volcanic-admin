@@ -56,7 +56,8 @@ import {
   resourceRouteElements,
   notificationProvider,
   Toaster,
-  defaultWidgets
+  defaultWidgets,
+  ThemeProvider
 } from './ui'
 import type { AdminNavItem, AdminBranding } from './ui'
 
@@ -453,15 +454,17 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
 
   return (
     <BrowserRouter basename={props.basename}>
-      <ThemeStyle theme={theme} />
-      <ManifestProvider
-        manifest={props.manifest}
-        load={load}
-        overrides={props.manifestOverrides}
-        fallback={props.loading}
-      >
-        {(model) => <AdminRuntime model={model} props={effective} />}
-      </ManifestProvider>
+      <ThemeProvider>
+        <ThemeStyle theme={theme} />
+        <ManifestProvider
+          manifest={props.manifest}
+          load={load}
+          overrides={props.manifestOverrides}
+          fallback={props.loading}
+        >
+          {(model) => <AdminRuntime model={model} props={effective} />}
+        </ManifestProvider>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }

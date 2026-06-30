@@ -30,3 +30,6 @@ export { Toaster } from './components/ui/sonner'
 
 export { AdminConfigProvider, useAdminConfig } from './config'
 export type { AdminNavItem, AdminBranding } from './config'
+
+export { ThemeProvider, useTheme } from './theme'
+export type { ThemeMode } from './theme'

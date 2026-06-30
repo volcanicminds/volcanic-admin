@@ -6,9 +6,11 @@
 import { useEffect, useState } from 'react'
 import { useGetIdentity, useUpdatePassword } from '@refinedev/core'
 import { toast } from 'sonner'
-import { ShieldCheck, ShieldOff } from 'lucide-react'
+import { ShieldCheck, ShieldOff, Sun, Moon, Monitor } from 'lucide-react'
 import { useAuthClient } from '@/engine'
 import type { MfaSetup } from '@/engine'
+import { cn } from '@/lib/utils'
+import { useTheme, type ThemeMode } from '@/ui/theme'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
@@ -28,6 +30,7 @@ interface Identity {
 
 export function AccountView() {
   const { data: identity } = useGetIdentity<Identity>()
+  const { mode, setMode } = useTheme()
   const { mutate: updatePassword, isLoading: pwLoading } = useUpdatePassword<{
     oldPassword: string
     password: string
@@ -135,6 +138,28 @@ export function AccountView() {
                 </Badge>
               ))}
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Appearance</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="text-xs font-medium text-muted-foreground">Theme</div>
+          <div className="inline-flex rounded-md border p-0.5">
+            {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+              <Button
+                key={value}
+                size="sm"
+                variant="ghost"
+                className={cn('gap-2', mode === value && 'bg-accent text-foreground')}
+                onClick={() => setMode(value)}
+              >
+                <Icon className="h-4 w-4" /> {label}
+              </Button>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -251,6 +276,12 @@ export function AccountView() {
     </div>
   )
 }
+
+const THEME_OPTIONS: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
+  { value: 'light', label: 'Light', icon: Sun },
+  { value: 'dark', label: 'Dark', icon: Moon },
+  { value: 'system', label: 'System', icon: Monitor }
+]
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
