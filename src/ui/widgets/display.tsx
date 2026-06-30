@@ -3,8 +3,10 @@
  * enums → colored badge, booleans → check/dash, relations → titleField, dates →
  * locale string, images → thumbnail.
  */
+import { useApiUrl } from '@refinedev/core'
 import { Check, X, Minus } from 'lucide-react'
 import { Badge } from '@/ui/components/ui/badge'
+import { absoluteUrl } from '@/lib/utils'
 import type { ResolvedField } from '@/engine'
 import type { WidgetProps } from './types'
 
@@ -26,6 +28,7 @@ export interface CellProps {
 }
 
 export function FieldCell({ record, field, t }: CellProps) {
+  const apiUrl = useApiUrl()
   const value = getValue(record, field)
 
   // Boolean is tri-state: true → green check, false → red cross, undefined → grey dash.
@@ -59,7 +62,7 @@ export function FieldCell({ record, field, t }: CellProps) {
     case 'image': {
       const url = record.coverUrl ?? (Array.isArray(value) ? value[0]?.url : value)
       return url ? (
-        <img src={url} alt="" className="h-8 w-12 rounded object-cover" />
+        <img src={absoluteUrl(apiUrl, url)} alt="" className="h-8 w-12 rounded object-cover" />
       ) : (
         <span className="text-muted-foreground">—</span>
       )
@@ -80,6 +83,7 @@ function imageUrls(record: Record<string, any>, field: ResolvedField): string[] 
 }
 
 export function FieldValue({ record, field, t }: CellProps) {
+  const apiUrl = useApiUrl()
   // Image/gallery fields render as a thumbnail grid (read-only mirror of the edit widget).
   if (field.type === 'image' || field.type === 'file') {
     const urls = imageUrls(record, field)
@@ -89,7 +93,7 @@ export function FieldValue({ record, field, t }: CellProps) {
         {urls.map((url, i) => (
           <img
             key={i}
-            src={url}
+            src={absoluteUrl(apiUrl, url)}
             alt=""
             className="h-24 w-32 rounded-md border object-cover"
           />

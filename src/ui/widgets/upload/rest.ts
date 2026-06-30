@@ -6,6 +6,8 @@
  */
 import { tokenStore, tenantStore } from '@/engine'
 
+export { absoluteUrl } from '@/lib/utils'
+
 function authHeaders(): Record<string, string> {
   const headers: Record<string, string> = { ...tenantStore.headers() }
   const token = tokenStore.get()
@@ -61,10 +63,3 @@ export async function sendJson(
   return parse(res)
 }
 
-/** Resolve a possibly-relative storage URL against the API origin so <img> works
- *  when the admin is served from a different origin than the backend. */
-export function absoluteUrl(apiUrl: string, url?: string | null): string {
-  if (!url) return ''
-  if (/^(https?:|data:|blob:)/.test(url)) return url
-  return `${apiUrl}${url.startsWith('/') ? '' : '/'}${url}`
-}

@@ -6,8 +6,9 @@
  * image field.
  */
 import { useState } from 'react'
+import { useApiUrl } from '@refinedev/core'
 import { Pencil, Trash2, ImageOff, ChevronLeft, ChevronRight, Star } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, absoluteUrl } from '@/lib/utils'
 import { Button } from '@/ui/components/ui/button'
 import { Card } from '@/ui/components/ui/card'
 import { FieldCell } from '@/ui/widgets/display'
@@ -117,6 +118,7 @@ export function ListCards({
   onDelete
 }: ListPresentationProps) {
   const { spec, listFields } = model
+  const apiUrl = useApiUrl()
 
   const imageField = model.fields.find((f) => f.type === 'image')
   const hasImage = Boolean(imageField)
@@ -140,7 +142,7 @@ export function ListCards({
   return (
     <div className={cn('grid gap-4', gridCols)}>
       {records.map((record: any) => {
-        const urls = hasImage ? imageUrls(record, imageField?.name) : []
+        const urls = hasImage ? imageUrls(record, imageField?.name).map((u) => absoluteUrl(apiUrl, u)) : []
         const featured = highlightField ? Boolean(record[highlightField]) : false
         const hasRowActions = model.actions.some((a) => !a.target || a.target.includes('row'))
         const actions = (canEdit || canDelete || hasRowActions) && (
