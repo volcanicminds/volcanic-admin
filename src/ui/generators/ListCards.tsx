@@ -144,7 +144,7 @@ export function ListCards({
       }
     : undefined
   const gridCls = fluid
-    ? 'grid justify-start gap-4'
+    ? 'grid justify-center gap-4'
     : cn('grid gap-4', GRID_BY_COLS[spec.cardColumns ?? 3] ?? GRID_BY_COLS[3])
 
   if (isLoading) {
