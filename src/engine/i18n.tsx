@@ -104,7 +104,12 @@ export const defaultDictionaries: Dictionaries = {
     'error.forbidden': 'You are not allowed to perform this action.',
     'error.notFound': 'Not found.',
     'error.conflict': 'The change could not be applied (conflict).',
-    'error.generic': 'Something went wrong. Please try again.'
+    'error.generic': 'Something went wrong. Please try again.',
+    'meta.id': 'ID',
+    'meta.createdAt': 'Created',
+    'meta.updatedAt': 'Updated',
+    'action.copy': 'Copy',
+    'badge.featured': 'Featured'
   },
   it: {
     'error.unique': 'Valore già presente.',
@@ -113,6 +118,11 @@ export const defaultDictionaries: Dictionaries = {
     'error.forbidden': 'Operazione non consentita.',
     'error.notFound': 'Elemento non trovato.',
     'error.conflict': 'Modifica non applicabile (conflitto).',
-    'error.generic': 'Si è verificato un errore. Riprova.'
+    'error.generic': 'Si è verificato un errore. Riprova.',
+    'meta.id': 'ID',
+    'meta.createdAt': 'Creato',
+    'meta.updatedAt': 'Aggiornato',
+    'action.copy': 'Copia',
+    'badge.featured': 'In evidenza'
   }
 }

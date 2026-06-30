@@ -6,13 +6,33 @@
  * image field.
  */
 import { useState } from 'react'
-import { Pencil, Trash2, ImageOff, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Pencil, Trash2, ImageOff, ChevronLeft, ChevronRight, Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/ui/components/ui/button'
 import { Card } from '@/ui/components/ui/card'
 import { FieldCell } from '@/ui/widgets/display'
 import type { ListPresentationProps } from './listShared'
 import { RowActions } from '../actions/ActionButtons'
+
+// Literal class strings (kept whole so Tailwind includes them in the built CSS).
+const GRID_BY_COLS: Record<number, string> = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-1 sm:grid-cols-2',
+  3: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+  4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
+  5: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5',
+  6: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6'
+}
+
+/** "Featured" pill (amber) shown on highlighted cards. */
+function FeaturedBadge({ t }: { t: (k?: string, v?: Record<string, string | number>) => string }) {
+  return (
+    <div className="flex items-center gap-1 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-medium text-amber-950 shadow-sm">
+      <Star className="size-3 fill-current" />
+      {t('badge.featured')}
+    </div>
+  )
+}
 
 /** Resolve a display string from one or more fields (joined with spaces). */
 function display(record: any, field?: string | string[]): string {
@@ -107,6 +127,8 @@ export function ListCards({
   const cardFields = (spec.cardFields ?? []).map((n) => model.field(n)).filter(Boolean) as NonNullable<
     ReturnType<typeof model.field>
   >[]
+  const highlightField = spec.highlightField
+  const gridCols = GRID_BY_COLS[spec.cardColumns ?? 3] ?? GRID_BY_COLS[3]
 
   if (isLoading) {
     return <div className="py-10 text-center text-muted-foreground">{t('state.loading')}</div>
@@ -116,9 +138,10 @@ export function ListCards({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className={cn('grid gap-4', gridCols)}>
       {records.map((record: any) => {
         const urls = hasImage ? imageUrls(record, imageField?.name) : []
+        const featured = highlightField ? Boolean(record[highlightField]) : false
         const hasRowActions = model.actions.some((a) => !a.target || a.target.includes('row'))
         const actions = (canEdit || canDelete || hasRowActions) && (
           <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
@@ -138,18 +161,31 @@ export function ListCards({
         return (
           <Card
             key={record.id}
-            className="group cursor-pointer overflow-hidden transition-shadow hover:shadow-md"
+            className={cn(
+              'group cursor-pointer overflow-hidden transition-shadow hover:shadow-md',
+              featured && 'ring-2 ring-amber-400 ring-offset-1'
+            )}
             onClick={() => onShow(record.id)}
           >
             {hasImage && (
               <div className="relative">
                 <CardCarousel urls={urls} />
+                {featured && (
+                  <div className="absolute left-2 top-2">
+                    <FeaturedBadge t={t} />
+                  </div>
+                )}
                 <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
                   {actions}
                 </div>
               </div>
             )}
             <div className="space-y-2 p-3">
+              {featured && !hasImage && (
+                <div>
+                  <FeaturedBadge t={t} />
+                </div>
+              )}
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="truncate font-medium">{display(record, titleField) || '—'}</div>

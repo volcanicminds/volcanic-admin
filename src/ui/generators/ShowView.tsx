@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { useOne, useNavigation, useDelete } from '@refinedev/core'
 import { useParams } from 'react-router'
-import { Pencil, ArrowLeft, Trash2 } from 'lucide-react'
+import { Pencil, ArrowLeft, Trash2, Copy, Check } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import {
@@ -20,6 +20,62 @@ import { useT } from '@/engine'
 import type { ResourceModel } from '@/engine'
 import { FieldValue } from '@/ui/widgets/display'
 import { RowActions } from '@/ui/actions/ActionButtons'
+
+type Translate = (key?: string, vars?: Record<string, string | number>) => string
+
+/** Compact meta strip for the read-only system fields (id + timestamps). The id
+ * carries a copy-to-clipboard button; created/updated are shown when present. */
+function RecordMeta({ record, t }: { record: Record<string, any>; t: Translate }) {
+  const [copied, setCopied] = useState(false)
+  const id = record.id
+  const created = record.createdAt
+  const updated = record.updatedAt
+  if (id == null && created == null && updated == null) return null
+
+  const fmt = (v: unknown) => {
+    const d = new Date(v as string)
+    return isNaN(d.getTime()) ? String(v) : d.toLocaleString()
+  }
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(String(id))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+      {id != null && (
+        <div className="flex items-center gap-1.5">
+          <span className="font-medium">{t('meta.id')}</span>
+          <code className="font-mono text-[11px]">{String(id)}</code>
+          <button
+            type="button"
+            onClick={copy}
+            title={t('action.copy')}
+            aria-label={t('action.copy')}
+            className="inline-flex transition-colors hover:text-foreground"
+          >
+            {copied ? <Check className="size-3.5 text-green-600" /> : <Copy className="size-3.5" />}
+          </button>
+        </div>
+      )}
+      {created != null && (
+        <div>
+          <span className="font-medium">{t('meta.createdAt')}</span> {fmt(created)}
+        </div>
+      )}
+      {updated != null && (
+        <div>
+          <span className="font-medium">{t('meta.updatedAt')}</span> {fmt(updated)}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function ShowView({ model }: { model: ResourceModel }) {
   const t = useT()
@@ -71,6 +127,8 @@ export function ShowView({ model }: { model: ResourceModel }) {
           )}
         </div>
       </div>
+
+      {record && <RecordMeta record={record} t={t} />}
 
       <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <DialogContent>

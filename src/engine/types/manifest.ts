@@ -223,6 +223,10 @@ export interface ResourceSpec {
   defaultListLayout?: ListLayout
   /** Extra fields rendered as labeled info rows on the card layout. */
   cardFields?: string[]
+  /** Max columns for the card grid (responsive up to this; default 3). */
+  cardColumns?: number
+  /** Boolean field marking a record as "featured": card gets an accent ring + star. */
+  highlightField?: string
   fields: FieldSpec[]
   views?: ResourceViews
 }
