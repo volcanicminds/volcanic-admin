@@ -42,7 +42,20 @@ function buildFormSections(fields: ResolvedField[]): FormSection[] {
 }
 
 function buildResourceModel(spec: ResourceSpec, manifest: Manifest): ResourceModel {
-  const fields = spec.fields.map((f) => resolveField(f, manifest.enums))
+  const resolved = spec.fields.map((f) => resolveField(f, manifest.enums))
+  const resolvedByName = new Map(resolved.map((f) => [f.name, f]))
+
+  // A relation is displayed via its expanded object (output-only → the generator
+  // marks it readOnly) but edited through its foreign key. Inherit writability and
+  // required from that FK so the relation field is editable, submits, and shows the
+  // required marker — otherwise the FK is silently dropped from the payload.
+  const fields = resolved.map((f) => {
+    if (f.type === 'relation' && f.relation?.foreignKey) {
+      const fk = resolvedByName.get(f.relation.foreignKey)
+      if (fk) return { ...f, readOnly: fk.readOnly ?? false, required: f.required || fk.required }
+    }
+    return f
+  })
   const byName = new Map(fields.map((f) => [f.name, f]))
   const listFields = fields.filter(isListVisible)
   const formSections = buildFormSections(fields)
