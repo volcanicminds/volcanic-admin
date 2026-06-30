@@ -19,7 +19,7 @@ import { Badge } from '@/ui/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { interpolatePath } from '@/engine'
 import type { WidgetProps } from '../types'
-import { uploadFiles, sendJson, absoluteUrl } from './rest'
+import { uploadFiles, sendJson, absoluteUrl, imagesFromClipboard } from './rest'
 
 interface GalleryItem {
   id: string
@@ -76,7 +76,7 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
   }
   const fail = (e: unknown) => toast.error((e as Error)?.message ?? t('upload.failed'))
 
-  const addFiles = async (fileList: FileList | null) => {
+  const addFiles = async (fileList: FileList | File[] | null) => {
     if (!fileList?.length || disabled || busy || needsSave) return
     const files = Array.from(fileList).filter((f) => !maxSize || f.size <= maxSize)
     if (!files.length) {
@@ -174,8 +174,16 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
     }
   }
 
+  const onPaste = (e: React.ClipboardEvent) => {
+    if (disabled || needsSave) return
+    const imgs = imagesFromClipboard(e.clipboardData)
+    if (!imgs.length) return
+    e.preventDefault()
+    addFiles(imgs)
+  }
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" onPaste={onPaste}>
       <input
         ref={inputRef}
         type="file"
@@ -187,6 +195,7 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
       />
 
       <div
+        tabIndex={disabled || needsSave ? -1 : 0}
         onDragOver={(e) => {
           if (disabled || needsSave || dragIndex.current != null) return
           e.preventDefault()
@@ -200,7 +209,7 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
           addFiles(e.dataTransfer.files)
         }}
         className={cn(
-          'rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground transition-colors',
+          'rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground transition-colors outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/40',
           dragOver && 'border-primary bg-primary/5'
         )}
       >
