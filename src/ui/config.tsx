@@ -14,14 +14,18 @@ export interface AdminNavItem {
   order?: number
 }
 
-/** Brand identity shown in the sidebar header (logo + app name). */
+/** Brand identity shown in the sidebar header + login (logo + app name). */
 export interface AdminBranding {
-  /** App name in the sidebar header + the fallback badge initial. Default 'Volcanic Admin'. */
+  /** App name in the sidebar header, the login title, and the fallback badge initial. Default 'Volcanic Admin'. */
   appName?: string
-  /** Logo image src for the expanded sidebar. Replaces the default badge + wordmark. */
+  /** Logo image src for the expanded sidebar + login. Replaces the default badge + wordmark. */
   logo?: string
   /** Smaller logo/mark for the collapsed sidebar. Falls back to the appName initial badge. */
   logoCollapsed?: string
+  /** Height (px) of the expanded-sidebar logo. Width stays auto. Default 28. */
+  logoHeight?: number
+  /** Max width (px) of the expanded-sidebar logo. Default 170. */
+  logoMaxWidth?: number
 }
 
 interface AdminConfigValue {

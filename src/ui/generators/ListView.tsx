@@ -7,7 +7,7 @@
 import { useMemo, useState } from 'react'
 import { useList, useDelete, useNavigation } from '@refinedev/core'
 import type { CrudSorting } from '@refinedev/core'
-import { Plus, Search, LayoutGrid, Table as TableIcon, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { Plus, Search, LayoutGrid, Table as TableIcon, ArrowUp, ArrowDown, ArrowUpDown, X } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import {
@@ -235,6 +235,16 @@ export function ListView({ model }: { model: ResourceModel }) {
               >
                 {!activeSortField ? <ArrowUpDown /> : activeSortOrder === 'asc' ? <ArrowUp /> : <ArrowDown />}
               </Button>
+              {activeSortField && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title={t('sort.clear')}
+                  onClick={() => applySort('', 'asc')}
+                >
+                  <X />
+                </Button>
+              )}
             </div>
           )}
         </div>

@@ -15,6 +15,7 @@ import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
 import { PasswordInput } from '@/ui/components/ui/password-input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
+import { useAdminConfig } from '@/ui/config'
 
 type Step = 'credentials' | 'verify' | 'setup'
 
@@ -24,6 +25,8 @@ const otpClass =
 export function LoginView() {
   const { mutate: login, isLoading } = useLogin()
   const client = useAuthClient()
+  const { branding } = useAdminConfig()
+  const appName = branding?.appName ?? 'Volcanic Admin'
 
   const [step, setStep] = useState<Step>('credentials')
   const [email, setEmail] = useState('')
@@ -103,10 +106,16 @@ export function LoginView() {
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
           <div className="mb-2 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <span className="font-bold">V</span>
-            </div>
-            <CardTitle className="text-xl">Volcanic Admin</CardTitle>
+            {branding?.logo ? (
+              <img src={branding.logo} alt={appName} className="h-8 w-auto max-w-[180px] object-contain" />
+            ) : (
+              <>
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                  <span className="font-bold">{appName.charAt(0).toUpperCase()}</span>
+                </div>
+                <CardTitle className="text-xl">{appName}</CardTitle>
+              </>
+            )}
           </div>
           <CardTitle className="text-base">{title}</CardTitle>
           <CardDescription>{subtitle}</CardDescription>
