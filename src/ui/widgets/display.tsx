@@ -21,6 +21,27 @@ function getValue(record: Record<string, any>, field: ResolvedField): any {
   return record[field.name]
 }
 
+// Soft colored badge per enum option (EnumOption.color). Named palette → literal
+// Tailwind classes (so they survive the build); any other value falls back to the
+// neutral badge + a color dot.
+const ENUM_BADGE: Record<string, string> = {
+  slate: 'border-slate-200 bg-slate-100 text-slate-700',
+  gray: 'border-slate-200 bg-slate-100 text-slate-700',
+  red: 'border-red-200 bg-red-100 text-red-700',
+  orange: 'border-orange-200 bg-orange-100 text-orange-700',
+  amber: 'border-amber-200 bg-amber-100 text-amber-800',
+  yellow: 'border-yellow-200 bg-yellow-100 text-yellow-800',
+  green: 'border-green-200 bg-green-100 text-green-700',
+  emerald: 'border-emerald-200 bg-emerald-100 text-emerald-700',
+  teal: 'border-teal-200 bg-teal-100 text-teal-700',
+  blue: 'border-blue-200 bg-blue-100 text-blue-700',
+  indigo: 'border-indigo-200 bg-indigo-100 text-indigo-700',
+  violet: 'border-violet-200 bg-violet-100 text-violet-700',
+  purple: 'border-purple-200 bg-purple-100 text-purple-700',
+  pink: 'border-pink-200 bg-pink-100 text-pink-700',
+  rose: 'border-rose-200 bg-rose-100 text-rose-700'
+}
+
 export interface CellProps {
   record: Record<string, any>
   field: ResolvedField
@@ -43,6 +64,15 @@ export function FieldCell({ record, field, t }: CellProps) {
   switch (field.type) {
     case 'enum': {
       const opt = field.options?.find((o) => o.value === value)
+      const palette = opt?.color ? ENUM_BADGE[opt.color] : undefined
+      // Named palette → fully colored chip; unknown color → neutral chip + dot.
+      if (palette) {
+        return (
+          <Badge variant="outline" className={cn('font-medium', palette)}>
+            {opt ? t(opt.label) : String(value)}
+          </Badge>
+        )
+      }
       return (
         <Badge variant="secondary" className="gap-1.5">
           {opt?.color && (
