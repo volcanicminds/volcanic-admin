@@ -267,7 +267,9 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
                 options={{
                   syncWithLocation: true,
                   warnWhenUnsavedChanges: true,
-                  disableTelemetry: true
+                  disableTelemetry: true,
+                  // Edits/deletes apply instantly and roll back on error.
+                  mutationMode: 'optimistic'
                 }}
               >
                 <RolesSync />

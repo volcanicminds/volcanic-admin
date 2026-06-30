@@ -118,7 +118,17 @@ export const defaultDictionaries: Dictionaries = {
     'upload.tooLarge': 'File too large',
     'upload.failed': 'Upload failed',
     'upload.cover': 'cover',
-    'upload.alt': 'alt text'
+    'upload.alt': 'alt text',
+    'sort.by': 'Sort by',
+    'sort.asc': 'Ascending',
+    'sort.desc': 'Descending',
+    'filter.title': 'Filters',
+    'filter.clear': 'Clear',
+    'filter.any': 'Any',
+    'filter.yes': 'Yes',
+    'filter.no': 'No',
+    'filter.min': 'Min',
+    'filter.max': 'Max'
   },
   it: {
     'error.unique': 'Valore già presente.',
@@ -141,6 +151,16 @@ export const defaultDictionaries: Dictionaries = {
     'upload.tooLarge': 'File troppo grande',
     'upload.failed': 'Caricamento fallito',
     'upload.cover': 'copertina',
-    'upload.alt': 'testo alternativo'
+    'upload.alt': 'testo alternativo',
+    'sort.by': 'Ordina per',
+    'sort.asc': 'Crescente',
+    'sort.desc': 'Decrescente',
+    'filter.title': 'Filtri',
+    'filter.clear': 'Pulisci',
+    'filter.any': 'Tutti',
+    'filter.yes': 'Sì',
+    'filter.no': 'No',
+    'filter.min': 'Min',
+    'filter.max': 'Max'
   }
 }

@@ -52,6 +52,7 @@ export function useCapabilityRunner(resource: string) {
       })
       if (cap.download) download(data, cap, resource)
       else toast.success(label ?? cap.name)
+      // Invalidate → the affected list/detail refetch and re-bind (no full reload).
       if (cap.refresh !== false) {
         invalidate({ resource, invalidates: ['list', 'many', 'detail'] })
       }

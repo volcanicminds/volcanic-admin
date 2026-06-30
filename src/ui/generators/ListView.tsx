@@ -7,7 +7,7 @@
 import { useMemo, useState } from 'react'
 import { useList, useDelete, useNavigation } from '@refinedev/core'
 import type { CrudSorting } from '@refinedev/core'
-import { Plus, Search, LayoutGrid, Table as TableIcon } from 'lucide-react'
+import { Plus, Search, LayoutGrid, Table as TableIcon, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import {
@@ -31,6 +31,7 @@ import type { ResourceModel, ListLayout } from '@/engine'
 import { ListTable } from './ListTable'
 import { ListCards } from './ListCards'
 import { ListIO } from './ListIO'
+import { FilterBar, toCrudFilters, type FilterDraft } from './FilterBar'
 import { CollectionActions } from '../actions/ActionButtons'
 
 const layoutKey = (name: string) => `volcanic.admin.list.${name}.layout`
@@ -69,11 +70,21 @@ export function ListView({ model }: { model: ResourceModel }) {
   const [sorters, setSorters] = useState<CrudSorting>(
     (spec.defaultSort ?? []).map((s) => ({ field: s.field, order: s.order }))
   )
+  const [filterDraft, setFilterDraftState] = useState<FilterDraft>({})
   const [toDelete, setToDelete] = useState<string | null>(null)
 
+  const fieldFilters = useMemo(() => toCrudFilters(model, filterDraft), [model, filterDraft])
+  const setFilterDraft = (d: FilterDraft) => {
+    setPage(1)
+    setFilterDraftState(d)
+  }
+
   const filters = useMemo(
-    () => (appliedSearch ? [{ field: 'q', operator: 'eq' as const, value: appliedSearch }] : []),
-    [appliedSearch]
+    () => [
+      ...(appliedSearch ? [{ field: 'q', operator: 'eq' as const, value: appliedSearch }] : []),
+      ...fieldFilters
+    ],
+    [appliedSearch, fieldFilters]
   )
 
   const { data, isLoading } = useList({
@@ -94,6 +105,33 @@ export function ListView({ model }: { model: ResourceModel }) {
       if (cur.order === 'asc') return [{ field, order: 'desc' }]
       return []
     })
+  }
+
+  // "Sort by" control: a select of orderable fields + a direction toggle.
+  const titleField = Array.isArray(spec.titleField) ? spec.titleField[0] : (spec.titleField ?? 'name')
+  const sortFields = (
+    spec.sortOptions ??
+    model.listFields.filter((f) => f.list?.sortable !== false && !['json', 'image', 'file'].includes(f.type)).map((f) => f.name)
+  )
+    .map((name) => model.field(name))
+    .filter((f): f is NonNullable<typeof f> => Boolean(f))
+  // Translate a chosen field into Magic Query sorters (a relation sorts by its
+  // title and tie-breaks by the row title).
+  const buildSorters = (name: string, order: 'asc' | 'desc'): CrudSorting => {
+    const f = model.field(name)
+    if (f?.type === 'relation' && f.relation?.titleField) {
+      const rel = `${name}.${f.relation.titleField}`
+      return rel === titleField ? [{ field: rel, order }] : [{ field: rel, order }, { field: titleField, order }]
+    }
+    return [{ field: name, order }]
+  }
+  // Match the current primary sorter back to a sort-field option.
+  const activeSortBase = sorters[0]?.field.split('.')[0]
+  const activeSortField = sortFields.find((f) => f.name === activeSortBase)?.name ?? ''
+  const activeSortOrder: 'asc' | 'desc' = sorters[0]?.order === 'desc' ? 'desc' : 'asc'
+  const applySort = (name: string, order: 'asc' | 'desc') => {
+    setPage(1)
+    setSorters(name ? buildSorters(name, order) : [])
   }
 
   const canCreate = model.hasAction('create')
@@ -149,24 +187,57 @@ export function ListView({ model }: { model: ResourceModel }) {
         </div>
       </div>
 
-      {spec.search && (
-        <form
-          className="flex max-w-sm items-center gap-2"
-          onSubmit={(e) => {
-            e.preventDefault()
-            setPage(1)
-            setAppliedSearch(search)
-          }}
-        >
-          <Input
-            placeholder={t('action.search')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <Button type="submit" variant="secondary" size="icon">
-            <Search />
-          </Button>
-        </form>
+      {(spec.search || sortFields.length > 0 || model.fields.some((f) => f.list?.filterable)) && (
+        <div className="flex flex-wrap items-center gap-3">
+          {spec.search && (
+            <form
+              className="flex w-full max-w-sm items-center gap-2"
+              onSubmit={(e) => {
+                e.preventDefault()
+                setPage(1)
+                setAppliedSearch(search)
+              }}
+            >
+              <Input
+                placeholder={t('action.search')}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <Button type="submit" variant="secondary" size="icon">
+                <Search />
+              </Button>
+            </form>
+          )}
+          <FilterBar model={model} draft={filterDraft} setDraft={setFilterDraft} t={t} />
+          {sortFields.length > 0 && (
+            <div className="flex items-center gap-1">
+              <Select
+                value={activeSortField || undefined}
+                onValueChange={(v) => applySort(v, activeSortOrder)}
+              >
+                <SelectTrigger className="h-9 w-[11rem]">
+                  <SelectValue placeholder={t('sort.by')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {sortFields.map((f) => (
+                    <SelectItem key={f.name} value={f.name}>
+                      {t(f.label ?? `field.${spec.name}.${f.name}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={!activeSortField}
+                title={activeSortOrder === 'asc' ? t('sort.asc') : t('sort.desc')}
+                onClick={() => applySort(activeSortField, activeSortOrder === 'asc' ? 'desc' : 'asc')}
+              >
+                {!activeSortField ? <ArrowUpDown /> : activeSortOrder === 'asc' ? <ArrowUp /> : <ArrowDown />}
+              </Button>
+            </div>
+          )}
+        </div>
       )}
 
       {layout === 'card' ? (

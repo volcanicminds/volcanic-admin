@@ -215,6 +215,9 @@ export interface ResourceSpec {
   /** CRUD verbs + custom actions (replaces v1 permissions + capabilities + actions). */
   capabilities: CapabilitySpec[]
   defaultSort?: SortSpec[]
+  /** Field names offered in the list "sort by" control (in order). Falls back to
+   *  the sortable list columns. A relation also tie-breaks by the row's title. */
+  sortOptions?: string[]
   /** globalSearch config; presence enables the search box. */
   search?: SearchSpec
   /** Available list layouts; when more than one, the UI shows a layout toggle. */
