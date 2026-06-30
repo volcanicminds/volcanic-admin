@@ -135,7 +135,17 @@ export function ListCards({
   >[]
   const highlightField = spec.highlightField
   const imageFit = imageField?.image?.fit
-  const gridCols = GRID_BY_COLS[spec.cardColumns ?? 3] ?? GRID_BY_COLS[3]
+  // Fluid mode (cardMaxWidth set): cards auto-fill/wrap at min..max px, capped width,
+  // adapting to any viewport. Otherwise: fixed responsive columns (cardColumns).
+  const fluid = spec.cardMaxWidth != null
+  const gridStyle = fluid
+    ? {
+        gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${spec.cardMinWidth ?? 240}px), ${spec.cardMaxWidth}px))`
+      }
+    : undefined
+  const gridCls = fluid
+    ? 'grid justify-start gap-4'
+    : cn('grid gap-4', GRID_BY_COLS[spec.cardColumns ?? 3] ?? GRID_BY_COLS[3])
 
   if (isLoading) {
     return <div className="py-10 text-center text-muted-foreground">{t('state.loading')}</div>
@@ -145,7 +155,7 @@ export function ListCards({
   }
 
   return (
-    <div className={cn('grid gap-4', gridCols)}>
+    <div className={gridCls} style={gridStyle}>
       {records.map((record: any) => {
         const urls = hasImage ? imageUrls(record, imageField?.name).map((u) => absoluteUrl(apiUrl, u)) : []
         const featured = highlightField ? Boolean(record[highlightField]) : false

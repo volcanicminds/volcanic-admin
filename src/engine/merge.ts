@@ -64,6 +64,14 @@ export interface ResourceOverride
   excludeCapabilities?: string[]
 }
 
+/** Global card-grid defaults, applied to every resource that doesn't set its own
+ *  card layout (cardColumns / cardMinWidth / cardMaxWidth). */
+export interface CardDefaults {
+  cardColumns?: number
+  cardMinWidth?: number
+  cardMaxWidth?: number
+}
+
 export interface ManifestOverrides {
   i18n?: Partial<Manifest['i18n']>
   auth?: Partial<Manifest['auth']>
@@ -71,6 +79,8 @@ export interface ManifestOverrides {
   enums?: Record<string, EnumOption[]>
   /** Patch/extend sidebar groups (by name). */
   groups?: GroupSpec[]
+  /** Card-grid defaults for resources that don't define their own. */
+  cardDefaults?: CardDefaults
   /** Patch resources by name. */
   resources?: Record<string, ResourceOverride>
   /** Add resources absent from the generated manifest. */
@@ -144,6 +154,20 @@ export function mergeManifest(generated: Manifest, overrides?: ManifestOverrides
     resources = resources.map((r) => (ov[r.name] ? applyResourceOverride(r, ov[r.name]) : r))
   }
   if (overrides.addResources?.length) resources = [...resources, ...overrides.addResources]
+
+  if (overrides.cardDefaults) {
+    const d = overrides.cardDefaults
+    resources = resources.map((r) =>
+      r.cardColumns != null || r.cardMinWidth != null || r.cardMaxWidth != null
+        ? r // resource defines its own card layout — leave it
+        : {
+            ...r,
+            ...(d.cardColumns != null && { cardColumns: d.cardColumns }),
+            ...(d.cardMinWidth != null && { cardMinWidth: d.cardMinWidth }),
+            ...(d.cardMaxWidth != null && { cardMaxWidth: d.cardMaxWidth })
+          }
+    )
+  }
   m.resources = resources
 
   return m

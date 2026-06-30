@@ -226,8 +226,14 @@ export interface ResourceSpec {
   defaultListLayout?: ListLayout
   /** Extra fields rendered as labeled info rows on the card layout. */
   cardFields?: string[]
-  /** Max columns for the card grid (responsive up to this; default 3). */
+  /** Fixed-column card grid: max columns (responsive up to this; default 3).
+   *  Ignored when cardMaxWidth is set (fluid mode wins). */
   cardColumns?: number
+  /** Fluid card grid: cards auto-fill/wrap at min..max px width (no fixed column
+   *  count), so they adapt to any viewport and never stretch too wide. Setting
+   *  cardMaxWidth enables fluid mode; cardMinWidth defaults to 240. */
+  cardMinWidth?: number
+  cardMaxWidth?: number
   /** Boolean field marking a record as "featured": card gets an accent ring + star. */
   highlightField?: string
   fields: FieldSpec[]
