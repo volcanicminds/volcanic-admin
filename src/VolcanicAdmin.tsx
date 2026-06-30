@@ -34,7 +34,8 @@ import {
   tokenStore,
   tenantStore,
   rolesStore,
-  toRefineResources
+  toRefineResources,
+  defaultDictionaries
 } from './engine'
 import type {
   AdminModel,
@@ -172,6 +173,9 @@ export interface VolcanicAdminProps {
 
   /** Rendered while the manifest loads. */
   loading?: ReactNode
+
+  /** Toast position. Default 'bottom-right' (keeps the top-right action area clear). */
+  toastPosition?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'
 }
 
 const API_FALLBACK = 'http://0.0.0.0:2230'
@@ -301,7 +305,7 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
                 </Routes>
                 <UnsavedChangesNotifier />
                 <DocumentTitleHandler />
-                <Toaster richColors position="top-right" />
+                <Toaster richColors closeButton position={props.toastPosition ?? 'bottom-right'} />
               </Refine>
             </AdminConfigProvider>
           </TenantProvider>
@@ -413,7 +417,11 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
         action: mergeRecords([...plugins.map((p) => p.actions), props.overrides?.action])
       },
       routes: [...plugins.flatMap((p) => p.routes ?? []), ...(props.routes ?? [])],
-      dictionaries: mergeDictionaries([...plugins.map((p) => p.dictionaries), props.dictionaries]),
+      dictionaries: mergeDictionaries([
+        defaultDictionaries,
+        ...plugins.map((p) => p.dictionaries),
+        props.dictionaries
+      ]),
       branding: mergeBranding([...plugins.map((p) => p.branding), props.branding])
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `plugins` is derived from `props`

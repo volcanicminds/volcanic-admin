@@ -6,6 +6,8 @@
  */
 import type { DataProvider, HttpError } from '@refinedev/core'
 import { buildMagicQuery, readTotal } from '../magic-query.js'
+import { classifyBackendError } from './errors.js'
+import { translate } from '../i18n.js'
 
 export type AuthMode = 'bearer' | 'cookie'
 
@@ -50,8 +52,11 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
       } catch {
         /* non-json error */
       }
-      const error: HttpError = {
-        message: body?.message ?? res.statusText,
+      // Humanize: never leak raw driver/SQL text into the UI (see errors.ts).
+      const classified = classifyBackendError(res.status, body ?? res.statusText)
+      const error: HttpError & { code?: string } = {
+        message: classified.message ?? translate(classified.messageKey),
+        code: classified.code,
         statusCode: res.status,
         errors: body?.errors
       }

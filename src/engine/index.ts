@@ -45,8 +45,11 @@ export {
 } from './registry.js'
 export type { OverrideRegistry, OverrideKind } from './registry.js'
 
-export { I18nProvider, useI18n, useT } from './i18n.js'
+export { I18nProvider, useI18n, useT, translate, defaultDictionaries } from './i18n.js'
 export type { Dictionary, Dictionaries } from './i18n.js'
+
+export { classifyBackendError } from './providers/errors.js'
+export type { ClassifiedError } from './providers/errors.js'
 
 export {
   ManifestProvider,
