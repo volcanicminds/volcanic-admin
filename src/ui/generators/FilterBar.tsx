@@ -93,7 +93,7 @@ function CheckList({
       <div className="text-sm font-medium">{label}</div>
       <div className="flex flex-wrap gap-x-4 gap-y-1.5">
         {options.map((opt) => (
-          <label key={opt.value} className="flex items-center gap-2 text-sm">
+          <label key={opt.value} className="flex min-w-[8rem] items-center gap-2 text-sm">
             <Checkbox checked={selected.includes(opt.value)} onCheckedChange={() => onToggle(opt.value)} />
             <span>{opt.label}</span>
           </label>
