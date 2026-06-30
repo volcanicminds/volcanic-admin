@@ -8,6 +8,29 @@ import { tokenStore, tenantStore } from '@/engine'
 
 export { absoluteUrl } from '@/lib/utils'
 
+/**
+ * Pull image files out of a clipboard/paste DataTransfer (pasted screenshots or
+ * copied images). Returns [] for text-only pastes (e.g. a pasted URL), so the
+ * caller can ignore them and let the paste fall through.
+ */
+export function imagesFromClipboard(data: DataTransfer | null): File[] {
+  if (!data) return []
+  const out: File[] = []
+  for (const item of Array.from(data.items ?? [])) {
+    if (item.kind === 'file' && item.type.startsWith('image/')) {
+      const f = item.getAsFile()
+      if (f) out.push(f)
+    }
+  }
+  // Some browsers expose pasted images directly under `files` instead of `items`.
+  if (!out.length) {
+    for (const f of Array.from(data.files ?? [])) {
+      if (f.type.startsWith('image/')) out.push(f)
+    }
+  }
+  return out
+}
+
 function authHeaders(): Record<string, string> {
   const headers: Record<string, string> = { ...tenantStore.headers() }
   const token = tokenStore.get()

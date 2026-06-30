@@ -16,7 +16,7 @@ import { Button } from '@/ui/components/ui/button'
 import { cn } from '@/lib/utils'
 import { interpolatePath } from '@/engine'
 import type { WidgetProps } from '../types'
-import { uploadFiles, sendJson, absoluteUrl } from './rest'
+import { uploadFiles, sendJson, absoluteUrl, imagesFromClipboard } from './rest'
 
 export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -82,9 +82,18 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
 
   const src = realMode || typeof value === 'string' ? absoluteUrl(apiUrl, value) : value
 
+  const onPaste = (e: React.ClipboardEvent) => {
+    if (disabled || needsSave) return
+    const imgs = imagesFromClipboard(e.clipboardData)
+    if (!imgs.length) return
+    e.preventDefault()
+    handleFile(imgs[0])
+  }
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" onPaste={onPaste}>
       <div
+        tabIndex={disabled || needsSave ? -1 : 0}
         onDragOver={(e) => {
           if (disabled || needsSave) return
           e.preventDefault()
@@ -97,7 +106,7 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
           handleFile(e.dataTransfer.files?.[0])
         }}
         className={cn(
-          'flex h-32 w-full items-center justify-center overflow-hidden rounded-md border border-dashed bg-muted/30 transition-colors',
+          'flex h-32 w-full items-center justify-center overflow-hidden rounded-md border border-dashed bg-muted/30 transition-colors outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/40',
           dragOver && 'border-primary bg-primary/5'
         )}
       >
