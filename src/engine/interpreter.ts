@@ -54,6 +54,12 @@ function buildResourceModel(spec: ResourceSpec, manifest: Manifest): ResourceMod
       const fk = resolvedByName.get(f.relation.foreignKey)
       if (fk) return { ...f, readOnly: fk.readOnly ?? false, required: f.required || fk.required }
     }
+    // Image/file fields with dedicated endpoints are edited out-of-band (their own
+    // upload/remove routes, not the body), so an output-only schema must not render
+    // them read-only/disabled. They are also excluded from the form payload (AutoForm).
+    if ((f.type === 'image' || f.type === 'file') && f.image?.endpoints?.upload) {
+      return { ...f, readOnly: false }
+    }
     return f
   })
   const byName = new Map(fields.map((f) => [f.name, f]))

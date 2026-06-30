@@ -1,18 +1,25 @@
 /**
- * Multi-image gallery widget with ordering (e.g. vehicle images). The first
- * item (lowest position) is the cover. Supports add, remove, reorder, and a
- * per-image alt value.
+ * Multi-image gallery widget with ordering (e.g. vehicle images). The first item
+ * (lowest position) is the cover. Supports add (click or drag&drop), remove,
+ * drag-to-reorder, and a per-image alt value.
  *
- * Mock-friendly: new files are read as data URLs and stored inline in the array
- * value. In `rest` mode these operations map to the dedicated endpoints
- * (`field.image.endpoints` upload/reorder/update/remove) instead of the body.
+ * Real mode (the field declares `image.endpoints` and the record exists): every
+ * op maps to its dedicated endpoint (upload/reorder/update/remove) and the gallery
+ * is re-read from the response. Create mode asks the user to save first. With no
+ * endpoints (mock), files are inlined as data URLs in the array value.
  */
-import { useRef } from 'react'
-import { Upload, X, ArrowLeft, ArrowRight, Star } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useApiUrl, useInvalidate, useResource } from '@refinedev/core'
+import { useParams } from 'react-router'
+import { toast } from 'sonner'
+import { Upload, X, GripVertical, Star } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import { Badge } from '@/ui/components/ui/badge'
+import { cn } from '@/lib/utils'
+import { interpolatePath } from '@/engine'
 import type { WidgetProps } from '../types'
+import { uploadFiles, sendJson, absoluteUrl } from './rest'
 
 interface GalleryItem {
   id: string
@@ -21,46 +28,151 @@ interface GalleryItem {
   altView?: string
 }
 
-function reindex(items: GalleryItem[]): GalleryItem[] {
-  return items.map((it, i) => ({ ...it, position: i }))
+const sig = (v: unknown) =>
+  Array.isArray(v) ? v.map((it: any) => `${it?.id}:${it?.position}`).join('|') : ''
+
+function normalize(v: unknown): GalleryItem[] {
+  return (Array.isArray(v) ? v : [])
+    .map((it: any, i: number) => ({
+      id: it?.id ?? String(i),
+      url: it?.url ?? it,
+      position: it?.position ?? i,
+      altView: it?.altView ?? ''
+    }))
+    .sort((a, b) => a.position - b.position)
 }
 
-export function GalleryReorder({ field, value, onChange, disabled }: WidgetProps) {
+export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const items: GalleryItem[] = Array.isArray(value) ? value : []
+  const apiUrl = useApiUrl()
+  const { id } = useParams()
+  const invalidate = useInvalidate()
+  const { identifier } = useResource()
+
+  const [items, setItems] = useState<GalleryItem[]>(() => normalize(value))
+  const [busy, setBusy] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+  const dragIndex = useRef<number | null>(null)
+
   const accept = field.image?.accept?.join(',')
   const maxSize = field.image?.maxSize
+  const endpoints = field.image?.endpoints
+  const realMode = Boolean(endpoints?.upload && id)
+  const needsSave = Boolean(endpoints?.upload && !id)
 
-  const update = (next: GalleryItem[]) => onChange(reindex(next))
+  // Re-sync from the record when it loads/changes externally (not from our own ops).
+  useEffect(() => {
+    setItems(normalize(value))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig(value)])
 
-  const addFiles = (files: FileList | null) => {
-    if (!files?.length) return
-    const tasks = Array.from(files)
-      .filter((f) => !maxSize || f.size <= maxSize)
-      .map(
-        (f) =>
-          new Promise<GalleryItem>((resolve) => {
-            const reader = new FileReader()
-            reader.onload = () =>
-              resolve({ id: crypto.randomUUID(), url: reader.result as string, position: 0, altView: '' })
-            reader.readAsDataURL(f)
-          })
+  const apply = (next: GalleryItem[]) => {
+    const reindexed = next.map((it, i) => ({ ...it, position: i }))
+    setItems(reindexed)
+    onChange(reindexed)
+  }
+  const refresh = () => {
+    if (identifier) invalidate({ resource: identifier, invalidates: ['list', 'detail'] })
+  }
+  const fail = (e: unknown) => toast.error((e as Error)?.message ?? t('upload.failed'))
+
+  const addFiles = async (fileList: FileList | null) => {
+    if (!fileList?.length || disabled || busy || needsSave) return
+    const files = Array.from(fileList).filter((f) => !maxSize || f.size <= maxSize)
+    if (!files.length) {
+      toast.error(t('upload.tooLarge'))
+      return
+    }
+    if (!realMode) {
+      const added = await Promise.all(
+        files.map(
+          (f) =>
+            new Promise<GalleryItem>((resolve) => {
+              const reader = new FileReader()
+              reader.onload = () =>
+                resolve({ id: crypto.randomUUID(), url: reader.result as string, position: 0, altView: '' })
+              reader.readAsDataURL(f)
+            })
+        )
       )
-    Promise.all(tasks).then((added) => update([...items, ...added]))
+      apply([...items, ...added])
+      return
+    }
+    setBusy(true)
+    try {
+      const res = await uploadFiles(apiUrl, interpolatePath(endpoints!.upload!.path, { id }), files)
+      setItems(normalize(res))
+      refresh()
+    } catch (e) {
+      fail(e)
+    } finally {
+      setBusy(false)
+    }
   }
 
-  const move = (i: number, dir: -1 | 1) => {
-    const j = i + dir
-    if (j < 0 || j >= items.length) return
+  const removeAt = async (i: number) => {
+    if (disabled || busy) return
+    const item = items[i]
+    if (realMode && endpoints?.remove) {
+      setBusy(true)
+      try {
+        await sendJson(apiUrl, endpoints.remove.method, interpolatePath(endpoints.remove.path, { id, imageId: item.id }))
+        refresh()
+      } catch (e) {
+        fail(e)
+        setBusy(false)
+        return
+      }
+      setBusy(false)
+    }
+    setItems(items.filter((_, idx) => idx !== i).map((it, idx) => ({ ...it, position: idx })))
+  }
+
+  const commitOrder = async (next: GalleryItem[]) => {
+    const reindexed = next.map((it, i) => ({ ...it, position: i }))
+    setItems(reindexed)
+    if (realMode && endpoints?.reorder) {
+      setBusy(true)
+      try {
+        const res = await sendJson(apiUrl, endpoints.reorder.method, interpolatePath(endpoints.reorder.path, { id }), {
+          order: reindexed.map((it) => it.id)
+        })
+        if (Array.isArray(res)) setItems(normalize(res))
+        refresh()
+      } catch (e) {
+        fail(e)
+      } finally {
+        setBusy(false)
+      }
+    } else {
+      onChange(reindexed)
+    }
+  }
+
+  const onDropReorder = (to: number) => {
+    const from = dragIndex.current
+    dragIndex.current = null
+    if (from == null || from === to) return
     const next = [...items]
-    ;[next[i], next[j]] = [next[j], next[i]]
-    update(next)
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    commitOrder(next)
   }
 
-  const remove = (i: number) => update(items.filter((_, idx) => idx !== i))
-
-  const setAlt = (i: number, alt: string) =>
-    update(items.map((it, idx) => (idx === i ? { ...it, altView: alt } : it)))
+  const saveAlt = async (i: number, alt: string) => {
+    const item = items[i]
+    if (item.altView === alt) return
+    setItems(items.map((it, idx) => (idx === i ? { ...it, altView: alt } : it)))
+    if (realMode && endpoints?.update) {
+      try {
+        await sendJson(apiUrl, endpoints.update.method, interpolatePath(endpoints.update.path, { id, imageId: item.id }), {
+          altView: alt
+        })
+      } catch (e) {
+        fail(e)
+      }
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -70,69 +182,72 @@ export function GalleryReorder({ field, value, onChange, disabled }: WidgetProps
         accept={accept}
         multiple
         hidden
-        disabled={disabled}
+        disabled={disabled || needsSave}
         onChange={(e) => addFiles(e.target.files)}
       />
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        disabled={disabled}
-        onClick={() => inputRef.current?.click()}
-      >
-        <Upload /> Upload
-      </Button>
 
-      {items.length === 0 ? (
-        <div className="rounded-md border border-dashed p-4 text-xs text-muted-foreground">
-          No images yet.
-        </div>
-      ) : (
+      <div
+        onDragOver={(e) => {
+          if (disabled || needsSave || dragIndex.current != null) return
+          e.preventDefault()
+          setDragOver(true)
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          if (dragIndex.current != null) return
+          e.preventDefault()
+          setDragOver(false)
+          addFiles(e.dataTransfer.files)
+        }}
+        className={cn(
+          'rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground transition-colors',
+          dragOver && 'border-primary bg-primary/5'
+        )}
+      >
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={disabled || busy || needsSave}
+          onClick={() => inputRef.current?.click()}
+        >
+          <Upload /> {busy ? '…' : t('upload.button')}
+        </Button>
+        <div className="mt-2">{needsSave ? t('upload.saveFirst') : t('upload.dropHint')}</div>
+      </div>
+
+      {items.length > 0 && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
           {items.map((it, i) => (
-            <div key={it.id} className="space-y-2 rounded-md border p-2">
+            <div
+              key={it.id}
+              draggable={!disabled}
+              onDragStart={() => {
+                dragIndex.current = i
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => onDropReorder(i)}
+              className="space-y-2 rounded-md border p-2"
+            >
               <div className="relative aspect-video overflow-hidden rounded bg-muted/30">
-                <img src={it.url} alt={it.altView ?? ''} className="h-full w-full object-cover" />
+                <img src={absoluteUrl(apiUrl, it.url)} alt={it.altView ?? ''} className="h-full w-full object-cover" />
                 {i === 0 && (
                   <Badge className="absolute left-1 top-1 gap-1">
-                    <Star className="h-3 w-3" /> cover
+                    <Star className="h-3 w-3" /> {t('upload.cover')}
                   </Badge>
                 )}
+                <div className="absolute right-1 top-1 cursor-grab rounded bg-background/70 p-0.5 text-muted-foreground">
+                  <GripVertical className="h-4 w-4" />
+                </div>
               </div>
               <Input
-                value={it.altView ?? ''}
-                placeholder="alt"
+                defaultValue={it.altView ?? ''}
+                placeholder={t('upload.alt')}
                 disabled={disabled}
-                onChange={(e) => setAlt(i, e.target.value)}
+                onBlur={(e) => saveAlt(i, e.target.value)}
               />
-              <div className="flex items-center justify-between">
-                <div className="flex gap-1">
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    disabled={disabled || i === 0}
-                    onClick={() => move(i, -1)}
-                  >
-                    <ArrowLeft />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    disabled={disabled || i === items.length - 1}
-                    onClick={() => move(i, 1)}
-                  >
-                    <ArrowRight />
-                  </Button>
-                </div>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  disabled={disabled}
-                  onClick={() => remove(i)}
-                >
+              <div className="flex items-center justify-end">
+                <Button type="button" size="icon" variant="ghost" disabled={disabled || busy} onClick={() => removeAt(i)}>
                   <X className="text-destructive" />
                 </Button>
               </div>

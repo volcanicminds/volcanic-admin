@@ -62,6 +62,9 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
     const payload: Record<string, unknown> = {}
     for (const f of editableFields) {
       if (f.readOnly) continue
+      // Image/file fields with their own endpoints are managed out-of-band (the
+      // upload widget hits dedicated routes), so they never go in the body.
+      if ((f.type === 'image' || f.type === 'file') && f.image?.endpoints?.upload) continue
       const key = formFieldName(f)
       if (key in values) payload[key] = values[key]
     }

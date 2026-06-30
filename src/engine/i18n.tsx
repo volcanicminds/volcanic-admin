@@ -109,7 +109,16 @@ export const defaultDictionaries: Dictionaries = {
     'meta.createdAt': 'Created',
     'meta.updatedAt': 'Updated',
     'action.copy': 'Copy',
-    'badge.featured': 'Featured'
+    'action.remove': 'Remove',
+    'badge.featured': 'Featured',
+    'upload.button': 'Upload',
+    'upload.hint': 'Drop an image or click Upload',
+    'upload.dropHint': 'or drag & drop images here',
+    'upload.saveFirst': 'Save the record first to upload images',
+    'upload.tooLarge': 'File too large',
+    'upload.failed': 'Upload failed',
+    'upload.cover': 'cover',
+    'upload.alt': 'alt text'
   },
   it: {
     'error.unique': 'Valore già presente.',
@@ -123,6 +132,15 @@ export const defaultDictionaries: Dictionaries = {
     'meta.createdAt': 'Creato',
     'meta.updatedAt': 'Aggiornato',
     'action.copy': 'Copia',
-    'badge.featured': 'In evidenza'
+    'action.remove': 'Rimuovi',
+    'badge.featured': 'In evidenza',
+    'upload.button': 'Carica',
+    'upload.hint': "Trascina un'immagine o clicca Carica",
+    'upload.dropHint': 'oppure trascina qui le immagini',
+    'upload.saveFirst': 'Salva prima il record per caricare le immagini',
+    'upload.tooLarge': 'File troppo grande',
+    'upload.failed': 'Caricamento fallito',
+    'upload.cover': 'copertina',
+    'upload.alt': 'testo alternativo'
   }
 }
