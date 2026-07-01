@@ -268,6 +268,10 @@ function pickWidget(field: ResolvedField): (props: WidgetProps) => JSX.Element {
   if (field.type === 'relation') return ReferenceSelect
   switch (field.type) {
     case 'text':
+    case 'textarea':
+      return TextareaWidget
+    // richtext defaults to the registered rich-text editor (resolved in FieldInput);
+    // this is the fallback if that widget isn't registered.
     case 'richtext':
       return TextareaWidget
     case 'integer':
@@ -327,7 +331,13 @@ export function FieldInput({ field, control, t }: FieldInputProps) {
       render={({ field: rhf, fieldState }) => {
         const custom = registry.resolve('widget', field.form?.widget)
         const builtin = field.form?.widget ? BUILTIN_WIDGETS[field.form.widget] : undefined
-        const Widget = custom ?? builtin ?? pickWidget(field)
+        // A richtext field with no explicit widget defaults to the registered
+        // rich-text editor (shipped lazily by the engine); falls back to textarea.
+        const typeDefault =
+          !field.form?.widget && field.type === 'richtext'
+            ? registry.resolve('widget', 'rich-text')
+            : undefined
+        const Widget = custom ?? builtin ?? typeDefault ?? pickWidget(field)
         // On error, outline the actual control (input/textarea/select trigger) so
         // the invalid field is visually obvious, not just the helper text below.
         return (

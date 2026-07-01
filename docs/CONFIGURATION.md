@@ -157,7 +157,7 @@ A field patch fills what the schema-only generator can't infer. `FieldSpec`:
 
 | Key | Type | Notes |
 |---|---|---|
-| `type` | `FieldType` | `string`, `text`, `richtext`, `integer`, `number`, `boolean`, `date`, `datetime`, `enum`, `relation`, `email`, `url`, `uuid`, `json`, `image`, `file`. |
+| `type` | `FieldType` | `string`, `text`, `textarea`, `richtext`, `integer`, `number`, `boolean`, `date`, `datetime`, `enum`, `relation`, `email`, `url`, `uuid`, `json`, `image`, `file`. `textarea` = plain multi-line; `richtext` = HTML rich-text editor. |
 | `label` | i18n key | |
 | `required` | `boolean` | Client `required` rule + `*` marker. |
 | `readOnly` | `boolean` | Excluded from the write payload; shown read-only. |
@@ -303,13 +303,15 @@ An unknown `widget` id silently falls back to the type default.
 | `combobox` | ComboboxWidget (editable select + `suggestions`) | `inputs.tsx` |
 | `image-single` | ImageSingle (upload) | `widgets/upload` (`defaultWidgets`) |
 | `gallery-reorder` | GalleryReorder (upload + DnD) | `widgets/upload` |
+| `rich-text` | RichTextWidget (TipTap editor, HTML output, **lazy-loaded**) | `widgets/richtext` |
 
 **Type → default widget** (when no `widget` id resolves):
 
 | Field type | Widget |
 |---|---|
 | `relation` | ReferenceSelect (server-sorted by `titleField`) |
-| `text`, `richtext` | Textarea |
+| `text`, `textarea` | Textarea (plain multi-line) |
+| `richtext` | RichTextWidget (TipTap editor, HTML) — falls back to Textarea if unregistered |
 | `integer`, `number` | Number |
 | `boolean` | Switch |
 | `enum` | Select |
@@ -410,9 +412,12 @@ A nested `dark` object overrides tokens under the `.dark` class.
 
 ## 12. Known drift / gotchas
 
-- `field.form.widget: 'rich-text'` is **not** a registered widget id → it falls
-  back to the `richtext` type default (Textarea). Use a real registered widget if
-  you need a true rich-text editor.
+- **Rich text** (`type: 'richtext'`) renders the built-in TipTap editor and stores
+  **HTML**. The read-only view renders that HTML inside `.prose` (Tailwind
+  Typography, shipped in the engine's `style.css` via the preset). The editor
+  chunk is **lazy-loaded** — ProseMirror only ships to apps that use it. Content is
+  produced from a constrained schema (no `<script>`); if you point the admin at an
+  untrusted backend, still sanitize server-side (or wrap the display in DOMPurify).
 - `mutationMode` is globally `optimistic` (Refine); capability actions
   invalidate → refetch. Do **not** use `useQueryClient` from `@tanstack` inside the
   engine (dual-instance with Refine v4 → "No QueryClient set").
@@ -433,7 +438,9 @@ of these, update the matching section here in the **same PR**:
 | `<VolcanicAdmin>` props, plugins, theme tokens | `src/VolcanicAdmin.tsx` |
 | Branding & nav item | `src/ui/config.tsx` |
 | Widget selection + built-in-by-name ids | `src/ui/widgets/inputs.tsx` |
-| Upload widgets (`defaultWidgets`) | `src/ui/widgets/upload/index.ts` |
+| Built-in widget registry (merged) | `src/ui/widgets/defaults.ts` |
+| Upload widgets | `src/ui/widgets/upload/index.ts` |
+| Rich-text editor (TipTap, lazy) | `src/ui/widgets/richtext/*` + `tailwind-preset.js` (typography) |
 | Enum color palette | `src/ui/widgets/display.tsx` |
 | Sidebar/resource icons | `src/ui/layout/icons.tsx` |
 | Action icons | `src/ui/actions/ActionButtons.tsx` |

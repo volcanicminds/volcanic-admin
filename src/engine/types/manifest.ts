@@ -22,6 +22,7 @@ export type CapabilityKind = CrudAction | 'action'
 export type FieldType =
   | 'string'
   | 'text'
+  | 'textarea'
   | 'richtext'
   | 'integer'
   | 'number'

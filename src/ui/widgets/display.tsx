@@ -142,6 +142,16 @@ export function FieldValue({ record, field, t }: CellProps) {
     )
   }
 
+  // Plain multi-line text keeps its line breaks (whitespace-pre-wrap).
+  if (field.type === 'text' || field.type === 'textarea') {
+    const text = record[field.name]
+    return text != null && text !== '' ? (
+      <span className="whitespace-pre-wrap">{String(text)}</span>
+    ) : (
+      <span className="text-muted-foreground">—</span>
+    )
+  }
+
   if (field.type === 'richtext') {
     const html = record[field.name]
     // NOTE: richtext is sanitized server-side before persistence (blueprint §11.2.9).

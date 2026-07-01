@@ -1,4 +1,5 @@
 import tailwindcssAnimate from 'tailwindcss-animate'
+import typography from '@tailwindcss/typography'
 
 /**
  * Shared Tailwind preset for the Volcanic Admin theme. Consumer projects that
@@ -50,5 +51,5 @@ export default {
       }
     }
   },
-  plugins: [tailwindcssAnimate]
+  plugins: [tailwindcssAnimate, typography]
 }
