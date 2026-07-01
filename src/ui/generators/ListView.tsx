@@ -212,6 +212,10 @@ export function ListView({ model }: { model: ResourceModel }) {
           {sortFields.length > 0 && (
             <div className="flex items-center gap-1">
               <Select
+                // Radix Select won't fall back to the placeholder when a controlled
+                // value flips to undefined (controlled→uncontrolled keeps the last
+                // label). Remounting on clear resets it to "Sort by" cleanly.
+                key={activeSortField || 'unset'}
                 value={activeSortField || undefined}
                 onValueChange={(v) => applySort(v, activeSortOrder)}
               >
