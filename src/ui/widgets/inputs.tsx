@@ -5,6 +5,7 @@
  *   3. built-in widget for field.type
  * Each widget is a controlled component (value + onChange).
  */
+import { useEffect, useRef, useState } from 'react'
 import { Controller, type Control } from 'react-hook-form'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -18,12 +19,6 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/ui/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/ui/components/ui/dropdown-menu'
 import { useRegistry } from '@/engine'
 import type { ResolvedField, ValidationSpec } from '@/engine'
 import { ReferenceSelect } from './ReferenceSelect'
@@ -88,35 +83,66 @@ function ComboboxWidget({ field, value, onChange, disabled, t }: WidgetProps) {
     return raw
   }
 
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const hasList = suggestions.length > 0
+
+  // Close on any click outside the widget (the options panel lives inside `ref`,
+  // so picking an option doesn't count as "outside").
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
   return (
-    <div className="relative">
+    <div ref={ref} className="relative">
       <Input
         type="text"
         inputMode={isNum ? 'numeric' : undefined}
-        className="pr-9"
+        className={hasList ? 'pr-9' : undefined}
         value={value ?? ''}
         disabled={disabled}
         placeholder={field.form?.placeholder ? t(field.form.placeholder) : undefined}
         onChange={(e) => onChange(parse(e.target.value))}
+        // Open on focus/click like a select — the field itself is the trigger.
+        onFocus={() => hasList && setOpen(true)}
+        onClick={() => hasList && setOpen(true)}
+        onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
       />
-      {suggestions.length > 0 && (
-        <DropdownMenu>
-          <DropdownMenuTrigger
+      {hasList && (
+        <>
+          <button
             type="button"
+            tabIndex={-1}
             disabled={disabled}
             aria-label="options"
-            className="absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground outline-none hover:text-foreground disabled:opacity-50"
+            className="absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground hover:text-foreground disabled:opacity-50"
+            onClick={() => setOpen((o) => !o)}
           >
             <ChevronDown className="h-4 w-4 opacity-50" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[6rem]">
-            {suggestions.map((s) => (
-              <DropdownMenuItem key={String(s)} onSelect={() => onChange(parse(String(s)))}>
-                {String(s)}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </button>
+          {open && (
+            <div className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
+              {suggestions.map((s) => (
+                <button
+                  key={String(s)}
+                  type="button"
+                  className="block w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => {
+                    onChange(parse(String(s)))
+                    setOpen(false)
+                  }}
+                >
+                  {String(s)}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
