@@ -6,7 +6,7 @@
  * the action via its real endpoint.
  */
 import { useState, type ComponentType } from 'react'
-import { Check, Archive, Download, RefreshCw, Send, Zap } from 'lucide-react'
+import { Check, Archive, Download, RefreshCw, Send, Star, StarOff, Zap } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
@@ -93,7 +93,9 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   archive: Archive,
   download: Download,
   refresh: RefreshCw,
-  send: Send
+  send: Send,
+  star: Star,
+  'star-off': StarOff
 }
 const iconFor = (name?: string) => (name && ICONS[name]) || Zap
 
