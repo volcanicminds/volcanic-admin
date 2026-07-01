@@ -12,11 +12,17 @@ export function ReferenceSelect({ field, value, onChange, disabled }: WidgetProp
 
   const { data, isLoading } = useList({
     resource: relation?.resource,
+    // Sort options by the display field server-side (keeps the right rows within
+    // the pageSize cap); a locale-aware client sort then guarantees the visible
+    // order even if the data provider ignores the sorter (and handles accents).
+    sorters: [{ field: titleField, order: 'asc' }],
     pagination: { pageSize: 100, mode: 'server' },
     queryOptions: { enabled: Boolean(relation?.resource) }
   })
 
-  const options = data?.data ?? []
+  const options = [...(data?.data ?? [])].sort((a: any, b: any) =>
+    String(a[titleField] ?? '').localeCompare(String(b[titleField] ?? ''))
+  )
 
   return (
     <Select
