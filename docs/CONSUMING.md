@@ -2,6 +2,10 @@
 
 How to build a client backoffice on top of the manifest-driven engine.
 
+> For the **exhaustive per-field/per-resource/per-capability config reference**
+> (every override, prop, hint, widget id, enum color, icon name), see
+> [`CONFIGURATION.md`](./CONFIGURATION.md). This page covers the setup mechanics.
+
 There are three distribution models; pick per client:
 
 | Model | When | Per-client repo? |

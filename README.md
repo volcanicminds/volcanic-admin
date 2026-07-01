@@ -40,6 +40,7 @@ auth + MFA and multi-tenant from the manifest. Customize via `<VolcanicAdmin>` p
 theming).
 
 - **Full guide:** [`docs/CONSUMING.md`](docs/CONSUMING.md) (simple + complex cases).
+- **Config reference:** [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) (exhaustive map of every override/prop/hint).
 - **Starters:** [`examples/client-starter`](examples/client-starter) (simple),
   [`examples/client-advanced`](examples/client-advanced) (overrides, dashboard, theming).
 
