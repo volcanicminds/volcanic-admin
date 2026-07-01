@@ -102,13 +102,21 @@ function ActionButton({
   record,
   run,
   t,
-  compact
+  compact,
+  variant,
+  size,
+  className
 }: {
   cap: CapabilitySpec
   record?: Rec
   run: RunFn
   t: TFunc
   compact?: boolean
+  /** Button styling overrides so callers can match sibling buttons (card overlay,
+   * show header). Fall back to the per-mode defaults when not provided. */
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost'
+  size?: 'default' | 'sm' | 'lg' | 'icon'
+  className?: string
 }) {
   const registry = useRegistry()
   const [confirming, setConfirming] = useState(false)
@@ -132,11 +140,22 @@ function ActionButton({
   return (
     <>
       {compact ? (
-        <Button size="icon" variant="ghost" title={label} onClick={onClick}>
+        <Button
+          size={size ?? 'icon'}
+          variant={variant ?? 'ghost'}
+          className={className}
+          title={label}
+          onClick={onClick}
+        >
           <Icon />
         </Button>
       ) : (
-        <Button variant="outline" size="sm" onClick={onClick}>
+        <Button
+          variant={variant ?? 'outline'}
+          size={size ?? 'sm'}
+          className={className}
+          onClick={onClick}
+        >
           <Icon /> {label}
         </Button>
       )}
@@ -183,12 +202,18 @@ export function RowActions({
   model,
   record,
   t,
-  compact = true
+  compact = true,
+  variant,
+  size,
+  className
 }: {
   model: ResourceModel
   record: Rec
   t: TFunc
   compact?: boolean
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost'
+  size?: 'default' | 'sm' | 'lg' | 'icon'
+  className?: string
 }) {
   const { run } = useCapabilityRunner(model.spec.name)
   const actions = actionsByTarget(model.actions, 'row').filter((a) => matchVisibleWhen(record, a.visibleWhen))
@@ -196,7 +221,17 @@ export function RowActions({
   return (
     <>
       {actions.map((a) => (
-        <ActionButton key={a.name} cap={a} record={record} run={run} t={t} compact={compact} />
+        <ActionButton
+          key={a.name}
+          cap={a}
+          record={record}
+          run={run}
+          t={t}
+          compact={compact}
+          variant={variant}
+          size={size}
+          className={className}
+        />
       ))}
     </>
   )

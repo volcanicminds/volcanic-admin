@@ -163,7 +163,7 @@ export function ListCards({
         const hasRowActions = model.actions.some((a) => !a.target || a.target.includes('row'))
         const actions = (canEdit || canDelete || hasRowActions) && (
           <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-            <RowActions model={model} record={record} t={t} />
+            <RowActions model={model} record={record} t={t} variant="secondary" className="h-7 w-7" />
             {canEdit && (
               <Button size="icon" variant="secondary" className="h-7 w-7" onClick={() => onEdit(record.id)}>
                 <Pencil />

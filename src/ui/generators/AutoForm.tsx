@@ -5,7 +5,7 @@
  */
 import { useForm } from '@refinedev/react-hook-form'
 import { useBack } from '@refinedev/core'
-import { X } from 'lucide-react'
+import { X, Save } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Label } from '@/ui/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card'
@@ -85,7 +85,7 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
             <X /> {t('action.cancel')}
           </Button>
           <Button type="submit" disabled={formLoading}>
-            {formLoading ? '…' : t('action.save')}
+            <Save /> {formLoading ? '…' : t('action.save')}
           </Button>
         </div>
       </div>

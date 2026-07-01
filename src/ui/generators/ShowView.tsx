@@ -114,7 +114,7 @@ export function ShowView({ model }: { model: ResourceModel }) {
           <Button variant="outline" onClick={() => list(spec.name)}>
             <ArrowLeft /> {t('action.back')}
           </Button>
-          {record && <RowActions model={model} record={record} t={t} compact={false} />}
+          {record && <RowActions model={model} record={record} t={t} compact={false} size="default" />}
           {model.hasAction('update') && (
             <Button onClick={() => id && edit(spec.name, id)}>
               <Pencil /> {t('action.edit')}
