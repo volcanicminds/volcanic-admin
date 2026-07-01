@@ -245,6 +245,10 @@ export interface ResourceSpec {
   /** Show a "Clone" button on the detail view (opens create pre-filled). Defaults
    *  to true wherever the resource supports create; set false to hide it. */
   clonable?: boolean
+  /** Field values to force on a cloned record, overriding the copied values (e.g.
+   *  `{ status: 'draft' }` so a clone never inherits a published/archived state).
+   *  Keys are form field names — the foreign key for relations. */
+  cloneReset?: Record<string, unknown>
   fields: FieldSpec[]
   views?: ResourceViews
 }

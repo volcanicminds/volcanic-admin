@@ -27,7 +27,8 @@ import { detailColumns, sectionGridClass, fieldSpanClass } from './layout'
 /** Writable form values to carry into a pre-filled create form. Mirrors the
  * AutoForm payload rules: skip read-only fields and image/file fields handled
  * out-of-band (their binaries can't be cloned by copying values). Relations map
- * to their foreign key via formFieldName. */
+ * to their foreign key via formFieldName. Finally `spec.cloneReset` forces any
+ * per-resource values (e.g. status → draft) over the copied ones. */
 function buildCloneSeed(model: ResourceModel, record: Record<string, any>): Record<string, unknown> {
   const seed: Record<string, unknown> = {}
   for (const section of model.formSections) {
@@ -38,7 +39,7 @@ function buildCloneSeed(model: ResourceModel, record: Record<string, any>): Reco
       if (record[key] !== undefined) seed[key] = record[key]
     }
   }
-  return seed
+  return { ...seed, ...(model.spec.cloneReset ?? {}) }
 }
 
 type Translate = (key?: string, vars?: Record<string, string | number>) => string
