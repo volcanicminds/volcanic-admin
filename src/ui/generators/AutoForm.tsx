@@ -4,6 +4,8 @@
  * payload matches the body schema, not the whole fetched record).
  */
 import { useForm } from '@refinedev/react-hook-form'
+import { useBack } from '@refinedev/core'
+import { X } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Label } from '@/ui/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card'
@@ -37,6 +39,7 @@ function visibleForAction(field: ResolvedField, action: 'create' | 'edit'): bool
 
 export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFormProps) {
   const t = useT()
+  const back = useBack()
   const sections = model.formSections
     .map((s) => ({ ...s, fields: s.fields.filter((f) => visibleForAction(f, action)) }))
     .filter((s) => s.fields.length > 0)
@@ -75,9 +78,16 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
     <form onSubmit={submit} className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{title}</h1>
-        <Button type="submit" disabled={formLoading}>
-          {formLoading ? '…' : t('action.save')}
-        </Button>
+        <div className="flex gap-2">
+          {/* Cancel: discards the in-progress edit and returns where we came from.
+              The read-only show view keeps the ArrowLeft "back" affordance instead. */}
+          <Button type="button" variant="outline" disabled={formLoading} onClick={() => back()}>
+            <X /> {t('action.cancel')}
+          </Button>
+          <Button type="submit" disabled={formLoading}>
+            {formLoading ? '…' : t('action.save')}
+          </Button>
+        </div>
       </div>
 
       {sections.map((section) => (
