@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { useForm } from '@refinedev/react-hook-form'
 import { useBack } from '@refinedev/core'
+import { useLocation } from 'react-router'
 import { X, Save, AlertCircle } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Label } from '@/ui/components/ui/label'
@@ -13,6 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/car
 import { useT } from '@/engine'
 import type { ResourceModel, ResolvedField } from '@/engine'
 import { FieldInput, formFieldName } from '@/ui/widgets/inputs'
+import { CLONE_STATE_KEY } from './cloneSeed'
+import { detailColumns, sectionGridClass, fieldSpanClass } from './layout'
 
 interface AutoFormProps {
   model: ResourceModel
@@ -41,11 +44,20 @@ function visibleForAction(field: ResolvedField, action: 'create' | 'edit'): bool
 export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFormProps) {
   const t = useT()
   const back = useBack()
+  const location = useLocation()
   const [serverError, setServerError] = useState<string | null>(null)
+  const cols = detailColumns(model.spec.detailColumns)
   const sections = model.formSections
     .map((s) => ({ ...s, fields: s.fields.filter((f) => visibleForAction(f, action)) }))
     .filter((s) => s.fields.length > 0)
   const editableFields = sections.flatMap((s) => s.fields)
+
+  // A "Clone" navigation from the show view carries the source record's writable
+  // values in router state; on create we layer them over the field defaults.
+  const cloneSeed =
+    action === 'create'
+      ? (location.state as Record<string, unknown> | null)?.[CLONE_STATE_KEY]
+      : undefined
 
   const {
     refineCore: { onFinish, formLoading },
@@ -60,7 +72,10 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
       // Singletons fetch/update on the base path (no :id) — see data provider.
       meta: model.spec.singleton ? { singleton: true } : undefined
     },
-    defaultValues: action === 'create' ? defaultsFor(editableFields) : undefined
+    defaultValues:
+      action === 'create'
+        ? { ...defaultsFor(editableFields), ...((cloneSeed as Record<string, unknown>) ?? {}) }
+        : undefined
   })
 
   // Valid submit: build the payload and save. On a server error, refine already
@@ -128,12 +143,10 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
               <CardTitle className="text-base">{t(`group.${section.group}`)}</CardTitle>
             </CardHeader>
           )}
-          <CardContent className="grid grid-cols-1 gap-4 pt-6 md:grid-cols-2">
+          <CardContent className={`${sectionGridClass(cols)} pt-6`}>
             {section.fields.map((field) => (
-              <div
-                key={field.name}
-                className={field.form?.colSpan === 2 ? 'md:col-span-2' : undefined}
-              >
+              <div key={field.name} className={fieldSpanClass(field, cols)}>
+
                 <Label className="mb-1.5 block">
                   {t(field.label ?? `field.${model.spec.name}.${field.name}`)}
                   {(field.required || field.validation?.required) && (

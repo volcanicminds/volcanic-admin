@@ -4,8 +4,8 @@
  */
 import { useState } from 'react'
 import { useOne, useNavigation, useDelete } from '@refinedev/core'
-import { useParams } from 'react-router'
-import { Pencil, ArrowLeft, Trash2, Copy, Check } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router'
+import { Pencil, ArrowLeft, Trash2, Copy, Check, CopyPlus } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import {
@@ -19,7 +19,27 @@ import {
 import { useT } from '@/engine'
 import type { ResourceModel } from '@/engine'
 import { FieldValue } from '@/ui/widgets/display'
+import { formFieldName } from '@/ui/widgets/inputs'
 import { RowActions } from '@/ui/actions/ActionButtons'
+import { CLONE_STATE_KEY } from './cloneSeed'
+import { detailColumns, sectionGridClass, fieldSpanClass } from './layout'
+
+/** Writable form values to carry into a pre-filled create form. Mirrors the
+ * AutoForm payload rules: skip read-only fields and image/file fields handled
+ * out-of-band (their binaries can't be cloned by copying values). Relations map
+ * to their foreign key via formFieldName. */
+function buildCloneSeed(model: ResourceModel, record: Record<string, any>): Record<string, unknown> {
+  const seed: Record<string, unknown> = {}
+  for (const section of model.formSections) {
+    for (const field of section.fields) {
+      if (field.readOnly) continue
+      if ((field.type === 'image' || field.type === 'file') && field.image?.endpoints?.upload) continue
+      const key = formFieldName(field)
+      if (record[key] !== undefined) seed[key] = record[key]
+    }
+  }
+  return seed
+}
 
 type Translate = (key?: string, vars?: Record<string, string | number>) => string
 
@@ -80,6 +100,7 @@ function RecordMeta({ record, t }: { record: Record<string, any>; t: Translate }
 export function ShowView({ model }: { model: ResourceModel }) {
   const t = useT()
   const { id } = useParams()
+  const navigate = useNavigate()
   const { spec } = model
   const { list, edit } = useNavigation()
   const { mutate: deleteOne } = useDelete()
@@ -89,6 +110,19 @@ export function ShowView({ model }: { model: ResourceModel }) {
   const record = data?.data
 
   const canDelete = model.hasAction('delete')
+  const canClone = model.hasAction('create') && spec.clonable !== false
+  const cols = detailColumns(spec.detailColumns)
+
+  // Clone: open the create form pre-seeded with this record's writable values
+  // (carried in router state). The user reviews and saves, so unique fields like
+  // the name are corrected before insert rather than failing on a blind copy.
+  const clone = () => {
+    if (!record) return
+    // Absolute path (leading slash) so it resolves from the router root, not the
+    // current /show/:id location; react-router applies any basename.
+    const base = `/${spec.path.replace(/^\/+/, '')}`
+    navigate(`${base}/create`, { state: { [CLONE_STATE_KEY]: buildCloneSeed(model, record) } })
+  }
 
   const sections =
     model.formSections.length > 0
@@ -115,6 +149,11 @@ export function ShowView({ model }: { model: ResourceModel }) {
             <ArrowLeft /> {t('action.back')}
           </Button>
           {record && <RowActions model={model} record={record} t={t} compact={false} />}
+          {canClone && (
+            <Button variant="outline" onClick={clone}>
+              <CopyPlus /> {t('action.clone')}
+            </Button>
+          )}
           {model.hasAction('update') && (
             <Button onClick={() => id && edit(spec.name, id)}>
               <Pencil /> {t('action.edit')}
@@ -165,15 +204,11 @@ export function ShowView({ model }: { model: ResourceModel }) {
                 <CardTitle className="text-base">{t(`group.${section.group}`)}</CardTitle>
               </CardHeader>
             )}
-            <CardContent className="grid grid-cols-1 gap-4 pt-6 md:grid-cols-2">
+            <CardContent className={`${sectionGridClass(cols)} pt-6`}>
               {section.fields.map((field) => (
                 <div
                   key={field.name}
-                  className={
-                    field.form?.colSpan === 2 || field.type === 'image' || field.type === 'richtext'
-                      ? 'space-y-1 md:col-span-2'
-                      : 'space-y-1'
-                  }
+                  className={['space-y-1', fieldSpanClass(field, cols)].filter(Boolean).join(' ')}
                 >
                   <div className="text-xs font-medium text-muted-foreground">
                     {t(field.label ?? `field.${spec.name}.${field.name}`)}

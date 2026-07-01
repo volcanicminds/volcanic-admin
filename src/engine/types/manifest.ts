@@ -238,6 +238,13 @@ export interface ResourceSpec {
   highlightField?: string
   /** Card content alignment: 'left' (default) or 'center' (e.g. logo grids). */
   cardAlign?: 'left' | 'center'
+  /** Column count for the detail (show) and edit/create form grids (1–4, default
+   *  2). Applied to both views for layout coherence; image/richtext and colSpan
+   *  fields still span full width. */
+  detailColumns?: number
+  /** Show a "Clone" button on the detail view (opens create pre-filled). Defaults
+   *  to true wherever the resource supports create; set false to hide it. */
+  clonable?: boolean
   fields: FieldSpec[]
   views?: ResourceViews
 }
