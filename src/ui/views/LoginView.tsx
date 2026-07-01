@@ -16,6 +16,8 @@ import { Label } from '@/ui/components/ui/label'
 import { PasswordInput } from '@/ui/components/ui/password-input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { useAdminConfig } from '@/ui/config'
+import vmLogoLight from '@/assets/volcanicminds-light.svg'
+import vmLogoDark from '@/assets/volcanicminds-dark.svg'
 
 type Step = 'credentials' | 'verify' | 'setup'
 
@@ -27,6 +29,16 @@ export function LoginView() {
   const client = useAuthClient()
   const { branding } = useAdminConfig()
   const appName = branding?.appName ?? 'Volcanic Admin'
+  // Login shows a bigger, centered "hero" logo — its own richer mark if provided,
+  // otherwise the sidebar logo, at login-specific (larger) sizes.
+  const loginLogo = branding?.loginLogo ?? branding?.logo
+  const loginLogoDark = branding?.loginLogoDark
+  const loginLogoHeight = branding?.loginLogoHeight ?? 56
+  const loginLogoMaxWidth = branding?.loginLogoMaxWidth ?? 260
+  // "powered by Volcanic Minds" signature (theme-aware). On by default; hide via
+  // branding.poweredBy === false for a white-label deployment.
+  const showPoweredBy = branding?.poweredBy !== false
+  const logoStyle = { height: loginLogoHeight, maxWidth: loginLogoMaxWidth }
 
   const [step, setStep] = useState<Step>('credentials')
   const [email, setEmail] = useState('')
@@ -102,18 +114,36 @@ export function LoginView() {
         : 'Enter your credentials to access'
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-sm">
-        <CardHeader className="space-y-1">
-          <div className="mb-2 flex items-center gap-2">
-            {branding?.logo ? (
-              <img src={branding.logo} alt={appName} className="h-8 w-auto max-w-[180px] object-contain" />
+        <CardHeader className="items-center space-y-1 text-center">
+          <div className="mb-3 flex flex-col items-center gap-2">
+            {loginLogo ? (
+              loginLogoDark ? (
+                // Two variants swapped by the .dark class (CSS-only, no JS).
+                <>
+                  <img
+                    src={loginLogo}
+                    alt={appName}
+                    className="block w-auto object-contain dark:hidden"
+                    style={logoStyle}
+                  />
+                  <img
+                    src={loginLogoDark}
+                    alt={appName}
+                    className="hidden w-auto object-contain dark:block"
+                    style={logoStyle}
+                  />
+                </>
+              ) : (
+                <img src={loginLogo} alt={appName} className="w-auto object-contain" style={logoStyle} />
+              )
             ) : (
               <>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                  <span className="font-bold">{appName.charAt(0).toUpperCase()}</span>
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                  <span className="text-2xl font-bold">{appName.charAt(0).toUpperCase()}</span>
                 </div>
-                <CardTitle className="text-xl">{appName}</CardTitle>
+                <span className="text-lg font-semibold">{appName}</span>
               </>
             )}
           </div>
@@ -220,6 +250,20 @@ export function LoginView() {
           )}
         </CardContent>
       </Card>
+
+      {showPoweredBy && (
+        <a
+          href="https://volcanicminds.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Powered by Volcanic Minds"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 opacity-80 transition-opacity hover:opacity-100 md:left-auto md:right-8 md:translate-x-0"
+        >
+          {/* Light/dark variants swapped by the .dark class (CSS-only). */}
+          <img src={vmLogoLight} alt="Volcanic Minds" className="block h-8 w-auto dark:hidden" />
+          <img src={vmLogoDark} alt="Volcanic Minds" className="hidden h-8 w-auto dark:block" />
+        </a>
+      )}
     </div>
   )
 }

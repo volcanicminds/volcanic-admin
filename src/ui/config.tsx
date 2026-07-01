@@ -26,6 +26,19 @@ export interface AdminBranding {
   logoHeight?: number
   /** Max width (px) of the expanded-sidebar logo. Default 170. */
   logoMaxWidth?: number
+  /** Logo for the login page hero — usually a bigger/richer mark than the compact
+   *  sidebar one. Falls back to `logo`. */
+  loginLogo?: string
+  /** Dark-theme variant of the login logo (CSS-swapped by the `.dark` class).
+   *  Use when the light logo is unreadable on a dark background. */
+  loginLogoDark?: string
+  /** Height (px) of the centered login logo. Default 56. */
+  loginLogoHeight?: number
+  /** Max width (px) of the login logo. Default 260. */
+  loginLogoMaxWidth?: number
+  /** Show the "powered by Volcanic Minds" signature on the login page. Default true
+   *  (theme-aware light/dark). Set false to hide it (white-label). */
+  poweredBy?: boolean
 }
 
 interface AdminConfigValue {

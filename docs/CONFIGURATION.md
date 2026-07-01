@@ -400,6 +400,15 @@ author with `defineAdminPlugin()`. See CONSUMING.md §3.5.
 | `logoCollapsed` | `string` | — | Mark for the collapsed sidebar (falls back to initial badge). |
 | `logoHeight` | `number` | `28` | Expanded logo height px. |
 | `logoMaxWidth` | `number` | `170` | Expanded logo max width px. |
+| `loginLogo` | `string` | `logo` | Login hero logo (usually bigger/richer than the sidebar mark). |
+| `loginLogoDark` | `string` | — | Dark-theme variant of the login logo (CSS-swapped by `.dark`). Use when a light logo is unreadable on dark. |
+| `loginLogoHeight` | `number` | `56` | Login logo height px. |
+| `loginLogoMaxWidth` | `number` | `260` | Login logo max width px. |
+| `poweredBy` | `boolean` | `true` | Show the theme-aware "powered by Volcanic Minds" signature on the login (bottom-right). Set `false` to hide (white-label). |
+
+The login page is inside the `ThemeProvider` and uses theme tokens, so it renders
+in **both light and dark** (follows the OS unless the user picks a mode). The VM
+signature and `loginLogoDark` swap variants via the `.dark` class (CSS-only).
 
 **`AdminTheme`** — CSS-variable tokens injected at the root (no Tailwind config
 needed). Colors are **HSL channels** (e.g. `"221 83% 53%"`). Tokens: `background`,
