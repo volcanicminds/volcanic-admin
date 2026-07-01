@@ -154,7 +154,7 @@ function ActionButton({
       ) : (
         <Button
           variant={variant ?? 'outline'}
-          size={size ?? 'sm'}
+          size={size ?? 'default'}
           className={className}
           onClick={onClick}
         >

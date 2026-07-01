@@ -158,7 +158,7 @@ export function ListView({ model }: { model: ResourceModel }) {
           <ListIO model={model} filters={filters} sorters={sorters} canWrite={canCreate || canEdit} />
           <CollectionActions model={model} t={t} />
           {layouts.length > 1 && (
-            <div className="flex rounded-md border p-0.5">
+            <div className="flex h-9 items-center rounded-md border p-0.5">
               <Button
                 size="icon"
                 variant="ghost"

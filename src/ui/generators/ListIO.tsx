@@ -153,7 +153,7 @@ export function ListIO({ model, filters, sorters, canWrite }: ListIOProps) {
 
   return (
     <div className="flex items-center gap-1">
-      <Button variant="outline" size="sm" disabled={busy} onClick={onExport}>
+      <Button variant="outline" disabled={busy} onClick={onExport}>
         <Download /> XLS
       </Button>
       {canWrite && (
@@ -168,7 +168,7 @@ export function ListIO({ model, filters, sorters, canWrite }: ListIOProps) {
               if (f) onImport(f)
             }}
           />
-          <Button variant="outline" size="sm" disabled={busy} onClick={() => inputRef.current?.click()}>
+          <Button variant="outline" disabled={busy} onClick={() => inputRef.current?.click()}>
             <Upload /> XLS
           </Button>
         </>
