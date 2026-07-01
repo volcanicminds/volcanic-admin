@@ -6,6 +6,7 @@
  * Each widget is a controlled component (value + onChange).
  */
 import { Controller, type Control } from 'react-hook-form'
+import { cn } from '@/lib/utils'
 import { Input } from '@/ui/components/ui/input'
 import { Textarea } from '@/ui/components/ui/textarea'
 import { Switch } from '@/ui/components/ui/switch'
@@ -235,7 +236,7 @@ function pickWidget(field: ResolvedField): (props: WidgetProps) => JSX.Element {
 function toRules(field: ResolvedField) {
   const v: ValidationSpec = field.validation ?? {}
   const rules: Record<string, unknown> = {}
-  if (field.required || v.required) rules.required = 'required'
+  if (field.required || v.required) rules.required = 'validation.required'
   if (v.min != null) rules.min = { value: v.min, message: `≥ ${v.min}` }
   if (v.max != null) rules.max = { value: v.max, message: `≤ ${v.max}` }
   if (v.minLength != null) rules.minLength = { value: v.minLength, message: `min ${v.minLength}` }
@@ -270,8 +271,16 @@ export function FieldInput({ field, control, t }: FieldInputProps) {
         const custom = registry.resolve('widget', field.form?.widget)
         const builtin = field.form?.widget ? BUILTIN_WIDGETS[field.form.widget] : undefined
         const Widget = custom ?? builtin ?? pickWidget(field)
+        // On error, outline the actual control (input/textarea/select trigger) so
+        // the invalid field is visually obvious, not just the helper text below.
         return (
-          <div className="space-y-1">
+          <div
+            className={cn(
+              'space-y-1',
+              fieldState.error &&
+                '[&_[role=combobox]]:border-destructive [&_input]:border-destructive [&_textarea]:border-destructive'
+            )}
+          >
             <Widget
               field={field}
               value={rhf.value}
@@ -281,7 +290,7 @@ export function FieldInput({ field, control, t }: FieldInputProps) {
             />
             {field.help && <p className="text-xs text-muted-foreground">{t(field.help)}</p>}
             {fieldState.error && (
-              <p className="text-xs text-destructive">{String(fieldState.error.message)}</p>
+              <p className="text-xs text-destructive">{t(String(fieldState.error.message))}</p>
             )}
           </div>
         )

@@ -3,9 +3,10 @@
  * `formSections` and submits only the fields the form actually manages (so the
  * payload matches the body schema, not the whole fetched record).
  */
+import { useState } from 'react'
 import { useForm } from '@refinedev/react-hook-form'
 import { useBack } from '@refinedev/core'
-import { X, Save } from 'lucide-react'
+import { X, Save, AlertCircle } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Label } from '@/ui/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card'
@@ -40,6 +41,7 @@ function visibleForAction(field: ResolvedField, action: 'create' | 'edit'): bool
 export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFormProps) {
   const t = useT()
   const back = useBack()
+  const [serverError, setServerError] = useState<string | null>(null)
   const sections = model.formSections
     .map((s) => ({ ...s, fields: s.fields.filter((f) => visibleForAction(f, action)) }))
     .filter((s) => s.fields.length > 0)
@@ -61,7 +63,10 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
     defaultValues: action === 'create' ? defaultsFor(editableFields) : undefined
   })
 
-  const submit = handleSubmit((values: Record<string, unknown>) => {
+  // Valid submit: build the payload and save. On a server error, refine already
+  // stays on the form (the data provider throws → no redirect); we surface the
+  // message in a banner and scroll it into view so the work is never lost.
+  const onValid = async (values: Record<string, unknown>) => {
     const payload: Record<string, unknown> = {}
     for (const f of editableFields) {
       if (f.readOnly) continue
@@ -71,8 +76,27 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
       const key = formFieldName(f)
       if (key in values) payload[key] = values[key]
     }
-    return onFinish(payload)
-  })
+    setServerError(null)
+    try {
+      await onFinish(payload)
+    } catch (e) {
+      setServerError((e as { message?: string })?.message || t('form.saveError'))
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  // Invalid submit: fields are highlighted by their Controllers; bring the first
+  // error into view so the user sees what to fix instead of a silent no-op.
+  const onInvalid = () => {
+    setServerError(null)
+    setTimeout(() => {
+      document
+        .querySelector('form p.text-destructive')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 0)
+  }
+
+  const submit = handleSubmit(onValid, onInvalid)
 
   return (
     <form onSubmit={submit} className="space-y-6">
@@ -89,6 +113,13 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
           </Button>
         </div>
       </div>
+
+      {serverError && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <AlertCircle className="mt-0.5 size-4 shrink-0" />
+          <span>{serverError}</span>
+        </div>
+      )}
 
       {sections.map((section) => (
         <Card key={section.group}>
