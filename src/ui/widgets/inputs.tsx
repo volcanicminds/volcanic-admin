@@ -6,6 +6,7 @@
  * Each widget is a controlled component (value + onChange).
  */
 import { Controller, type Control } from 'react-hook-form'
+import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Input } from '@/ui/components/ui/input'
 import { Textarea } from '@/ui/components/ui/textarea'
@@ -17,6 +18,12 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/ui/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/ui/components/ui/dropdown-menu'
 import { useRegistry } from '@/engine'
 import type { ResolvedField, ValidationSpec } from '@/engine'
 import { ReferenceSelect } from './ReferenceSelect'
@@ -59,35 +66,59 @@ function NumberWidget({ field, value, onChange, disabled, t }: WidgetProps) {
   )
 }
 
-/** Editable dropdown: a free input (numeric for integer/number fields) plus a
- *  native datalist of non-binding suggestions from `field.form.suggestions`. */
+/** Editable select: a free-text input styled like the Select trigger, with a
+ *  chevron that drops the predefined `field.form.suggestions` — pick one or type
+ *  a custom value. Integer fields accept digits only (no decimal separator). */
 function ComboboxWidget({ field, value, onChange, disabled, t }: WidgetProps) {
   const suggestions = field.form?.suggestions ?? []
   const isInt = field.type === 'integer'
   const isNum = isInt || field.type === 'number'
-  const listId = `cb-${field.name}`
+
+  const parse = (raw: string) => {
+    if (raw === '') return null
+    if (isInt) {
+      // Integers only: keep the part before any decimal separator, drop non-digits.
+      const intPart = raw.split(/[.,]/)[0].replace(/\D/g, '')
+      return intPart === '' ? null : parseInt(intPart, 10)
+    }
+    if (isNum) {
+      const n = parseFloat(raw)
+      return Number.isNaN(n) ? null : n
+    }
+    return raw
+  }
+
   return (
-    <>
+    <div className="relative">
       <Input
-        type={isNum ? 'number' : 'text'}
-        step={isInt ? 1 : field.validation?.step}
-        list={suggestions.length ? listId : undefined}
+        type="text"
+        inputMode={isNum ? 'numeric' : undefined}
+        className="pr-9"
         value={value ?? ''}
         disabled={disabled}
         placeholder={field.form?.placeholder ? t(field.form.placeholder) : undefined}
-        onChange={(e) => {
-          const v = e.target.value
-          onChange(v === '' ? null : isInt ? parseInt(v, 10) : isNum ? parseFloat(v) : v)
-        }}
+        onChange={(e) => onChange(parse(e.target.value))}
       />
       {suggestions.length > 0 && (
-        <datalist id={listId}>
-          {suggestions.map((s) => (
-            <option key={String(s)} value={String(s)} />
-          ))}
-        </datalist>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            type="button"
+            disabled={disabled}
+            aria-label="options"
+            className="absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground outline-none hover:text-foreground disabled:opacity-50"
+          >
+            <ChevronDown className="h-4 w-4 opacity-50" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[6rem]">
+            {suggestions.map((s) => (
+              <DropdownMenuItem key={String(s)} onSelect={() => onChange(parse(String(s)))}>
+                {String(s)}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
-    </>
+    </div>
   )
 }
 
