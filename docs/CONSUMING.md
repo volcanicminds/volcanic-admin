@@ -41,8 +41,10 @@ build works offline** — no live backend needed to compile.
 
 ```bash
 # fetch GET <url>/admin/manifest, validate against the v2 JSON Schema, and write
-#   src/manifest.generated.ts  (always — AUTO-GENERATED header)
-#   src/manifest.overrides.ts  (scaffolded once, only if absent — yours thereafter)
+#   src/manifest.generated.ts  (always — AUTO-GENERATED header; also emits the
+#                               `GeneratedFieldMap` type for typed field names)
+#   src/manifest.overrides.ts  (scaffolded once, only if absent — yours thereafter;
+#                               scaffold is `ManifestOverrides<GeneratedFieldMap>`)
 npx volcanic-admin-pull --url https://api.acme.example --out src
 # or from a snapshot file instead of a live backend:
 npx volcanic-admin-pull --from ./manifest.snapshot.json --out src
@@ -81,25 +83,49 @@ createRoot(document.getElementById('root')!).render(
 `manifest.overrides.ts` is plain typed data — fill what the schema-only generator can't
 infer and trim noise (see §3 for the override surface):
 
+Type it against the pulled `GeneratedFieldMap` (see below) so every field reference is
+checked at compile time. Fields carry **data + structure only**; all presentation and
+ordering live in the resource's ordered **view blocks** (`list` / `form`).
+
 ```ts
 import type { ManifestOverrides } from '@volcanicminds/admin'
+import type { GeneratedFieldMap } from './manifest.generated'
 
-export const overrides: ManifestOverrides = {
+export const overrides: ManifestOverrides<GeneratedFieldMap> = {
   excludeResources: ['token', 'health'], // keep on the backend, hide from the panel
   groups: [{ name: 'catalog', label: 'group.catalog', icon: 'car', order: 10 }],
   resources: {
     vehicle: {
       titleField: 'name',
-      defaultListLayout: 'card',
       fields: {
-        // enrich the thin schema-only relation + hide the raw FK
-        brand: { type: 'relation', relation: { resource: 'brand', titleField: 'name' }, form: { widget: 'reference-select' } },
-        brandId: { list: { visible: false }, form: { visible: false } }
+        // enrich the thin schema-only relation + point it at the writable FK
+        brand: { type: 'relation', relation: { resource: 'brand', titleField: 'name', foreignKey: 'brandId' } }
+      },
+      // presentation + ordering live in the view blocks (array order = render order;
+      // a present array is the authoritative allowlist)
+      list: {
+        defaultLayout: 'card',
+        table: { columns: [{ field: 'name' }, { field: 'brand' }, { field: 'status' }] },
+        card: { title: 'name', subtitle: 'brand', badges: ['status'] }
+      },
+      form: {
+        columns: 2,
+        groups: [
+          { name: 'default', fields: [{ field: 'name' }, { field: 'brandId', widget: 'reference-select' }] }
+        ]
       }
     }
   }
 }
 ```
+
+> **Typed field names.** `volcanic-admin-pull` also emits an
+> `export type GeneratedFieldMap = { vehicle: 'id' | 'name' | 'brand' | …; … }` in
+> `manifest.generated.ts`. Typing the overrides as `ManifestOverrides<GeneratedFieldMap>`
+> turns a mistyped `field:` (in columns / form entries / card slots / `sort` / `fields`
+> keys) into a **compile error** instead of a silently-skipped entry. The generic defaults
+> to `string`, so untyped `ManifestOverrides` keeps working. See
+> [`CONFIGURATION.md`](./CONFIGURATION.md) §12.
 
 ### 1.2 Runtime fetch (no pull step)
 
@@ -228,7 +254,8 @@ export const catalogPlugin = defineAdminPlugin({
 ### 3.1 Custom field widget
 
 A widget renders one field. It receives `WidgetProps` (`value`, `onChange`, `field`, `t`,
-`disabled`) and is registered under the id used in the manifest (`field.form.widget`).
+`disabled`) and is registered under the id referenced from a form view entry
+(`resources[name].form.groups[].fields[].widget`).
 
 ```tsx
 import type { WidgetProps } from '@volcanicminds/admin'
@@ -246,15 +273,18 @@ export function RatingWidget({ value, onChange, disabled }: WidgetProps) {
 }
 ```
 
-Override (`manifest.overrides.ts`): `vehicle.fields.score = { type: 'integer', form: { widget: 'rating' } }`.
+Override (`manifest.overrides.ts`): declare the field's intrinsics in `fields`
+(`vehicle.fields.score = { type: 'integer' }`) and reference the widget from the form view
+entry — `vehicle.form.groups[0].fields` includes `{ field: 'score', widget: 'rating' }`.
 The same `WidgetProps` shape is reused for read-only display if you also register a display
 variant.
 
 **Built-in extras** (no custom code needed):
 - **`multiselect`** widget — checkbox group for an array field; options come from the field's
-  `enum`. e.g. `user.fields.roles = { type: 'enum', enum: [{value:'admin',label:'role.admin'}], form: { widget: 'multiselect' } }`.
-- **`form.visibleOn`** — `'create' | 'edit'` restricts a field to one form mode (omitted = both).
-  e.g. `password: { form: { visibleOn: 'create' } }` hides it when editing.
+  `enum`. Declare the enum on the field (`user.fields.roles = { type: 'enum', enum: [{value:'admin',label:'role.admin'}] }`)
+  and pick the widget in the form entry: `{ field: 'roles', widget: 'multiselect' }`.
+- **`visibleOn`** — a form-entry prop, `'create' | 'edit'`, restricts a field to one form mode
+  (omitted = both). e.g. `{ field: 'password', visibleOn: 'create' }` hides it when editing.
 
 ### 3.2 Custom view
 
@@ -413,7 +443,8 @@ Now dropping a new `*.plugin.ts(x)` under `src/plugins/` registers it automatica
 
 > **`manifest` vs `manifestOverrides`.** `manifest` is the generated description (don't edit);
 > `manifestOverrides` is your `ManifestOverrides` layer merged on top. `overrides` is a
-> *different* prop — the React component registry that backs `form.widget` / `views` ids.
+> *different* prop — the React component registry that backs the `widget` ids used in
+> `form` view entries / the `views` ids.
 
 ## 5. Dev without a backend
 

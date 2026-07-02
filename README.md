@@ -90,8 +90,8 @@ CRUD under `/admin/<path>` using Magic Query and the `v-*` pagination headers.
 
 ## Customization (4 override levels)
 
-1. **Manifest tweak** — field order, labels, visibility, filter operators, form groups. No React.
-2. **Widget override** — register a component for a field via `field.form.widget` (override registry).
+1. **Manifest tweak** — field order, labels, visibility, filter operators, form groups, table columns & card slots, all via the ordered `list`/`form` view blocks in the overrides. No React.
+2. **Widget override** — register a component and reference it by id in a form entry's `widget` (`form.groups[].fields[].widget`, via the override registry).
 3. **Action override** — row/bulk/collection buttons hitting dedicated endpoints.
 4. **View/page override** — replace a whole screen via `views.{list,create,edit,show}`.
 

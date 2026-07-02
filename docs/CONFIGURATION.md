@@ -25,6 +25,12 @@ BE schema ──emit──► manifest.generated.ts   (AUTO-GENERATED, never han
                    mergeManifest()  ──► interpreted model ──► React views
 ```
 
+**The split is strict: the BE emits DATA + STRUCTURE only** — fields
+(`name`/`type`/`enum`/`relation`/`image`/`validation`), capabilities, search,
+defaultSort. It never emits presentation or i18n text. **All presentation and
+ordering live in the overrides**, in *ordered view blocks* (`list`/`form`). This
+is why the generated file is safe to overwrite on every regeneration.
+
 Three configuration surfaces, in order of how often you touch them:
 
 | Surface | Lives in | Scope |
@@ -33,25 +39,38 @@ Three configuration surfaces, in order of how often you touch them:
 | **`<VolcanicAdmin>` props** | app entry (`main.tsx`) | App-wide: theme, branding, i18n, custom widgets/views/pages, toast position, routing. |
 | **Plugins** | bundles passed to `plugins={[…]}` | Same as props, packaged for reuse across repos. See CONSUMING.md §3. |
 
+### Ordering & the allowlist rule
+
+Because presentation is authored as **ordered arrays** (`table.columns`,
+`card.body`, `form.groups[].fields`), **the array order IS the render order** — you
+reorder a field by moving its entry. And a **present array is the authoritative
+allowlist**: a field not listed does not appear in that view. When a block is
+*absent*, the engine derives a sensible default from the resource fields (schema
+order, non-heavy types visible).
+
+> This replaces the old behavior where reordering had no effect (the merge was
+> by-name and preserved the generated field order regardless of override order).
+
 ### Regenerate or not?
 
 Overrides deep-merge onto the generated manifest **by name, at runtime in the
 browser**. So:
 
 - **No regeneration needed** for anything that patches an *existing* resource,
-  field, or capability: labels, groups, widgets, card/detail layout, enum colors,
-  filterable/sortable flags, capability icons, `cloneReset`, etc. → just edit
-  `manifest.overrides.ts`.
+  field, or capability, or that (re)orders a view: labels, groups, widgets, card/
+  table/form layout & order, enum colors, `filterable`/`sortable`, capability
+  icons, `cloneReset`, etc. → just edit `manifest.overrides.ts`.
 - **Regeneration needed** (`volcanic-admin-pull`, see CONSUMING.md §1.1) only when
-  the **structure** changes on the BE: a new field/column, a new route/capability,
-  a new resource. The generated file carries an `AUTO-GENERATED — do not edit`
-  header.
+  the **structure** changes on the BE: a new field, a new route/capability, a new
+  resource. Regeneration also refreshes the `GeneratedFieldMap` type (see §12) that
+  powers field-name type-checking.
 
 ---
 
 ## 2. `ManifestOverrides` (top level)
 
-Defined in `src/engine/merge.ts`. Every key is optional.
+Defined in `src/engine/merge.ts`. Every key is optional. Generic over a field-map
+(`ManifestOverrides<FM>`) for typed field names — see §12; the default is untyped.
 
 ```ts
 export const overrides: ManifestOverrides = { … }
@@ -64,7 +83,7 @@ export const overrides: ManifestOverrides = { … }
 | `tenancy` | `Partial<{ mode, switchable, header, listEndpoint }>` | Shallow patch. |
 | `enums` | `Record<string, EnumOption[]>` | Replaces the named shared enum. |
 | `groups` | `GroupSpec[]` | Merge by `name`, append new. Sidebar sections. |
-| `cardDefaults` | `{ cardColumns?, cardMinWidth?, cardMaxWidth? }` | Applied to every resource that does **not** define its own card layout. |
+| `cardDefaults` | `{ cardColumns?, cardMinWidth?, cardMaxWidth? }` | Card sizing applied to every resource with a card layout that sets **none** of its own card sizing. |
 | `resources` | `Record<name, ResourceOverride>` | Patch resources by name (see §3). |
 | `addResources` | `ResourceSpec[]` | Append resources absent from the generated manifest. |
 | `excludeResources` | `string[]` | Drop resources from the panel (still live on the BE). |
@@ -77,9 +96,10 @@ export const overrides: ManifestOverrides = { … }
 ## 3. `ResourceOverride` / `ResourceSpec`
 
 `ResourceOverride` (in `merge.ts`) is `Partial<ResourceSpec>` minus `name`,
-`fields`, `capabilities`, plus the field/capability patch helpers. `ResourceSpec`
-(in `src/engine/types/manifest.ts`) is the full resource shape. Everything below
-is settable from `resources[name]`.
+`fields`, `capabilities`, `list`, `form`, plus the field/capability patch helpers
+and the two ordered view blocks. `ResourceSpec` (in
+`src/engine/types/manifest.ts`) is the full resource shape. Everything below is
+settable from `resources[name]`.
 
 ### 3.1 Identity & routing
 
@@ -95,55 +115,109 @@ is settable from `resources[name]`.
 | `singleton` | `boolean` | One fixed record (no list/:id); renders `SingletonView`. |
 | `tenantScoped` | `boolean` | Row belongs to a tenant (multi-tenant). |
 | `softDelete` | `boolean` | Delete is a soft-delete on the BE. |
-
-### 3.2 List view
-
-| Key | Type | Notes |
-|---|---|---|
-| `listLayouts` | `('table' \| 'card')[]` | When >1, a layout toggle appears in the list header. |
-| `defaultListLayout` | `'table' \| 'card'` | Falls back to first of `listLayouts`, else `table`. |
 | `defaultSort` | `{ field, order }[]` | Initial sort. |
-| `sortOptions` | `string[]` | Fields offered in the "sort by" control (a select + ↑/↓ icon button). A relation tie-breaks by the row title. Falls back to sortable columns. |
 | `search` | `{ fields: string[], operator? }` | Presence enables the global search box (OR across `fields`, dot-notation allowed). |
-
-### 3.3 Card grid (card layout only)
-
-Two mutually-exclusive sizing modes: **fixed columns** or **fluid width**
-(setting `cardMaxWidth` switches to fluid — it wins over `cardColumns`).
-
-| Key | Type | Notes |
-|---|---|---|
-| `cardColumns` | `number` | Fixed max columns (responsive up to this; default 3). Ignored if `cardMaxWidth` set. |
-| `cardMinWidth` | `number` | Fluid mode: min card px width (default 240). |
-| `cardMaxWidth` | `number` | Fluid mode: max card px width. **Setting this enables fluid mode** — cards auto-fill/wrap, capped, centered. |
-| `cardAlign` | `'left' \| 'center'` | Card content alignment (title/subtitle/chips). Default `left`. |
-| `cardFields` | `string[]` | Extra fields rendered as labeled info rows on the card. |
-| `highlightField` | `string` | Boolean field → "featured" card (accent ring + ⭐ badge). |
-
-### 3.4 Detail (show) & form (create/edit)
-
-| Key | Type | Notes |
-|---|---|---|
-| `detailColumns` | `number` | Grid columns (1–4, default 2) for **both** ShowView and AutoForm (layout coherence). `image`/`richtext` and `form.colSpan` fields still span full width. |
 | `clonable` | `boolean` | Show a "Clone" button on the detail view (opens create pre-filled). Defaults **true** wherever the resource has `create`; set `false` to hide. |
 | `cloneReset` | `Record<string, unknown>` | Field values **forced** on a cloned record over the copied ones (e.g. `{ status: 'draft' }`). Keys are form field names — the *foreign key* for relations. |
+| `views` | `{ list?, create?, edit?, show? }` | Each is `'auto'` or a **componentId** registered via `overrides.view` / a plugin. Replaces the default generator for that screen. |
 
 **Clone behavior:** the seed copies every writable form field of the source record;
 it **skips** read-only fields and image/file fields with their own upload endpoints
 (binaries aren't cloned by copying values). Relations map to their foreign key. The
 user reviews and saves, so unique fields (e.g. name) are corrected before insert.
 
-### 3.5 View component overrides
+### 3.2 Collection view — `list` (`ListViewSpec`)
+
+The list screen has a shared toolbar (search / sort / filter / pagination) plus two
+interchangeable **layouts**: a `table` and a `card` grid.
+
+```ts
+list: {
+  layouts?: ('table' | 'card')[]     // >1 → a layout toggle appears in the header
+  defaultLayout?: 'table' | 'card'   // falls back to layouts[0], else 'table'
+  sort?: string[]                    // "sort by" options, in order (a relation
+                                     //   tie-breaks by the row title). Absent →
+                                     //   the sortable fields.
+  table?: { columns?: ColumnSpec[] } // ordered allowlist of columns
+  card?: CardViewSpec                // card-grid layout + field slots
+}
+```
+
+**`ColumnSpec`** — a table column referencing a field by name + table-only
+presentation:
 
 | Key | Type | Notes |
 |---|---|---|
-| `views` | `{ list?, create?, edit?, show? }` | Each is `'auto'` or a **componentId** registered via `overrides.view` / a plugin. Replaces the default generator for that screen. |
+| `field` | `string` | Field name. Required. |
+| `label` | i18n key | Per-view header override (falls back to the field label / `field.<res>.<name>`). |
+| `align` | `'left' \| 'center' \| 'right'` | Column alignment. |
+| `width` | `number` | Column width px. |
 
-### 3.6 Fields & capabilities (patch helpers)
+> `columns` present → **only** the listed columns show, in that order (allowlist).
+> Absent → derived: non-heavy, non-write-only fields in declaration order. A column
+> is sortable when the field is `sortable` (default true for non-relation/json).
+
+**`CardViewSpec`** — the card grid. Two mutually-exclusive sizing modes: **fixed
+columns** (`columns`) or **fluid width** (setting `maxWidth` switches to fluid — it
+wins over `columns`).
 
 | Key | Type | Notes |
 |---|---|---|
-| `fields` | `Record<name, FieldOverride>` | Patch a field by name (deep-merge). See §4. |
+| `minWidth` | `number` | Fluid mode: min card px width (default 240). |
+| `maxWidth` | `number` | Fluid mode: max card px width. **Setting this enables fluid mode** — cards auto-fill/wrap, capped, centered. |
+| `columns` | `number` | Fixed max columns (responsive up to this; default 3). Ignored if `maxWidth` set. |
+| `align` | `'left' \| 'center'` | Card content alignment (title/subtitle/chips). Default `left`. |
+| `highlight` | `string` (field) | Boolean field → "featured" card (accent ring + ⭐ badge). |
+| `image` | `string` (field) | Image field for the cover carousel. Default: first image field. |
+| `title` | `string \| string[]` (field(s)) | Card title. Default: resource `titleField`. Array → space-joined. |
+| `subtitle` | `string \| string[]` (field(s)) | Card subtitle. Default: resource `subtitleField`. |
+| `badges` | `string[]` (fields) | Enum fields rendered as chips, in order. Default: the enum fields among the columns. |
+| `body` | `CardBodySpec[]` | Extra labeled info rows, in order. |
+
+**`CardBodySpec`**: `{ field, label? }` — a labeled key/value row in the card body.
+
+> The card slots are **explicit** now (there is no auto-detected "primary numeric
+> field" — put such a value in `body`). Every slot is optional and falls back as
+> noted above, so a bare `card: {}` still renders title/subtitle/badges from
+> defaults.
+
+### 3.3 Form (create/edit) + show — `form` (`FormViewSpec`)
+
+The form and the read-only show view share this block for layout coherence.
+
+```ts
+form: {
+  columns?: number                   // default grid columns 1–4 (default 2)
+  groups?: {                         // ordered sections
+    name: string                     //   'default' → rendered headerless
+    label?: string                   //   i18n key (falls back to group.<name>)
+    columns?: number                 //   override the form default for this group
+    fields: FormFieldSpec[]          //   ordered allowlist of fields
+  }[]
+}
+```
+
+**`FormFieldSpec`** — a field placed in a group + form-only presentation:
+
+| Key | Type | Notes |
+|---|---|---|
+| `field` | `string` | Field name. Required. |
+| `label` | i18n key | Per-view label override. |
+| `widget` | `string` | Widget id — see §7. `'auto'` or a registered/built-in id. |
+| `colSpan` | `number` | Columns the field spans in the grid (capped at the group/form columns). `image`/`richtext` always span the full row. |
+| `visibleOn` | `'create' \| 'edit'` | Restrict to one mode (omitted = both). |
+| `placeholder` | i18n key | |
+| `suggestions` | `(string \| number)[]` | Non-binding suggestions for the `combobox` widget (editable dropdown). |
+
+> `groups` present → **only** the listed fields show, grouped and ordered as
+> written (allowlist). Absent → a single headerless `default` section with all
+> fields in declaration order.
+
+### 3.4 Fields & capabilities (patch helpers)
+
+| Key | Type | Notes |
+|---|---|---|
+| `fields` | `Record<name, FieldOverride>` | Patch a field's **intrinsics** by name (deep-merge). See §4. |
 | `addFields` | `FieldSpec[]` | Add fields absent from the generated manifest. |
 | `excludeFields` | `string[]` | Remove fields by name. |
 | `capabilities` | `Record<name, CapabilityOverride>` | Patch a capability by name (deep-merge); **unknown names are added**. See §5. |
@@ -153,14 +227,17 @@ user reviews and saves, so unique fields (e.g. name) are corrected before insert
 
 ## 4. `FieldOverride` / `FieldSpec`
 
-A field patch fills what the schema-only generator can't infer. `FieldSpec`:
+A field is **DATA + STRUCTURE only** — the intrinsic semantics of the field,
+shared by every view. Presentation and ordering are NOT here; they live in the
+`list`/`form` view blocks (§3.2/§3.3). `FieldSpec`:
 
 | Key | Type | Notes |
 |---|---|---|
 | `type` | `FieldType` | `string`, `text`, `textarea`, `richtext`, `integer`, `number`, `boolean`, `date`, `datetime`, `enum`, `relation`, `email`, `url`, `uuid`, `json`, `image`, `file`. `textarea` = plain multi-line; `richtext` = HTML rich-text editor. |
-| `label` | i18n key | |
+| `label` | i18n key | Default label for all views (a view entry may override it). |
 | `required` | `boolean` | Client `required` rule + `*` marker. |
 | `readOnly` | `boolean` | Excluded from the write payload; shown read-only. |
+| `writeOnly` | `boolean` | Present in the write body, never read/listed (e.g. password). Excluded from table columns and bulk export/import. |
 | `nullable` | `boolean` | |
 | `default` | `unknown` | Create-form default value. |
 | `help` | i18n key | Helper text under the input. |
@@ -169,8 +246,10 @@ A field patch fills what the schema-only generator can't infer. `FieldSpec`:
 | `relation` | `RelationSpec` | See §4.1. |
 | `image` | `ImageSpec` | See §4.2. |
 | `validation` | `ValidationSpec` | See §4.3. |
-| `list` | `FieldListSpec` | See §4.4. |
-| `form` | `FieldFormSpec` | See §4.5. |
+| **capabilities** | | *(semantic, shared by table + card + filters)* |
+| `filterable` | `boolean` | Enable in the Filters panel (Dialog). |
+| `sortable` | `boolean` | Sortable (table header + "sort by"). Default: true for non-relation/json. |
+| `operators` | `FilterOperator[]` | Which operators the filter offers (see §6). |
 
 ### 4.1 `RelationSpec`
 
@@ -204,30 +283,7 @@ A field patch fills what the schema-only generator can't infer. `FieldSpec`:
 `required`, `min`, `max`, `minLength`, `maxLength`, `pattern`, `step`. Turned into
 react-hook-form rules (`toRules`); messages fall back to `validation.required` etc.
 
-### 4.4 `FieldListSpec` (`field.list`)
-
-| Key | Type | Notes |
-|---|---|---|
-| `visible` | `boolean` | Show as a table column. Heavy types are hidden by default. |
-| `sortable` | `boolean` | Sortable column. |
-| `filterable` | `boolean` | Enable in the Filters panel (Dialog). |
-| `operators` | `FilterOperator[]` | Which operators the filter offers (see §6). |
-| `width` | `number` | Column width px. |
-| `align` | `'left' \| 'center' \| 'right'` | Column alignment. |
-
-### 4.5 `FieldFormSpec` (`field.form`)
-
-| Key | Type | Notes |
-|---|---|---|
-| `visible` | `boolean` | Show in the form (default true). |
-| `visibleOn` | `'create' \| 'edit'` | Restrict to one mode (omitted = both). |
-| `widget` | `string` | Widget id — see §7. `'auto'` or a registered/built-in id. |
-| `group` | `string` | Section grouping in the form/detail (`group.<name>` i18n key as header). |
-| `colSpan` | `number` | Columns the field spans within the detail/form grid (capped at `detailColumns`). |
-| `placeholder` | i18n key | |
-| `suggestions` | `(string \| number)[]` | Non-binding suggestions for the `combobox` widget (editable dropdown). |
-
-### 4.6 `EnumOption` + color palette
+### 4.4 `EnumOption` + color palette
 
 `{ value, label (i18n key), color? }`. A **named** `color` renders a soft colored
 chip; any other value → neutral chip + color dot. Named palette (from
@@ -235,6 +291,11 @@ chip; any other value → neutral chip + color dot. Named palette (from
 
 `slate` · `gray` · `red` · `orange` · `amber` · `yellow` · `green` · `emerald` ·
 `teal` · `blue` · `indigo` · `violet` · `purple` · `pink` · `rose`
+
+> **The field carries no `list`/`form` presentation object.** Column alignment/width
+> live on `ColumnSpec` (§3.2), widget/colSpan/group live on `FormFieldSpec` (§3.3),
+> and "is this a column / in the form" is decided by *membership* in those ordered
+> arrays (the allowlist rule) — not by a `visible` flag.
 
 ---
 
@@ -272,11 +333,12 @@ operation sections).
 
 ## 6. Filters, sort, search
 
-- **Filters** (`field.list.filterable`) open a Dialog; all conditions are combined
-  with **AND**. Operator UI by type: enum/relation → multi-select `IN`; boolean →
+- **Filters** (`field.filterable`) open a Dialog; all conditions are combined with
+  **AND**. Operator UI by type: enum/relation → multi-select `IN`; boolean →
   Yes/No/All (`eq`); number/date → range min–max (`ge`/`le`). Restrict offered
-  operators with `field.list.operators`.
-- **Sort**: `sortOptions` drives a "sort by" select + a ↑/↓ direction icon button.
+  operators with `field.operators`.
+- **Sort**: `list.sort` drives a "sort by" select + a ↑/↓ direction icon button.
+  Absent → the sortable fields (`field.sortable`).
 - **Search**: `search.fields` enables a global OR search box.
 - **Operators available** (`FilterOperator`): `eq`, `neq`, `contains`, `containsi`,
   `ncontains`, `ncontainsi`, `starts`, `startsi`, `ends`, `endsi`, `gt`, `ge`,
@@ -288,14 +350,14 @@ operation sections).
 
 **Selection order** (`pickWidget` in `src/ui/widgets/inputs.tsx`):
 
-1. Registry **override** matching `field.form.widget` (from `overrides.widget` /
-   a plugin).
-2. A **built-in-by-name** widget matching `field.form.widget`.
+1. Registry **override** matching the form entry's `widget` (from `overrides.widget`
+   / a plugin).
+2. A **built-in-by-name** widget matching `widget`.
 3. The **type default**.
 
 An unknown `widget` id silently falls back to the type default.
 
-**Built-in widget ids** (selectable via `field.form.widget`):
+**Built-in widget ids** (selectable via a `form.groups[].fields[].widget`):
 
 | id | Component | Source |
 |---|---|---|
@@ -321,7 +383,7 @@ An unknown `widget` id silently falls back to the type default.
 | everything else | Text input |
 
 > Register your own widgets via `overrides.widget` or a plugin (CONSUMING.md §3.1),
-> then reference them by id in `field.form.widget`.
+> then reference them by id in a form entry's `widget`.
 
 ---
 
@@ -419,7 +481,40 @@ A nested `dark` object overrides tokens under the `.dark` class.
 
 ---
 
-## 12. Known drift / gotchas
+## 12. Typed field names — `ManifestOverrides<GeneratedFieldMap>`
+
+`volcanic-admin-pull` emits, alongside the generated manifest, a **field map** type:
+
+```ts
+// manifest.generated.ts (AUTO-GENERATED)
+export type GeneratedFieldMap = {
+  vehicle: 'id' | 'status' | 'name' | 'brand' | 'monthlyVatExcl' | …
+  brand: 'id' | 'name' | 'logoUrl' | …
+  …
+}
+```
+
+Type the overrides against it and **every field reference is checked at compile
+time** — `field:` in columns/form entries, `card` slots (`image`/`title`/`badges`/…),
+`sort`, `excludeFields`, and the `fields` keys — with "did you mean" suggestions:
+
+```ts
+import type { ManifestOverrides } from '@volcanicminds/admin'
+import type { GeneratedFieldMap } from './manifest.generated'
+
+export const overrides: ManifestOverrides<GeneratedFieldMap> = { … }
+```
+
+A mistyped field name is a compile error instead of silently vanishing from the
+view (the allowlist would just skip it). The generic defaults to `string`, so
+untyped overrides keep working, and the runtime merge is unaffected (generics are
+erased at the `mergeManifest`/`<VolcanicAdmin>` boundary). Regenerate after any BE
+schema change to keep the map current. (Field-**name** typos are caught; typos in
+the top-level *resource* keys of `resources` are not strictly rejected.)
+
+---
+
+## 13. Known drift / gotchas
 
 - **Rich text** (`type: 'richtext'`) renders the built-in TipTap editor and stores
   **HTML**. The read-only view renders that HTML inside `.prose` (Tailwind
@@ -432,6 +527,8 @@ A nested `dark` object overrides tokens under the `.dark` class.
   engine (dual-instance with Refine v4 → "No QueryClient set").
 - Relative storage URLs (`/media/...`) are resolved against the API origin via
   `absoluteUrl(apiUrl, url)`.
+- After editing the engine and rebuilding its `dist`, a consuming app's Vite cache
+  must be cleared to pick it up: `rm -rf node_modules/.vite && npm run dev`.
 
 ---
 
@@ -442,8 +539,10 @@ of these, update the matching section here in the **same PR**:
 
 | Area | Source of truth |
 |---|---|
-| Manifest types (Resource/Field/Capability/Enum/Image/…) | `src/engine/types/manifest.ts` |
-| Override surface + merge semantics | `src/engine/merge.ts` |
+| Manifest types (Resource/Field/Capability/Enum/Image + view blocks) | `src/engine/types/manifest.ts` |
+| Override surface + merge semantics + `FieldMap` generic | `src/engine/merge.ts` |
+| Interpreted model (columns/card/form projection, allowlist/derive) | `src/engine/interpreter.ts` + `src/engine/types/model.ts` |
+| `GeneratedFieldMap` codegen + overrides scaffold | `scripts/pull-manifest.mjs` |
 | `<VolcanicAdmin>` props, plugins, theme tokens | `src/VolcanicAdmin.tsx` |
 | Branding & nav item | `src/ui/config.tsx` |
 | Widget selection + built-in-by-name ids | `src/ui/widgets/inputs.tsx` |
@@ -454,7 +553,7 @@ of these, update the matching section here in the **same PR**:
 | Sidebar/resource icons | `src/ui/layout/icons.tsx` |
 | Action icons | `src/ui/actions/ActionButtons.tsx` |
 | Default i18n keys | `src/engine/i18n.tsx` |
-| Detail/form column layout + clone | `src/ui/generators/{ShowView,AutoForm,layout}.tsx` |
+| Table columns / card slots / form sections rendering | `src/ui/generators/{ListTable,ListCards,AutoForm,ShowView,layout}.tsx` |
 | Filters / sort / search behavior | `src/ui/generators/{FilterBar,ListView}.tsx` |
 
 See also: [`CONSUMING.md`](./CONSUMING.md) (setup, plugins, dev workflow),

@@ -53,6 +53,14 @@ multi-tenancy, sensitive fields, permessi.
 
 ## 2. Contratto v2 (tipi)
 
+> **Il manifest emesso è DATA + STRUCTURE only.** Il BE emette i `fields`
+> (`name`/`type`/`enum`/`relation`/`image`/`validation` + le *capability semantiche*
+> `filterable`/`sortable`/`operators`/`writeOnly`), le `capabilities`, `search` e
+> `defaultSort`. Non emette **mai** presentazione né ordinamento: colonne, card,
+> layout e gruppi form vivono nei **view block ordinati** `list`/`form` della risorsa,
+> popolati **solo dagli override** (§2.5). Per questo il file `generated` è sempre
+> riscrivibile senza perdere la UI.
+
 ### 2.1 Top level
 
 ```ts
@@ -126,36 +134,112 @@ interface ResourceSpec {
   capabilities: CapabilitySpec[]       // CRUD + azioni custom (sostituisce permissions+capabilities+actions v1)
   defaultSort?: SortSpec[]
   search?: SearchSpec                  // config ricerca (globalSearch), NON una capability
-  listLayouts?: ('table' | 'card')[]
-  defaultListLayout?: 'table' | 'card'
-  cardFields?: string[]
+  list?: ListViewSpec          // vista collezione ordinata (table + card) — SOLO da override, mai dal BE
+  form?: FormViewSpec          // vista form/show ordinata — SOLO da override, mai dal BE
   fields: FieldSpec[]
   views?: { list?: ViewMode; create?: ViewMode; edit?: ViewMode; show?: ViewMode }
 }
 ```
 
+> I flat prop di presentazione della v1 iniziale (`listLayouts`/`defaultListLayout`/
+> `cardFields` e simili) **non esistono più**: layouts, colonne e card sono ora
+> descritti dai view block ordinati `list`/`form` (§2.5), autorati **solo** negli
+> override — il BE non li emette mai.
+
 ### 2.4 `FieldSpec`, enums, search, relation
 
 ```ts
 type FieldType =
-  | 'string' | 'text' | 'richtext' | 'integer' | 'number' | 'boolean' | 'date' | 'datetime'
+  | 'string' | 'text' | 'textarea' | 'richtext' | 'integer' | 'number' | 'boolean' | 'date' | 'datetime'
   | 'enum' | 'relation' | 'email' | 'url' | 'uuid' | 'json' | 'image' | 'file'
 
+// FieldSpec = DATA + STRUCTURE only: il BE emette esattamente questo. Nessuna
+// presentazione né ordinamento qui — vivono nei view block della risorsa (§2.5).
 interface FieldSpec {
   name: string
   type: FieldType
   label?: I18nKey
   required?: boolean; readOnly?: boolean; nullable?: boolean; default?: unknown; help?: I18nKey
+  writeOnly?: boolean          // nel body di scrittura, mai letto/listato (es. password)
   enum?: EnumOption[]; enumRef?: string
   relation?: { resource: string; titleField?: string; kind?: RelationKind; foreignKey?: string }  // kind/fk: solo via override (schema-only)
   image?: ImageSpec            // popolato solo via override admin (il BE non lo genera)
   validation?: ValidationSpec  // required/min/max/minLength/maxLength/pattern/step — dallo schema
-  list?: FieldListSpec         // presentazione lista → admin (BE può solo imporre sortable:false)
-  form?: FieldFormSpec         // presentazione form → admin
+  // capability semantiche (condivise da table + card + filtri): descrivono cosa il
+  // campo PUÒ fare, non come appare
+  filterable?: boolean
+  sortable?: boolean           // default true per non-relation/json; il BE può imporre false
+  operators?: FilterOperator[]
 }
 
 interface SearchSpec { fields: string[]; operator?: FilterOperator }   // globalSearch: OR su più campi
 interface EnumOption { value: string; label: I18nKey; color?: string }
+```
+
+> Il precedente `FieldListSpec` è stato **rimosso**; `FieldFormSpec` sopravvive solo
+> come tipo **interno all'interprete** (presentazione form *risolta* per-campo dal
+> view block `form`, letta dai widget) — **non** è più un sotto-oggetto autorabile del
+> campo. La presentazione lista/form si autora nei view block ordinati (§2.5), non sul
+> campo.
+
+### 2.5 View block ordinati (`list` / `form`) — solo override
+
+Presentazione e ordinamento vivono in **view block ordinati**, autorati negli
+override di progetto: il BE non li emette mai. **L'ordine dell'array È l'ordine di
+render** e, quando presente, l'array è l'**allowlist autorevole** (un campo non
+elencato non compare in quella vista); un block **assente** → l'engine deriva un
+default sensato dai `fields` (ordine di dichiarazione). Sostituisce il vecchio
+comportamento in cui il riordino non aveva effetto (merge by-name che preservava
+l'ordine generato).
+
+I tipi sono **generici sul field-name union `F`** (default `string`, così il
+`ResourceSpec` a runtime e gli override non tipati continuano a funzionare); gli
+override di progetto opt-in al type-check dei nomi campo a compile time passando una
+field-map generata a `ManifestOverrides<FM>` (`volcanic-admin-pull` emette
+`GeneratedFieldMap`).
+
+```ts
+interface ListViewSpec {
+  layouts?: ('table' | 'card')[]     // >1 → compare il toggle di layout
+  defaultLayout?: 'table' | 'card'   // fallback: layouts[0], else 'table'
+  sort?: string[]                    // opzioni "sort by", in ordine (assente → i campi sortable)
+  table?: { columns?: ColumnSpec[] } // allowlist ordinata di colonne
+  card?: CardViewSpec
+}
+
+interface ColumnSpec { field: string; label?: I18nKey; align?: 'left'|'center'|'right'; width?: number }
+
+interface CardViewSpec {
+  minWidth?: number; maxWidth?: number   // maxWidth abilita la griglia fluida (vince su columns)
+  columns?: number                       // griglia a colonne fisse (usata se maxWidth non è settato)
+  align?: 'left' | 'center'
+  highlight?: string                     // campo boolean → card "featured" (ring accento + stella)
+  image?: string                         // campo immagine per il carousel di copertina
+  title?: string | string[]              // default: titleField (array → space-joined)
+  subtitle?: string | string[]           // default: subtitleField
+  badges?: string[]                      // campi enum resi come chip, in ordine
+  body?: { field: string; label?: I18nKey }[]   // righe key/value extra etichettate, in ordine
+}
+
+interface FormViewSpec {
+  columns?: number                       // colonne di default della griglia (1–4, default 2)
+  groups?: {
+    name: string                         // 'default' → reso senza header
+    label?: I18nKey                      // fallback group.<name>
+    columns?: number                     // override delle colonne per questo gruppo
+    fields: FormFieldSpec[]              // allowlist ordinata di campi del gruppo
+  }[]
+}
+
+interface FormFieldSpec {
+  field: string
+  label?: I18nKey
+  widget?: string                        // 'auto' o un widget id registrato/built-in
+  colSpan?: number
+  visibleOn?: 'create' | 'edit'          // limita a una modalità (omesso = entrambe)
+  placeholder?: I18nKey
+  suggestions?: (string | number)[]      // suggerimenti non vincolanti per il widget 'combobox'
+}
 ```
 
 **Tipi di campo (render default):** `string`→input · `text`→textarea · `richtext`→WYSIWYG (HTML sanitizzato lato
@@ -273,7 +357,7 @@ eliminando duplicazioni tipo `omniSearch.ts`).
 
 - **DEV**: fetch a `GET /admin/manifest` all'avvio. **BUILD**: legge lo snapshot committato (CI admin disaccoppiata).
 - **Split**: il rigeneratore sovrascrive solo `generated`; gli `overrides` sopravvivono → niente drift distruttivo.
-- **Merge per identità `(resource, field)`**: l'override aggancia per chiave canonica, non per posizione/schema.
+- **Merge per identità `(resource, field)`**: gli override *intrinseci* di campo e di capability agganciano per chiave canonica, non per posizione/schema. L'**ordine di render**, invece, è dato dagli array dei view block `list`/`form` (l'ordine dell'array È l'ordine di render — §2.5).
 
 ---
 
@@ -302,8 +386,9 @@ shadcn → la UI è sostituibile.
 inietta il componente di override.
 
 **Zero-config rendering**: senza override, dal manifest si ottiene sidebar (da `groups`+`resources`), liste
-table/card (`listLayouts`/`defaultListLayout`), dettaglio con layout standard, e le **sezioni operation** top-level
-(`Manifest.capabilities[]`) come pagine/azioni dedicate.
+table/card (layout e colonne **derivati dai `fields`** in assenza dei view block `list`/`form`), dettaglio con
+layout standard, e le **sezioni operation** top-level (`Manifest.capabilities[]`) come pagine/azioni dedicate. I
+view block negli override raffinano layout, colonne, card, gruppi form e ordine.
 
 ---
 
@@ -315,8 +400,9 @@ Due piani, dal dominio alla presentazione:
   `group`. Niente UI. Finiscono nel `generated`.
 - **L2 — presentation overrides (admin, `manifest.overrides.ts` + props/plugin)**: UI. Quattro granularità, dal più
   fine al più grosso:
-  1. **manifest tweak** — riordino campi, label, visibilità, operatori, gruppi form. Zero React.
-  2. **widget di campo** — `field.form.widget = "gallery-reorder"` → componente custom per quell'input.
+  1. **manifest tweak** — riordino campi (via l'ordine degli array dei view block), label, allowlist di
+     colonne/campi, operatori, gruppi form, card. Zero React.
+  2. **widget di campo** — `form.groups[].fields[].widget = "gallery-reorder"` → componente custom per quell'input.
   3. **capability/action component** — `capability.component = "status-workflow"` per bottoni row/bulk/collection.
   4. **view/page** — `views.edit = "vehicle-edit-custom"` o pagina extra (dashboard/report) nel router del progetto.
 
@@ -343,6 +429,7 @@ Principio: **80% OOTB dal manifest, 20% override mirati**. Nessun progetto riscr
 |---|---|---|
 | risorse, `path`, `name` | **BE** | da route + hint `resource.name` |
 | campi, tipi, `required`, `validation` | **BE** | da JSON Schema (collasso `$ref`) |
+| `filterable`/`sortable`/`operators`, `writeOnly` (capability semantiche di campo) | **BE** | emesse col field (DATA-only); il BE può restringere |
 | enum-values | **BE** | solo se presenti nello schema |
 | `capabilities` (CRUD + azioni) | **BE** | binding endpoint reali + `roles` |
 | `roles` per capability | **BE** | dichiarati; gating effettivo a runtime |
@@ -351,7 +438,7 @@ Principio: **80% OOTB dal manifest, 20% override mirati**. Nessun progetto riscr
 | `image` config (accept/maxSize/storage/endpoints) | **Admin (override)** | il BE non lo genera |
 | `group` (presenza), `titleField`/`subtitleField` (campi) | **BE** | hint `config`, fallback euristica |
 | `group` label/icon/order, `titleField` template i18n | **Admin** | presentazione |
-| `fields.list` / `fields.form` (widget, colSpan, group, visible…) | **Admin** | il BE può solo imporre `sortable:false` |
+| view block `list`/`form` (colonne, card, gruppi form, widget, `colSpan`, ordine…) | **Admin (override)** | il BE non li emette **mai**: presentazione + ordinamento |
 | layouts, `defaults`, theming, dashboard, shortcut, dizionari | **Admin** | presentazione pura |
 | `globalSearch` (campi) | **BE** | hint `resource.globalSearch` |
 
@@ -405,8 +492,34 @@ Principio: **80% OOTB dal manifest, 20% override mirati**. Nessun progetto riscr
   ],
   search: { fields: ['name', 'trimLevel', 'description', 'tag'], operator: 'containsi' },
   defaultSort: [{ field: 'importance', order: 'desc' }],
-  listLayouts: ['table', 'card'], defaultListLayout: 'card',
-  fields: [ /* … (relation 'brand' magra: { resource:'brand', titleField:'name' }; kind/foreignKey via override) … */ ]
+  // Nessuna presentazione qui: layouts/colonne/card/gruppi form vivono nei view block
+  // `list`/`form` degli override (§2.5), mai nel manifest emesso.
+  fields: [ /* … field DATA-only (name/type/enum/relation/image/validation +
+               filterable/sortable/operators). relation 'brand' magra:
+               { resource:'brand', titleField:'name' }; kind/foreignKey via override … */ ]
+}
+```
+
+Presentazione, **negli override admin** (mai dal BE): view block ordinati per `vehicle`.
+
+```ts
+resources: {
+  vehicle: {
+    list: {
+      layouts: ['table', 'card'], defaultLayout: 'card',
+      sort: ['importance', 'name'],
+      table: { columns: [{ field: 'name' }, { field: 'brand' }, { field: 'status', align: 'center' }] },
+      card: { maxWidth: 320, image: 'photos', title: 'name', subtitle: 'trimLevel',
+              badges: ['status'], body: [{ field: 'monthlyVatExcl' }] }
+    },
+    form: {
+      columns: 2,
+      groups: [{ name: 'default', fields: [
+        { field: 'name' }, { field: 'brand' },
+        { field: 'status' }, { field: 'description', widget: 'rich-text', colSpan: 2 }
+      ] }]
+    }
+  }
 }
 ```
 
