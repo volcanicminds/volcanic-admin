@@ -1,23 +1,27 @@
 /**
- * Generated/overrides merge (ADM-3). The BE emits a `generated` manifest;
- * the project keeps a hand-edited `overrides` patch. They are merged by canonical
- * identity — resources and fields by `name` — so overrides survive a regeneration.
+ * Generated/overrides merge (ADM-3). The BE emits a `generated` manifest of pure
+ * DATA + STRUCTURE (fields = name/type/enum/validation, capabilities); the project
+ * keeps a hand-edited `overrides` patch that adds ALL presentation & ordering. They
+ * are merged by canonical identity — resources and fields by `name` — so overrides
+ * survive a regeneration.
  *
  * Override semantics:
  *  - top-level i18n/auth/tenancy/enums: shallow patch.
  *  - groups: merge by name + append new.
- *  - resources[name]: patch resource props; `fields[name]`/`capabilities[name]`
- *    deep-merge by name; `addFields`/`addCapabilities` append; `exclude*` remove.
+ *  - resources[name]: patch resource props; `fields[name]` deep-merge by name
+ *    (intrinsic only); `capabilities[name]` deep-merge by name; `addFields`/
+ *    `addCapabilities` append; `exclude*` remove; the ordered view blocks
+ *    (`list`/`form`) deep-merge (their arrays are replaced wholesale).
  *  - excludeResources / addResources at the top level.
  */
 import type {
   CapabilitySpec,
   EnumOption,
-  FieldFormSpec,
-  FieldListSpec,
   FieldSpec,
+  FormViewSpec,
   GroupSpec,
   ImageSpec,
+  ListViewSpec,
   Manifest,
   RelationSpec,
   ResourceSpec,
@@ -39,20 +43,19 @@ export function deepMerge<T>(target: T, source: Partial<T> | undefined): T {
   return out as T
 }
 
-/** A field patch — nested specs are partial so you can fill just kind/foreignKey, etc. */
+/** A field patch — intrinsic (data/structure) only. Presentation & ordering live
+ *  in the resource `list`/`form` view blocks, never on the field. */
 export interface FieldOverride
-  extends Partial<Omit<FieldSpec, 'name' | 'relation' | 'image' | 'validation' | 'list' | 'form'>> {
+  extends Partial<Omit<FieldSpec, 'name' | 'relation' | 'image' | 'validation'>> {
   relation?: Partial<RelationSpec>
   image?: Partial<ImageSpec>
   validation?: ValidationSpec
-  list?: FieldListSpec
-  form?: FieldFormSpec
 }
 export type CapabilityOverride = Partial<CapabilitySpec>
 
 export interface ResourceOverride
-  extends Partial<Omit<ResourceSpec, 'name' | 'fields' | 'capabilities'>> {
-  /** Patch fields by name (deep-merge). */
+  extends Partial<Omit<ResourceSpec, 'name' | 'fields' | 'capabilities' | 'list' | 'form'>> {
+  /** Patch fields by name (deep-merge; intrinsic only). */
   fields?: Record<string, FieldOverride>
   /** Add fields absent from the generated manifest. */
   addFields?: FieldSpec[]
@@ -62,10 +65,14 @@ export interface ResourceOverride
   capabilities?: Record<string, CapabilityOverride>
   /** Capability names to remove. */
   excludeCapabilities?: string[]
+  /** Ordered collection view (table + card). */
+  list?: ListViewSpec
+  /** Ordered form/show view. */
+  form?: FormViewSpec
 }
 
-/** Global card-grid defaults, applied to every resource that doesn't set its own
- *  card layout (cardColumns / cardMinWidth / cardMaxWidth). */
+/** Global card-grid defaults, applied to every resource with a card layout that
+ *  doesn't set its own card sizing. */
 export interface CardDefaults {
   cardColumns?: number
   cardMinWidth?: number
@@ -79,7 +86,7 @@ export interface ManifestOverrides {
   enums?: Record<string, EnumOption[]>
   /** Patch/extend sidebar groups (by name). */
   groups?: GroupSpec[]
-  /** Card-grid defaults for resources that don't define their own. */
+  /** Card-grid defaults for resources that don't define their own card sizing. */
   cardDefaults?: CardDefaults
   /** Patch resources by name. */
   resources?: Record<string, ResourceOverride>
@@ -100,10 +107,11 @@ function mergeGroups(base: GroupSpec[], over: GroupSpec[]): GroupSpec[] {
 }
 
 function applyResourceOverride(r: ResourceSpec, ov: ResourceOverride): ResourceSpec {
-  const { fields, addFields, excludeFields, capabilities, excludeCapabilities, ...rest } = ov
+  const { fields, addFields, excludeFields, capabilities, excludeCapabilities, list, form, ...rest } =
+    ov
   const next = deepMerge(r, rest as Partial<ResourceSpec>)
 
-  // fields by name
+  // fields by name (intrinsic deep-merge)
   let nextFields = r.fields
   if (excludeFields?.length) {
     const ex = new Set(excludeFields)
@@ -131,6 +139,10 @@ function applyResourceOverride(r: ResourceSpec, ov: ResourceOverride): ResourceS
   }
   next.capabilities = nextCaps
 
+  // ordered view blocks: deep-merge scalars, replace arrays (columns/groups/…).
+  if (list) next.list = deepMerge(r.list ?? {}, list)
+  if (form) next.form = deepMerge(r.form ?? {}, form)
+
   return next
 }
 
@@ -157,16 +169,18 @@ export function mergeManifest(generated: Manifest, overrides?: ManifestOverrides
 
   if (overrides.cardDefaults) {
     const d = overrides.cardDefaults
-    resources = resources.map((r) =>
-      r.cardColumns != null || r.cardMinWidth != null || r.cardMaxWidth != null
-        ? r // resource defines its own card layout — leave it
-        : {
-            ...r,
-            ...(d.cardColumns != null && { cardColumns: d.cardColumns }),
-            ...(d.cardMinWidth != null && { cardMinWidth: d.cardMinWidth }),
-            ...(d.cardMaxWidth != null && { cardMaxWidth: d.cardMaxWidth })
-          }
-    )
+    resources = resources.map((r) => {
+      const hasCard = r.list?.layouts?.includes('card') || r.list?.card != null
+      if (!hasCard) return r
+      const card = { ...(r.list?.card ?? {}) }
+      // Only fill sizing when the resource defines none of its own.
+      if (card.columns == null && card.minWidth == null && card.maxWidth == null) {
+        if (d.cardColumns != null) card.columns = d.cardColumns
+        if (d.cardMinWidth != null) card.minWidth = d.cardMinWidth
+        if (d.cardMaxWidth != null) card.maxWidth = d.cardMaxWidth
+      }
+      return { ...r, list: { ...(r.list ?? {}), card } }
+    })
   }
   m.resources = resources
 

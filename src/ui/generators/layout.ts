@@ -1,6 +1,7 @@
 /**
  * Shared grid layout helpers for the detail (ShowView) and form (AutoForm) views.
- * The column count is a per-resource hint (`spec.detailColumns`, 1–4, default 2).
+ * The column count comes from the form view block (`form.columns`, or a group's
+ * own `columns`), clamped to 1–4 (default 2).
  *
  * Class names are looked up from static maps rather than built dynamically so the
  * Tailwind JIT sees every literal it must generate (dynamically composed class

@@ -26,33 +26,35 @@ export function ListTable({
   sorters,
   onToggleSort
 }: ListPresentationProps) {
-  const { spec, listFields } = model
+  const { spec, columns } = model
 
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            {listFields.map((f) => {
+            {columns.map((col) => {
+              const f = col.field
               const sort = sorters?.find((s) => s.field === f.name)
-              const sortable = f.list?.sortable ?? !['relation', 'json'].includes(f.type)
+              const sortable = f.sortable ?? !['relation', 'json'].includes(f.type)
+              const label = t(col.label ?? f.label ?? `field.${spec.name}.${f.name}`)
               return (
                 <TableHead
                   key={f.name}
-                  className={f.list?.align === 'right' ? 'text-right' : undefined}
-                  style={f.list?.width ? { width: f.list.width } : undefined}
+                  className={col.align === 'right' ? 'text-right' : undefined}
+                  style={col.width ? { width: col.width } : undefined}
                 >
                   {sortable && onToggleSort ? (
                     <button
                       className="inline-flex items-center gap-1 hover:text-foreground"
                       onClick={() => onToggleSort(f.name)}
                     >
-                      {t(f.label ?? `field.${spec.name}.${f.name}`)}
+                      {label}
                       {sort?.order === 'asc' && <ArrowUp className="h-3 w-3" />}
                       {sort?.order === 'desc' && <ArrowDown className="h-3 w-3" />}
                     </button>
                   ) : (
-                    t(f.label ?? `field.${spec.name}.${f.name}`)
+                    label
                   )}
                 </TableHead>
               )
@@ -63,13 +65,13 @@ export function ListTable({
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={listFields.length + 1} className="text-center text-muted-foreground">
+              <TableCell colSpan={columns.length + 1} className="text-center text-muted-foreground">
                 {t('state.loading')}
               </TableCell>
             </TableRow>
           ) : records.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={listFields.length + 1} className="text-center text-muted-foreground">
+              <TableCell colSpan={columns.length + 1} className="text-center text-muted-foreground">
                 {t('state.empty')}
               </TableCell>
             </TableRow>
@@ -80,9 +82,9 @@ export function ListTable({
                 className="cursor-pointer"
                 onClick={() => onShow(record.id)}
               >
-                {listFields.map((f) => (
-                  <TableCell key={f.name} className={f.list?.align === 'right' ? 'text-right' : undefined}>
-                    <FieldCell record={record} field={f} t={t} />
+                {columns.map((col) => (
+                  <TableCell key={col.field.name} className={col.align === 'right' ? 'text-right' : undefined}>
+                    <FieldCell record={record} field={col.field} t={t} />
                   </TableCell>
                 ))}
                 <TableCell onClick={(e) => e.stopPropagation()}>

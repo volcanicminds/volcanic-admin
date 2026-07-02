@@ -136,7 +136,7 @@ export function FilterBar({
   setDraft: (d: FilterDraft) => void
   t: Translate
 }) {
-  const fields = model.fields.filter((f) => f.list?.filterable && kindOf(f))
+  const fields = model.filterFields.filter((f) => kindOf(f))
   if (fields.length === 0) return null
   const active = countActiveFilters(model, draft)
 

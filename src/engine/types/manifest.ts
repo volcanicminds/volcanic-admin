@@ -198,6 +198,101 @@ export interface ResourceViews {
   show?: ViewMode
 }
 
+// ─── Ordered view blocks ──────────────────────────────────────────────────────
+//
+// Presentation & ordering live in ordered view blocks, authored in the project
+// overrides — the BE never emits them (it emits only data/structure). The array
+// order IS the render order, and (when present) the array is the authoritative
+// allowlist: a field not listed does not appear in that view. When a block is
+// absent the engine derives a sensible default from the resource fields.
+
+/** A table column: references a field by name + table-only presentation. */
+export interface ColumnSpec {
+  field: string
+  /** Per-view label override (falls back to the field label / i18n convention). */
+  label?: I18nKey
+  align?: 'left' | 'center' | 'right'
+  width?: number
+}
+
+export interface TableViewSpec {
+  /** Ordered allowlist of columns. Absent → derive from the resource fields. */
+  columns?: ColumnSpec[]
+}
+
+/** A labeled key/value row in the card body (ex `cardFields`). */
+export interface CardBodySpec {
+  field: string
+  label?: I18nKey
+}
+
+export interface CardViewSpec {
+  /** Fluid grid: cards auto-fill/wrap at min..max px (maxWidth enables fluid mode). */
+  minWidth?: number
+  maxWidth?: number
+  /** Fixed-column grid (used when maxWidth is unset; responsive up to this). */
+  columns?: number
+  /** Card content alignment: 'left' (default) or 'center' (e.g. logo grids). */
+  align?: 'left' | 'center'
+  /** Boolean field marking a record "featured": accent ring + star. */
+  highlight?: string
+  /** Field slots (names). Omitted → sensible default (image → first image field,
+   *  title → titleField, subtitle → subtitleField). title/subtitle accept an array
+   *  of field names (joined with spaces) for composite labels. */
+  image?: string
+  title?: string | string[]
+  subtitle?: string | string[]
+  /** Enum fields rendered as chips, in order. */
+  badges?: string[]
+  /** Extra labeled info rows, in order. */
+  body?: CardBodySpec[]
+}
+
+/** Collection view: shared toolbar (search/sort/filter) + table & card layouts. */
+export interface ListViewSpec {
+  /** Available layouts; more than one shows a layout toggle. */
+  layouts?: ListLayout[]
+  /** Default layout (falls back to the first of `layouts`, else 'table'). */
+  defaultLayout?: ListLayout
+  /** Field names offered in the "sort by" control, in order. A relation
+   *  tie-breaks by the row's title. Absent → the sortable fields. */
+  sort?: string[]
+  table?: TableViewSpec
+  card?: CardViewSpec
+}
+
+/** A field placed in a form group: references a field + form-only presentation. */
+export interface FormFieldSpec {
+  field: string
+  label?: I18nKey
+  /** Widget id; "auto" or a registered widget/componentId. */
+  widget?: string
+  colSpan?: number
+  /** Restrict to one form mode (omitted = both create and edit). */
+  visibleOn?: 'create' | 'edit'
+  placeholder?: I18nKey
+  /** Non-binding suggestions for the 'combobox' widget (editable dropdown). */
+  suggestions?: Array<string | number>
+}
+
+export interface FormGroupSpec {
+  name: string
+  /** Group header label (falls back to `group.<name>`). */
+  label?: I18nKey
+  /** Column count for this group's grid (overrides the form default). */
+  columns?: number
+  /** Ordered fields (the array is the authoritative allowlist for this group). */
+  fields: FormFieldSpec[]
+}
+
+/** Form (create/edit) + show view. */
+export interface FormViewSpec {
+  /** Default column count for group grids (1–4, default 2). Image/richtext and
+   *  colSpan>1 fields still span the full row. */
+  columns?: number
+  groups?: FormGroupSpec[]
+}
+
 export interface ResourceSpec {
   name: string
   path: string
@@ -216,33 +311,8 @@ export interface ResourceSpec {
   /** CRUD verbs + custom actions (replaces v1 permissions + capabilities + actions). */
   capabilities: CapabilitySpec[]
   defaultSort?: SortSpec[]
-  /** Field names offered in the list "sort by" control (in order). Falls back to
-   *  the sortable list columns. A relation also tie-breaks by the row's title. */
-  sortOptions?: string[]
   /** globalSearch config; presence enables the search box. */
   search?: SearchSpec
-  /** Available list layouts; when more than one, the UI shows a layout toggle. */
-  listLayouts?: ListLayout[]
-  /** Default list layout (falls back to the first of listLayouts, else 'table'). */
-  defaultListLayout?: ListLayout
-  /** Extra fields rendered as labeled info rows on the card layout. */
-  cardFields?: string[]
-  /** Fixed-column card grid: max columns (responsive up to this; default 3).
-   *  Ignored when cardMaxWidth is set (fluid mode wins). */
-  cardColumns?: number
-  /** Fluid card grid: cards auto-fill/wrap at min..max px width (no fixed column
-   *  count), so they adapt to any viewport and never stretch too wide. Setting
-   *  cardMaxWidth enables fluid mode; cardMinWidth defaults to 240. */
-  cardMinWidth?: number
-  cardMaxWidth?: number
-  /** Boolean field marking a record as "featured": card gets an accent ring + star. */
-  highlightField?: string
-  /** Card content alignment: 'left' (default) or 'center' (e.g. logo grids). */
-  cardAlign?: 'left' | 'center'
-  /** Column count for the detail (show) and edit/create form grids (1–4, default
-   *  2). Applied to both views for layout coherence; image/richtext and colSpan
-   *  fields still span full width. */
-  detailColumns?: number
   /** Show a "Clone" button on the detail view (opens create pre-filled). Defaults
    *  to true wherever the resource supports create; set false to hide it. */
   clonable?: boolean
@@ -250,6 +320,10 @@ export interface ResourceSpec {
    *  `{ status: 'draft' }` so a clone never inherits a published/archived state).
    *  Keys are form field names — the foreign key for relations. */
   cloneReset?: Record<string, unknown>
+  /** Ordered collection view (table + card). Populated from overrides. */
+  list?: ListViewSpec
+  /** Ordered form/show view. Populated from overrides. */
+  form?: FormViewSpec
   fields: FieldSpec[]
   views?: ResourceViews
 }
@@ -295,35 +369,38 @@ export interface ValidationSpec {
   step?: number
 }
 
-export interface FieldListSpec {
-  visible?: boolean
-  sortable?: boolean
-  filterable?: boolean
-  operators?: FilterOperator[]
-  width?: number
-  align?: 'left' | 'center' | 'right'
-}
-
+/**
+ * Resolved form presentation. NOT authored on the field — the interpreter populates
+ * it per-entry from the `form.groups[].fields` view block, so form widgets keep
+ * reading `field.form?.widget` etc. unchanged.
+ */
 export interface FieldFormSpec {
-  visible?: boolean
   /** Restrict the field to one form mode (omitted = both create and edit). */
   visibleOn?: 'create' | 'edit'
   /** Widget id; "auto" or a registered widget/componentId. */
   widget?: string
-  /** Section grouping inside the form (e.g. "header", "contract"). */
-  group?: string
   colSpan?: number
   placeholder?: I18nKey
   /** Non-binding suggested values for the 'combobox' widget (editable dropdown). */
   suggestions?: Array<string | number>
 }
 
+/**
+ * Field = DATA + STRUCTURE only (the BE emits exactly this; see be-data-only
+ * principle). Presentation and ordering live in the resource view blocks
+ * (`list`/`form`), never here. The only view-adjacent props kept here are the
+ * *semantic capabilities* (filterable/sortable/operators) — they describe what the
+ * field can do, shared by table, card and filters alike.
+ */
 export interface FieldSpec {
   name: string
   type: FieldType
   label?: I18nKey
   required?: boolean
   readOnly?: boolean
+  /** Write-only (present in the write body, never read/listed) — e.g. password.
+   *  Excluded from table columns and bulk export/import. */
+  writeOnly?: boolean
   nullable?: boolean
   default?: unknown
   help?: I18nKey
@@ -334,6 +411,8 @@ export interface FieldSpec {
   relation?: RelationSpec
   image?: ImageSpec
   validation?: ValidationSpec
-  list?: FieldListSpec
-  form?: FieldFormSpec
+  // ── semantic collection capabilities (shared table + card + filters) ──
+  filterable?: boolean
+  sortable?: boolean
+  operators?: FilterOperator[]
 }

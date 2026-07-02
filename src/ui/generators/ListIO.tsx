@@ -16,9 +16,9 @@ import { toast } from 'sonner'
 import { Button } from '@/ui/components/ui/button'
 import type { ResourceModel, ResolvedField } from '@/engine'
 
-/** Fields excluded from bulk edit (binary/asset or non-tabular). */
+/** Fields excluded from bulk edit (binary/asset, non-tabular, or write-only). */
 function isBulkEditable(field: ResolvedField): boolean {
-  return !['image', 'file', 'json'].includes(field.type)
+  return !['image', 'file', 'json'].includes(field.type) && !field.writeOnly
 }
 
 function columnKey(field: ResolvedField): string {
@@ -114,7 +114,7 @@ export function ListIO({ model, filters, sorters, canWrite }: ListIOProps) {
         for (const [key, value] of Object.entries(raw)) {
           if (key === 'id') continue
           const field = byKey.get(key)
-          if (!field || field.readOnly || field.form?.widget === 'password') continue
+          if (!field || field.readOnly) continue
           const v = coerce(field, value)
           if (v !== undefined) variables[key] = v
         }

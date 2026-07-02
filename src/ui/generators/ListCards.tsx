@@ -1,9 +1,8 @@
 /**
- * Card presentation for the generated list. Card content is derived from the
- * manifest metadata (no extra config): cover image (a mini carousel when the
- * record has multiple images), title/subtitle fields, enum badges, and a
- * primary numeric field. The image block is omitted for resources with no
- * image field.
+ * Card presentation for the generated list. Content is driven by the resolved
+ * `card` model (from the resource `list.card` view block): cover image (a mini
+ * carousel when the record has multiple images), title/subtitle, enum badges, and
+ * the ordered `body` info rows. The image block is omitted when no image slot.
  */
 import { useState } from 'react'
 import { useApiUrl } from '@refinedev/core'
@@ -121,32 +120,29 @@ export function ListCards({
   onEdit,
   onDelete
 }: ListPresentationProps) {
-  const { spec, listFields } = model
+  const { spec, card } = model
   const apiUrl = useApiUrl()
 
-  const imageField = model.fields.find((f) => f.type === 'image')
+  const imageField = card.image
   const hasImage = Boolean(imageField)
-  const titleField = spec.titleField ?? 'name'
-  const subtitleField = spec.subtitleField
-  const badgeFields = listFields.filter((f) => f.type === 'enum')
-  const numberField = listFields.find((f) => f.type === 'number' || f.type === 'integer')
-  const cardFields = (spec.cardFields ?? []).map((n) => model.field(n)).filter(Boolean) as NonNullable<
-    ReturnType<typeof model.field>
-  >[]
-  const highlightField = spec.highlightField
+  const titleField = card.title
+  const subtitleField = card.subtitle
+  const badgeFields = card.badges
+  const bodyFields = card.body
+  const highlightField = card.highlight
   const imageFit = imageField?.image?.fit
-  const centered = spec.cardAlign === 'center'
-  // Fluid mode (cardMaxWidth set): cards auto-fill/wrap at min..max px, capped width,
-  // adapting to any viewport. Otherwise: fixed responsive columns (cardColumns).
-  const fluid = spec.cardMaxWidth != null
+  const centered = card.align === 'center'
+  // Fluid mode (card.maxWidth set): cards auto-fill/wrap at min..max px, capped width,
+  // adapting to any viewport. Otherwise: fixed responsive columns (card.columns).
+  const fluid = card.maxWidth != null
   const gridStyle = fluid
     ? {
-        gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${spec.cardMinWidth ?? 240}px), ${spec.cardMaxWidth}px))`
+        gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${card.minWidth ?? 240}px), ${card.maxWidth}px))`
       }
     : undefined
   const gridCls = fluid
     ? 'grid justify-center gap-4'
-    : cn('grid gap-4', GRID_BY_COLS[spec.cardColumns ?? 3] ?? GRID_BY_COLS[3])
+    : cn('grid gap-4', GRID_BY_COLS[card.columns ?? 3] ?? GRID_BY_COLS[3])
 
   if (isLoading) {
     return <div className="py-10 text-center text-muted-foreground">{t('state.loading')}</div>
@@ -224,19 +220,14 @@ export function ListCards({
                   ))}
                 </div>
               )}
-              {numberField && record[numberField.name] != null && (
-                <div className="text-sm font-semibold">
-                  <FieldCell record={record} field={numberField} t={t} />
-                </div>
-              )}
-              {cardFields.length > 0 && (
+              {bodyFields.length > 0 && (
                 <div className="space-y-1 border-t pt-2">
-                  {cardFields.map((f) => (
-                    <div key={f.name} className="flex items-center justify-between gap-2 text-sm">
+                  {bodyFields.map(({ field, label }) => (
+                    <div key={field.name} className="flex items-center justify-between gap-2 text-sm">
                       <span className="text-muted-foreground">
-                        {t(f.label ?? `field.${spec.name}.${f.name}`)}
+                        {t(label ?? field.label ?? `field.${spec.name}.${field.name}`)}
                       </span>
-                      <FieldCell record={record} field={f} t={t} />
+                      <FieldCell record={record} field={field} t={t} />
                     </div>
                   ))}
                 </div>

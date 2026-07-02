@@ -1,8 +1,10 @@
 /**
  * Mock manifest modelled on the Dionisi Rent & Service backoffice
- * (BACKOFFICE_BLUEPRINT.md). Exercises the full spec v2: groups, shared enums,
- * a relation (vehicle→brand), a singleton (company), capabilities, search,
- * defaultSort, per-field list/form behavior, and a multi-tenant header.
+ * (BACKOFFICE_BLUEPRINT.md). This mirrors what the BE emits: pure DATA + STRUCTURE
+ * (fields = name/type/enum/validation/relation/image, capabilities, search,
+ * defaultSort) — NO presentation. All presentation & ordering (table columns, card
+ * slots, form groups, filterable/sortable) lives in `mock/overrides.ts`, merged on
+ * top by (resource, field) identity — exactly the generated/overrides split.
  */
 import type { Manifest } from '@/engine'
 
@@ -73,17 +75,14 @@ export const mockManifest: Manifest = {
       ],
       defaultSort: [{ field: 'name', order: 'asc' }],
       search: { fields: ['name'], operator: 'containsi' },
-      listLayouts: ['table', 'card'],
-      defaultListLayout: 'card',
       fields: [
-        { name: 'name', type: 'string', required: true, list: { visible: true, sortable: true } },
+        { name: 'name', type: 'string', required: true },
         {
           name: 'logoUrl',
           type: 'image',
-          form: { group: 'default', widget: 'image-single' },
           image: { multiple: false, accept: ['image/png', 'image/jpeg', 'image/webp'], maxSize: 5242880, storage: 'folder' }
         },
-        { name: 'createdAt', type: 'datetime', readOnly: true, list: { visible: true, sortable: true } }
+        { name: 'createdAt', type: 'datetime', readOnly: true }
       ],
       views: { list: 'auto', create: 'auto', edit: 'auto', show: 'auto' }
     },
@@ -131,60 +130,37 @@ export const mockManifest: Manifest = {
       ],
       defaultSort: [{ field: 'importance', order: 'desc' }],
       search: { fields: ['name', 'trimLevel', 'description', 'tag'], operator: 'containsi' },
-      listLayouts: ['table', 'card'],
-      defaultListLayout: 'card',
       fields: [
-        {
-          name: 'status',
-          type: 'enum',
-          enumRef: 'vehicleStatus',
-          list: { visible: true, filterable: true, operators: ['eq', 'in'] },
-          form: { group: 'header', widget: 'select' }
-        },
-        { name: 'visible', type: 'boolean', list: { visible: true, filterable: true }, form: { group: 'header' } },
-        { name: 'featured', type: 'boolean', list: { visible: true }, form: { group: 'header' } },
-        {
-          name: 'importance',
-          type: 'integer',
-          list: { visible: true, sortable: true, filterable: true, operators: ['ge', 'le'] },
-          form: { group: 'header' }
-        },
+        { name: 'status', type: 'enum', enumRef: 'vehicleStatus' },
+        { name: 'visible', type: 'boolean' },
+        { name: 'featured', type: 'boolean' },
+        { name: 'importance', type: 'integer' },
         {
           name: 'brand',
           type: 'relation',
-          relation: { resource: 'brand', kind: 'many-to-one', titleField: 'name', foreignKey: 'brandId' },
-          list: { visible: true, filterable: true, operators: ['eq', 'in'] },
-          form: { visible: true, widget: 'reference-select', group: 'header' }
+          relation: { resource: 'brand', kind: 'many-to-one', titleField: 'name', foreignKey: 'brandId' }
         },
-        { name: 'name', type: 'string', required: true, list: { visible: true, sortable: true }, form: { group: 'header', colSpan: 2 } },
-        { name: 'trimLevel', type: 'string', list: { visible: true }, form: { group: 'header' } },
-        { name: 'tag', type: 'string', form: { group: 'header' } },
-        { name: 'description', type: 'richtext', list: { visible: false }, form: { widget: 'rich-text', group: 'header', colSpan: 2 } },
-        { name: 'engine', type: 'enum', enumRef: 'engineType', form: { group: 'features' } },
-        { name: 'category', type: 'enum', enumRef: 'vehicleCategory', form: { group: 'features' } },
-        { name: 'gearbox', type: 'enum', enumRef: 'gearboxType', form: { group: 'features' } },
-        { name: 'doors', type: 'integer', form: { group: 'features' } },
-        { name: 'seats', type: 'integer', form: { group: 'features' } },
-        { name: 'optional', type: 'text', form: { group: 'features', colSpan: 2 } },
-        { name: 'svcKasko', type: 'boolean', form: { group: 'services' } },
-        { name: 'svcMaintenance', type: 'boolean', form: { group: 'services' } },
-        { name: 'svcRca', type: 'boolean', form: { group: 'services' } },
-        { name: 'svcRoadside', type: 'boolean', form: { group: 'services' } },
-        {
-          name: 'monthlyVatExcl',
-          type: 'number',
-          validation: { min: 0, step: 0.01 },
-          list: { visible: true, sortable: true, align: 'right', operators: ['ge', 'le', 'between'] },
-          form: { group: 'contract' }
-        },
-        { name: 'months', type: 'integer', form: { group: 'contract' } },
-        { name: 'km', type: 'integer', form: { group: 'contract' } },
-        { name: 'readyDelivery', type: 'boolean', form: { group: 'contract' } },
+        { name: 'name', type: 'string', required: true },
+        { name: 'trimLevel', type: 'string' },
+        { name: 'tag', type: 'string' },
+        { name: 'description', type: 'richtext' },
+        { name: 'engine', type: 'enum', enumRef: 'engineType' },
+        { name: 'category', type: 'enum', enumRef: 'vehicleCategory' },
+        { name: 'gearbox', type: 'enum', enumRef: 'gearboxType' },
+        { name: 'doors', type: 'integer' },
+        { name: 'seats', type: 'integer' },
+        { name: 'optional', type: 'text' },
+        { name: 'svcKasko', type: 'boolean' },
+        { name: 'svcMaintenance', type: 'boolean' },
+        { name: 'svcRca', type: 'boolean' },
+        { name: 'svcRoadside', type: 'boolean' },
+        { name: 'monthlyVatExcl', type: 'number', validation: { min: 0, step: 0.01 } },
+        { name: 'months', type: 'integer' },
+        { name: 'km', type: 'integer' },
+        { name: 'readyDelivery', type: 'boolean' },
         {
           name: 'images',
           type: 'image',
-          list: { visible: true },
-          form: { widget: 'gallery-reorder', group: 'images', colSpan: 2 },
           image: {
             multiple: true,
             ordered: true,
@@ -232,18 +208,10 @@ export const mockManifest: Manifest = {
       ],
       defaultSort: [{ field: 'subscribedAt', order: 'desc' }],
       search: { fields: ['email'], operator: 'containsi' },
-      listLayouts: ['table', 'card'],
-      defaultListLayout: 'table',
-      cardFields: ['subscribedAt', 'privacyAccepted'],
       fields: [
-        { name: 'email', type: 'email', required: true, list: { visible: true, sortable: true } },
-        {
-          name: 'subscribedAt',
-          type: 'datetime',
-          readOnly: true,
-          list: { visible: true, sortable: true, operators: ['ge', 'le', 'between'] }
-        },
-        { name: 'privacyAccepted', type: 'boolean', default: true, list: { visible: true } }
+        { name: 'email', type: 'email', required: true },
+        { name: 'subscribedAt', type: 'datetime', readOnly: true },
+        { name: 'privacyAccepted', type: 'boolean', default: true }
       ],
       views: { list: 'auto', create: 'auto', show: 'auto' }
     },
@@ -265,35 +233,16 @@ export const mockManifest: Manifest = {
         { name: 'delete', kind: 'delete', method: 'DELETE', path: '/users/:id', roles: ['admin'] }
       ],
       defaultSort: [{ field: 'createdAt', order: 'desc' }],
-      listLayouts: ['table', 'card'],
-      defaultListLayout: 'table',
       search: { fields: ['email', 'firstName', 'lastName', 'username'], operator: 'containsi' },
       fields: [
-        { name: 'firstName', type: 'string', list: { visible: true, sortable: true }, form: { group: 'profile' } },
-        { name: 'lastName', type: 'string', list: { visible: true, sortable: true }, form: { group: 'profile' } },
-        {
-          name: 'email',
-          type: 'email',
-          required: true,
-          list: { visible: true, sortable: true },
-          form: { group: 'profile' }
-        },
-        { name: 'username', type: 'string', list: { visible: true }, form: { group: 'profile' } },
-        {
-          name: 'role',
-          type: 'enum',
-          enumRef: 'userRole',
-          list: { visible: true, filterable: true, operators: ['eq', 'in'] },
-          form: { group: 'access', widget: 'select' }
-        },
-        { name: 'blocked', type: 'boolean', default: false, list: { visible: true }, form: { group: 'access' } },
-        {
-          name: 'password',
-          type: 'string',
-          list: { visible: false },
-          form: { group: 'access', widget: 'password', placeholder: 'field.user.password.ph' }
-        },
-        { name: 'createdAt', type: 'datetime', readOnly: true, list: { visible: true, sortable: true } }
+        { name: 'firstName', type: 'string' },
+        { name: 'lastName', type: 'string' },
+        { name: 'email', type: 'email', required: true },
+        { name: 'username', type: 'string' },
+        { name: 'role', type: 'enum', enumRef: 'userRole' },
+        { name: 'blocked', type: 'boolean', default: false },
+        { name: 'password', type: 'string', writeOnly: true },
+        { name: 'createdAt', type: 'datetime', readOnly: true }
       ],
       views: { list: 'auto', create: 'auto', edit: 'auto', show: 'auto' }
     },
@@ -311,19 +260,19 @@ export const mockManifest: Manifest = {
         { name: 'update', kind: 'update', method: 'PUT', path: '/company', roles: ['admin'] }
       ],
       fields: [
-        { name: 'legalName', type: 'string', required: true, form: { group: 'company' } },
-        { name: 'vatNumber', type: 'string', form: { group: 'company' } },
-        { name: 'taxCode', type: 'string', form: { group: 'company' } },
-        { name: 'address', type: 'string', form: { group: 'site', colSpan: 2 } },
-        { name: 'city', type: 'string', form: { group: 'site' } },
-        { name: 'province', type: 'string', form: { group: 'site' } },
-        { name: 'zip', type: 'string', form: { group: 'site' } },
-        { name: 'phone', type: 'string', form: { group: 'site' } },
-        { name: 'email', type: 'email', form: { group: 'site' } },
-        { name: 'website', type: 'url', form: { group: 'social' } },
-        { name: 'facebook', type: 'url', form: { group: 'social' } },
-        { name: 'instagram', type: 'url', form: { group: 'social' } },
-        { name: 'linkedin', type: 'url', form: { group: 'social' } }
+        { name: 'legalName', type: 'string', required: true },
+        { name: 'vatNumber', type: 'string' },
+        { name: 'taxCode', type: 'string' },
+        { name: 'address', type: 'string' },
+        { name: 'city', type: 'string' },
+        { name: 'province', type: 'string' },
+        { name: 'zip', type: 'string' },
+        { name: 'phone', type: 'string' },
+        { name: 'email', type: 'email' },
+        { name: 'website', type: 'url' },
+        { name: 'facebook', type: 'url' },
+        { name: 'instagram', type: 'url' },
+        { name: 'linkedin', type: 'url' }
       ],
       views: { edit: 'auto' }
     }

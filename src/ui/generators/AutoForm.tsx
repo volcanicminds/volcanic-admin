@@ -46,7 +46,6 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
   const back = useBack()
   const location = useLocation()
   const [serverError, setServerError] = useState<string | null>(null)
-  const cols = detailColumns(model.spec.detailColumns)
   const sections = model.formSections
     .map((s) => ({ ...s, fields: s.fields.filter((f) => visibleForAction(f, action)) }))
     .filter((s) => s.fields.length > 0)
@@ -136,11 +135,13 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
         </div>
       )}
 
-      {sections.map((section) => (
+      {sections.map((section) => {
+        const cols = detailColumns(section.columns ?? model.formColumns)
+        return (
         <Card key={section.group}>
           {section.group !== 'default' && (
             <CardHeader>
-              <CardTitle className="text-base">{t(`group.${section.group}`)}</CardTitle>
+              <CardTitle className="text-base">{t(section.label ?? `group.${section.group}`)}</CardTitle>
             </CardHeader>
           )}
           <CardContent className={`${sectionGridClass(cols)} pt-6`}>
@@ -158,7 +159,8 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
             ))}
           </CardContent>
         </Card>
-      ))}
+        )
+      })}
     </form>
   )
 }

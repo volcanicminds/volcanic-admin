@@ -112,7 +112,6 @@ export function ShowView({ model }: { model: ResourceModel }) {
 
   const canDelete = model.hasAction('delete')
   const canClone = model.hasAction('create') && spec.clonable !== false
-  const cols = detailColumns(spec.detailColumns)
 
   // Clone: open the create form pre-seeded with this record's writable values
   // (carried in router state). The user reviews and saves, so unique fields like
@@ -198,11 +197,13 @@ export function ShowView({ model }: { model: ResourceModel }) {
       </Dialog>
 
       {record &&
-        sections.map((section) => (
+        sections.map((section) => {
+          const cols = detailColumns(section.columns ?? model.formColumns)
+          return (
           <Card key={section.group}>
             {section.group !== 'default' && (
               <CardHeader>
-                <CardTitle className="text-base">{t(`group.${section.group}`)}</CardTitle>
+                <CardTitle className="text-base">{t(section.label ?? `group.${section.group}`)}</CardTitle>
               </CardHeader>
             )}
             <CardContent className={`${sectionGridClass(cols)} pt-6`}>
@@ -221,7 +222,8 @@ export function ShowView({ model }: { model: ResourceModel }) {
               ))}
             </CardContent>
           </Card>
-        ))}
+          )
+        })}
     </div>
   )
 }

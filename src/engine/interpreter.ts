@@ -1,10 +1,38 @@
 /**
  * Manifest interpreter — turns a Manifest into a normalized AdminModel and the
  * Refine `resources` array. Pure, no React, no UI dependency.
+ *
+ * Presentation & ordering come from the resource view blocks (`list`/`form`,
+ * populated from overrides). When a block is present its array IS the order and
+ * the authoritative allowlist; when absent the engine derives a default from the
+ * resource fields (schema order). Field refs that don't resolve are skipped.
  */
-import type { Manifest, ResourceSpec, FieldSpec, EnumOption, CrudAction } from './types/manifest.js'
-import type { AdminModel, ResourceModel, ResolvedField, FormSection } from './types/model.js'
+import type {
+  Manifest,
+  ResourceSpec,
+  FieldSpec,
+  EnumOption,
+  CrudAction,
+  ListLayout
+} from './types/manifest.js'
+import type {
+  AdminModel,
+  ResourceModel,
+  ResolvedField,
+  ColumnModel,
+  CardModel,
+  CardBodyModel,
+  FormSection
+} from './types/model.js'
 import type { IResourceItem } from '@refinedev/core'
+
+/** Types that don't belong in a table column / are non-tabular by default. */
+const HEAVY_TYPES = ['text', 'richtext', 'json', 'image', 'file']
+
+function clampColumns(n: number | undefined): number {
+  const v = Math.round(n ?? 2)
+  return Math.min(4, Math.max(1, Number.isFinite(v) ? v : 2))
+}
 
 function resolveField(field: FieldSpec, enums: Manifest['enums']): ResolvedField {
   let options: EnumOption[] | undefined
@@ -14,31 +42,91 @@ function resolveField(field: FieldSpec, enums: Manifest['enums']): ResolvedField
   return { ...field, options }
 }
 
-/** A field shows in the list table unless explicitly hidden; heavy types hidden by default. */
-function isListVisible(field: ResolvedField): boolean {
-  if (field.list?.visible !== undefined) return field.list.visible
-  return !['text', 'richtext', 'json', 'image', 'file'].includes(field.type)
-}
-
-/** A field shows in the form unless explicitly hidden. */
-function isFormVisible(field: ResolvedField): boolean {
-  if (field.form?.visible !== undefined) return field.form.visible
-  return true
-}
-
-function buildFormSections(fields: ResolvedField[]): FormSection[] {
-  const order: string[] = []
-  const byGroup = new Map<string, ResolvedField[]>()
-  for (const f of fields) {
-    if (!isFormVisible(f)) continue
-    const group = f.form?.group ?? 'default'
-    if (!byGroup.has(group)) {
-      byGroup.set(group, [])
-      order.push(group)
-    }
-    byGroup.get(group)!.push(f)
+/** Table columns from the `list.table.columns` block, else derived from fields. */
+function buildColumns(spec: ResourceSpec, byName: Map<string, ResolvedField>): ColumnModel[] {
+  const cols = spec.list?.table?.columns
+  if (cols) {
+    return cols
+      .map((c): ColumnModel | null => {
+        const field = byName.get(c.field)
+        if (!field) return null
+        return { field, label: c.label, align: c.align, width: c.width }
+      })
+      .filter((c): c is ColumnModel => c !== null)
   }
-  return order.map((group) => ({ group, fields: byGroup.get(group)! }))
+  // Derived default: non-heavy, non-write-only fields in declaration order.
+  return [...byName.values()]
+    .filter((f) => !HEAVY_TYPES.includes(f.type) && !f.writeOnly)
+    .map((field) => ({ field }))
+}
+
+/** Card layout from the `list.card` block, with slot fallbacks. */
+function buildCard(
+  spec: ResourceSpec,
+  byName: Map<string, ResolvedField>,
+  columns: ColumnModel[]
+): CardModel {
+  const c = spec.list?.card ?? {}
+  const imageName = c.image ?? [...byName.values()].find((f) => f.type === 'image')?.name
+  const image = imageName ? byName.get(imageName) : undefined
+
+  // Badges: explicit names, else the enum fields already shown as columns.
+  const badges = c.badges
+    ? c.badges.map((n) => byName.get(n)).filter((f): f is ResolvedField => Boolean(f))
+    : columns.map((col) => col.field).filter((f) => f.type === 'enum')
+
+  const body = (c.body ?? [])
+    .map((b): CardBodyModel | null => {
+      const field = byName.get(b.field)
+      return field ? { field, label: b.label } : null
+    })
+    .filter((b): b is CardBodyModel => b !== null)
+
+  return {
+    minWidth: c.minWidth,
+    maxWidth: c.maxWidth,
+    columns: c.columns,
+    align: c.align,
+    highlight: c.highlight,
+    image,
+    title: c.title ?? spec.titleField ?? 'name',
+    subtitle: c.subtitle ?? spec.subtitleField,
+    badges,
+    body
+  }
+}
+
+/** Form sections from the `form.groups` block, else a single default section. */
+function buildFormSections(spec: ResourceSpec, byName: Map<string, ResolvedField>): FormSection[] {
+  const groups = spec.form?.groups
+  if (!groups) {
+    // No explicit form: every field in one headerless section, declaration order.
+    return [{ group: 'default', fields: [...byName.values()] }]
+  }
+  return groups.map((g) => ({
+    group: g.name,
+    label: g.label,
+    columns: g.columns,
+    fields: g.fields
+      .map((entry): ResolvedField | null => {
+        const base = byName.get(entry.field)
+        if (!base) return null
+        // Overlay the per-form presentation onto a clone so widgets keep reading
+        // `field.form?.*` and the per-view label wins for this entry.
+        return {
+          ...base,
+          label: entry.label ?? base.label,
+          form: {
+            widget: entry.widget,
+            colSpan: entry.colSpan,
+            visibleOn: entry.visibleOn,
+            placeholder: entry.placeholder,
+            suggestions: entry.suggestions
+          }
+        }
+      })
+      .filter((f): f is ResolvedField => f !== null)
+  }))
 }
 
 function buildResourceModel(spec: ResourceSpec, manifest: Manifest): ResourceModel {
@@ -63,8 +151,22 @@ function buildResourceModel(spec: ResourceSpec, manifest: Manifest): ResourceMod
     return f
   })
   const byName = new Map(fields.map((f) => [f.name, f]))
-  const listFields = fields.filter(isListVisible)
-  const formSections = buildFormSections(fields)
+
+  const columns = buildColumns(spec, byName)
+  const card = buildCard(spec, byName, columns)
+  const formSections = buildFormSections(spec, byName)
+
+  const layouts: ListLayout[] = spec.list?.layouts ?? ['table']
+  const defaultLayout: ListLayout = spec.list?.defaultLayout ?? layouts[0] ?? 'table'
+
+  // Sort options: explicit `list.sort`, else the sortable, tabular fields.
+  const sortNames = spec.list?.sort ?? columns.map((col) => col.field.name)
+  const sortFields = sortNames
+    .map((n) => byName.get(n))
+    .filter((f): f is ResolvedField => Boolean(f))
+    .filter((f) => (f.sortable ?? true) && !['json', 'image', 'file'].includes(f.type))
+
+  const filterFields = fields.filter((f) => f.filterable)
 
   // v2: capabilities is a single array of CRUD verbs + custom actions.
   const caps = spec.capabilities ?? []
@@ -73,8 +175,13 @@ function buildResourceModel(spec: ResourceSpec, manifest: Manifest): ResourceMod
   return {
     spec,
     fields,
-    listFields,
+    columns,
+    card,
     formSections,
+    list: { layouts, defaultLayout },
+    formColumns: clampColumns(spec.form?.columns),
+    sortFields,
+    filterFields,
     field: (name) => byName.get(name),
     // The manifest is already role-filtered server-side; presence of the capability
     // signals the action is available to this user.

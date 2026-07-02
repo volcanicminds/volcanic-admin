@@ -44,11 +44,11 @@ export function ListView({ model }: { model: ResourceModel }) {
   const { create, edit, show } = useNavigation()
   const { mutate: deleteOne } = useDelete()
 
-  const layouts: ListLayout[] = spec.listLayouts ?? ['table']
+  const layouts: ListLayout[] = model.list.layouts
   const [layout, setLayout] = useState<ListLayout>(() => {
     const stored = localStorage.getItem(layoutKey(spec.name))
     if (stored === 'table' || stored === 'card') return stored
-    return spec.defaultListLayout ?? layouts[0]
+    return model.list.defaultLayout
   })
   const chooseLayout = (l: ListLayout) => {
     setLayout(l)
@@ -109,12 +109,7 @@ export function ListView({ model }: { model: ResourceModel }) {
 
   // "Sort by" control: a select of orderable fields + a direction toggle.
   const titleField = Array.isArray(spec.titleField) ? spec.titleField[0] : (spec.titleField ?? 'name')
-  const sortFields = (
-    spec.sortOptions ??
-    model.listFields.filter((f) => f.list?.sortable !== false && !['json', 'image', 'file'].includes(f.type)).map((f) => f.name)
-  )
-    .map((name) => model.field(name))
-    .filter((f): f is NonNullable<typeof f> => Boolean(f))
+  const sortFields = model.sortFields
   // Translate a chosen field into Magic Query sorters (a relation sorts by its
   // title and tie-breaks by the row title).
   const buildSorters = (name: string, order: 'asc' | 'desc'): CrudSorting => {
@@ -187,7 +182,7 @@ export function ListView({ model }: { model: ResourceModel }) {
         </div>
       </div>
 
-      {(spec.search || sortFields.length > 0 || model.fields.some((f) => f.list?.filterable)) && (
+      {(spec.search || sortFields.length > 0 || model.filterFields.length > 0) && (
         <div className="flex flex-wrap items-center gap-3">
           {spec.search && (
             <form
