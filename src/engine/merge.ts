@@ -28,6 +28,11 @@ import type {
   ValidationSpec
 } from './types/manifest.js'
 
+/** Resource → its field-name union. A generated `GeneratedFieldMap` (emitted by
+ *  `volcanic-admin-pull`) satisfies this; pass it to `ManifestOverrides<FM>` for
+ *  per-resource field-name autocomplete + typo checking. Defaults keep `string`. */
+export type FieldMap = Record<string, string>
+
 type Plain = Record<string, unknown>
 const isPlain = (v: unknown): v is Plain =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -53,22 +58,28 @@ export interface FieldOverride
 }
 export type CapabilityOverride = Partial<CapabilitySpec>
 
-export interface ResourceOverride
-  extends Partial<Omit<ResourceSpec, 'name' | 'fields' | 'capabilities' | 'list' | 'form'>> {
+export interface ResourceOverride<F extends string = string>
+  extends Partial<
+    Omit<ResourceSpec, 'name' | 'fields' | 'capabilities' | 'list' | 'form' | 'titleField' | 'subtitleField'>
+  > {
+  /** Display field(s) for titles/references. */
+  titleField?: F | F[]
+  /** Secondary display field(s). */
+  subtitleField?: F | F[]
   /** Patch fields by name (deep-merge; intrinsic only). */
-  fields?: Record<string, FieldOverride>
+  fields?: Partial<Record<F, FieldOverride>>
   /** Add fields absent from the generated manifest. */
   addFields?: FieldSpec[]
   /** Field names to remove. */
-  excludeFields?: string[]
+  excludeFields?: F[]
   /** Patch capabilities by name (deep-merge); unknown names are added. */
   capabilities?: Record<string, CapabilityOverride>
   /** Capability names to remove. */
   excludeCapabilities?: string[]
   /** Ordered collection view (table + card). */
-  list?: ListViewSpec
+  list?: ListViewSpec<F>
   /** Ordered form/show view. */
-  form?: FormViewSpec
+  form?: FormViewSpec<F>
 }
 
 /** Global card-grid defaults, applied to every resource with a card layout that
@@ -79,7 +90,7 @@ export interface CardDefaults {
   cardMaxWidth?: number
 }
 
-export interface ManifestOverrides {
+export interface ManifestOverrides<FM extends FieldMap = FieldMap> {
   i18n?: Partial<Manifest['i18n']>
   auth?: Partial<Manifest['auth']>
   tenancy?: Partial<Manifest['tenancy']>
@@ -88,12 +99,12 @@ export interface ManifestOverrides {
   groups?: GroupSpec[]
   /** Card-grid defaults for resources that don't define their own card sizing. */
   cardDefaults?: CardDefaults
-  /** Patch resources by name. */
-  resources?: Record<string, ResourceOverride>
+  /** Patch resources by name — each keyed to its own field-name union via `FM`. */
+  resources?: { [R in keyof FM]?: ResourceOverride<Extract<FM[R], string>> }
   /** Add resources absent from the generated manifest. */
   addResources?: ResourceSpec[]
   /** Resource names to exclude from the panel. */
-  excludeResources?: string[]
+  excludeResources?: Array<Extract<keyof FM, string>>
 }
 
 function mergeGroups(base: GroupSpec[], over: GroupSpec[]): GroupSpec[] {
@@ -146,7 +157,7 @@ function applyResourceOverride(r: ResourceSpec, ov: ResourceOverride): ResourceS
   return next
 }
 
-export function mergeManifest(generated: Manifest, overrides?: ManifestOverrides): Manifest {
+export function mergeManifest(generated: Manifest, overrides?: ManifestOverrides<FieldMap>): Manifest {
   if (!overrides) return generated
   const m: Manifest = { ...generated }
 
@@ -162,7 +173,8 @@ export function mergeManifest(generated: Manifest, overrides?: ManifestOverrides
     resources = resources.filter((r) => !ex.has(r.name))
   }
   if (overrides.resources) {
-    const ov = overrides.resources
+    // Field names are string-typed at runtime; the generic keys are an authoring aid.
+    const ov = overrides.resources as Record<string, ResourceOverride>
     resources = resources.map((r) => (ov[r.name] ? applyResourceOverride(r, ov[r.name]) : r))
   }
   if (overrides.addResources?.length) resources = [...resources, ...overrides.addResources]

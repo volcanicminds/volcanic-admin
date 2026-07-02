@@ -143,7 +143,7 @@ export interface VolcanicAdminProps {
   /** Base path for CRUD calls. Default '/admin' (generic CRUD); set '' for real hand-written routes. */
   apiBasePath?: string
   /** Project overrides merged onto the generated/fetched manifest by (resource, field). */
-  manifestOverrides?: ManifestOverrides
+  manifestOverrides?: ManifestOverrides<any>
 
   /** Override the data provider (e.g. an in-memory mock for development). */
   dataProvider?: DataProvider

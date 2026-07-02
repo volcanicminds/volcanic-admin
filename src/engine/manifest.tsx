@@ -36,7 +36,7 @@ export interface ManifestSource {
   /** Loader for runtime fetch (e.g. GET /admin/manifest). */
   load?: () => Promise<Manifest>
   /** Project overrides merged onto the generated manifest by `(resource, field)`. */
-  overrides?: ManifestOverrides
+  overrides?: ManifestOverrides<any>
 }
 
 export interface ManifestProviderProps extends ManifestSource {

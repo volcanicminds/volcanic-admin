@@ -13,7 +13,8 @@ export type {
   ManifestOverrides,
   ResourceOverride,
   FieldOverride,
-  CapabilityOverride
+  CapabilityOverride,
+  FieldMap
 } from './merge.js'
 export { buildMagicQuery, readTotal } from './magic-query.js'
 

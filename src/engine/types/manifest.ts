@@ -205,28 +205,33 @@ export interface ResourceViews {
 // order IS the render order, and (when present) the array is the authoritative
 // allowlist: a field not listed does not appear in that view. When a block is
 // absent the engine derives a sensible default from the resource fields.
+//
+// The `F` type param is the resource's field-name union. It defaults to `string`
+// (loose), so the runtime `ResourceSpec` and un-typed overrides keep working; the
+// project overrides opt into per-resource field-name checking by passing a
+// generated field map to `ManifestOverrides<FM>` (see manifest.generated.ts).
 
 /** A table column: references a field by name + table-only presentation. */
-export interface ColumnSpec {
-  field: string
+export interface ColumnSpec<F extends string = string> {
+  field: F
   /** Per-view label override (falls back to the field label / i18n convention). */
   label?: I18nKey
   align?: 'left' | 'center' | 'right'
   width?: number
 }
 
-export interface TableViewSpec {
+export interface TableViewSpec<F extends string = string> {
   /** Ordered allowlist of columns. Absent → derive from the resource fields. */
-  columns?: ColumnSpec[]
+  columns?: ColumnSpec<F>[]
 }
 
 /** A labeled key/value row in the card body (ex `cardFields`). */
-export interface CardBodySpec {
-  field: string
+export interface CardBodySpec<F extends string = string> {
+  field: F
   label?: I18nKey
 }
 
-export interface CardViewSpec {
+export interface CardViewSpec<F extends string = string> {
   /** Fluid grid: cards auto-fill/wrap at min..max px (maxWidth enables fluid mode). */
   minWidth?: number
   maxWidth?: number
@@ -235,35 +240,35 @@ export interface CardViewSpec {
   /** Card content alignment: 'left' (default) or 'center' (e.g. logo grids). */
   align?: 'left' | 'center'
   /** Boolean field marking a record "featured": accent ring + star. */
-  highlight?: string
+  highlight?: F
   /** Field slots (names). Omitted → sensible default (image → first image field,
    *  title → titleField, subtitle → subtitleField). title/subtitle accept an array
    *  of field names (joined with spaces) for composite labels. */
-  image?: string
-  title?: string | string[]
-  subtitle?: string | string[]
+  image?: F
+  title?: F | F[]
+  subtitle?: F | F[]
   /** Enum fields rendered as chips, in order. */
-  badges?: string[]
+  badges?: F[]
   /** Extra labeled info rows, in order. */
-  body?: CardBodySpec[]
+  body?: CardBodySpec<F>[]
 }
 
 /** Collection view: shared toolbar (search/sort/filter) + table & card layouts. */
-export interface ListViewSpec {
+export interface ListViewSpec<F extends string = string> {
   /** Available layouts; more than one shows a layout toggle. */
   layouts?: ListLayout[]
   /** Default layout (falls back to the first of `layouts`, else 'table'). */
   defaultLayout?: ListLayout
   /** Field names offered in the "sort by" control, in order. A relation
    *  tie-breaks by the row's title. Absent → the sortable fields. */
-  sort?: string[]
-  table?: TableViewSpec
-  card?: CardViewSpec
+  sort?: F[]
+  table?: TableViewSpec<F>
+  card?: CardViewSpec<F>
 }
 
 /** A field placed in a form group: references a field + form-only presentation. */
-export interface FormFieldSpec {
-  field: string
+export interface FormFieldSpec<F extends string = string> {
+  field: F
   label?: I18nKey
   /** Widget id; "auto" or a registered widget/componentId. */
   widget?: string
@@ -275,22 +280,22 @@ export interface FormFieldSpec {
   suggestions?: Array<string | number>
 }
 
-export interface FormGroupSpec {
+export interface FormGroupSpec<F extends string = string> {
   name: string
   /** Group header label (falls back to `group.<name>`). */
   label?: I18nKey
   /** Column count for this group's grid (overrides the form default). */
   columns?: number
   /** Ordered fields (the array is the authoritative allowlist for this group). */
-  fields: FormFieldSpec[]
+  fields: FormFieldSpec<F>[]
 }
 
 /** Form (create/edit) + show view. */
-export interface FormViewSpec {
+export interface FormViewSpec<F extends string = string> {
   /** Default column count for group grids (1–4, default 2). Image/richtext and
    *  colSpan>1 fields still span the full row. */
   columns?: number
-  groups?: FormGroupSpec[]
+  groups?: FormGroupSpec<F>[]
 }
 
 export interface ResourceSpec {
