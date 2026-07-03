@@ -235,7 +235,11 @@ interface FormFieldSpec {
   field: string
   label?: I18nKey
   widget?: string                        // 'auto' o un widget id registrato/built-in
-  colSpan?: number
+  colSpan?: number                       // colonne occupate nella griglia (cap alla larghezza)
+  colStart?: number                      // colonna di partenza 1-based (md+): lascia vuote le celle
+                                         //   precedenti e spezza la riga se già occupata
+  rowSpan?: number                       // righe occupate (md+): es. una textarea alta accanto a
+                                         //   più campi impilati in un'altra colonna
   visibleOn?: 'create' | 'edit'          // limita a una modalità (omesso = entrambe)
   placeholder?: I18nKey
   suggestions?: (string | number)[]      // suggerimenti non vincolanti per il widget 'combobox'
@@ -438,7 +442,7 @@ Principio: **80% OOTB dal manifest, 20% override mirati**. Nessun progetto riscr
 | `image` config (accept/maxSize/storage/endpoints) | **Admin (override)** | il BE non lo genera |
 | `group` (presenza), `titleField`/`subtitleField` (campi) | **BE** | hint `config`, fallback euristica |
 | `group` label/icon/order, `titleField` template i18n | **Admin** | presentazione |
-| view block `list`/`form` (colonne, card, gruppi form, widget, `colSpan`, ordine…) | **Admin (override)** | il BE non li emette **mai**: presentazione + ordinamento |
+| view block `list`/`form` (colonne, card, gruppi form, widget, `colSpan`/`colStart`/`rowSpan`, ordine…) | **Admin (override)** | il BE non li emette **mai**: presentazione + ordinamento |
 | layouts, `defaults`, theming, dashboard, shortcut, dizionari | **Admin** | presentazione pura |
 | `globalSearch` (campi) | **BE** | hint `resource.globalSearch` |
 

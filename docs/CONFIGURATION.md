@@ -205,6 +205,8 @@ form: {
 | `label` | i18n key | Per-view label override. |
 | `widget` | `string` | Widget id — see §7. `'auto'` or a registered/built-in id. |
 | `colSpan` | `number` | Columns the field spans in the grid (capped at the group/form columns). `image`/`richtext` always span the full row. |
+| `colStart` | `number` | Force the field to start at this **1-based** grid column (md+, capped at the grid width). Leaves the earlier cells of the row empty and breaks to the next row when that column is already taken — used to align columns / break a row deliberately. |
+| `rowSpan` | `number` | Make the field span this many grid **rows** (md+) — e.g. a tall textarea sitting beside several stacked single-row fields in another column. |
 | `visibleOn` | `'create' \| 'edit'` | Restrict to one mode (omitted = both). |
 | `placeholder` | i18n key | |
 | `suggestions` | `(string \| number)[]` | Non-binding suggestions for the `combobox` widget (editable dropdown). |
@@ -293,7 +295,8 @@ chip; any other value → neutral chip + color dot. Named palette (from
 `teal` · `blue` · `indigo` · `violet` · `purple` · `pink` · `rose`
 
 > **The field carries no `list`/`form` presentation object.** Column alignment/width
-> live on `ColumnSpec` (§3.2), widget/colSpan/group live on `FormFieldSpec` (§3.3),
+> live on `ColumnSpec` (§3.2), widget/colSpan/colStart/rowSpan/group live on
+> `FormFieldSpec` (§3.3),
 > and "is this a column / in the form" is decided by *membership* in those ordered
 > arrays (the allowlist rule) — not by a `visible` flag.
 

@@ -111,7 +111,7 @@ export const overrides: ManifestOverrides<GeneratedFieldMap> = {
       form: {
         columns: 2,
         groups: [
-          { name: 'default', fields: [{ field: 'name' }, { field: 'brandId', widget: 'reference-select' }] }
+          { name: 'default', fields: [{ field: 'name' }, { field: 'brand' }] } // relation → ReferenceSelect by default
         ]
       }
     }

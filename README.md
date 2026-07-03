@@ -49,7 +49,7 @@ theming).
 ```
 src/
   engine/   headless, UI-agnostic — never imports ui/
-    types/manifest.ts     manifest spec v1 (the contract)
+    types/manifest.ts     manifest spec v2 (the contract)
     types/model.ts        interpreted resource model
     interpreter.ts        manifest → model + Refine resources
     magic-query.ts        Refine filters/sorters → Magic Query + v-* headers
