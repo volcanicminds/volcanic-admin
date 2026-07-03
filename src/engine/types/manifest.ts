@@ -277,6 +277,9 @@ export interface FormFieldSpec<F extends string = string> {
    *  before it on the current row empty and, if that column is already taken, moves
    *  the field to the next row — used to break rows / align columns deliberately. */
   colStart?: number
+  /** Make the field span this many grid rows (md+) — e.g. a tall textarea sitting
+   *  beside several stacked single-row fields in another column. */
+  rowSpan?: number
   /** Restrict to one form mode (omitted = both create and edit). */
   visibleOn?: 'create' | 'edit'
   placeholder?: I18nKey
@@ -391,6 +394,8 @@ export interface FieldFormSpec {
   colSpan?: number
   /** 1-based grid column the field is forced to start at (see FormFieldSpec.colStart). */
   colStart?: number
+  /** Grid rows the field spans (see FormFieldSpec.rowSpan). */
+  rowSpan?: number
   placeholder?: I18nKey
   /** Non-binding suggested values for the 'combobox' widget (editable dropdown). */
   suggestions?: Array<string | number>

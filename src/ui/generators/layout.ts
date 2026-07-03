@@ -29,6 +29,12 @@ const COL_START: Record<number, string> = {
   4: 'md:col-start-4'
 }
 
+const ROW_SPAN: Record<number, string> = {
+  2: 'md:row-span-2',
+  3: 'md:row-span-3',
+  4: 'md:row-span-4'
+}
+
 /** Clamp the configured column count to a supported value (1–4, default 2). */
 export function detailColumns(cols: number | undefined): number {
   const n = Math.round(cols ?? 2)
@@ -46,7 +52,9 @@ export function sectionGridClass(cols: number): string {
  * many columns (capped at the grid width). An explicit `form.colStart` forces the
  * field to a 1-based start column (capped at the grid width) — leaving the earlier
  * cells of the row empty and breaking to the next row when that column is taken.
- * Returns undefined for a plain 1-col, auto-placed field (the grid default).
+ * An explicit `form.rowSpan` makes the field span that many grid rows (e.g. a tall
+ * textarea beside stacked fields). Returns undefined for a plain 1-col, single-row,
+ * auto-placed field (the grid default).
  */
 export function fieldSpanClass(field: ResolvedField, cols: number): string | undefined {
   const heavy = field.type === 'image' || field.type === 'richtext'
@@ -57,6 +65,10 @@ export function fieldSpanClass(field: ResolvedField, cols: number): string | und
   if (field.form?.colStart != null) {
     const start = Math.min(Math.max(Math.round(field.form.colStart), 1), cols)
     if (COL_START[start]) classes.push(COL_START[start])
+  }
+  if (field.form?.rowSpan != null) {
+    const rows = Math.min(Math.max(Math.round(field.form.rowSpan), 1), 4)
+    if (ROW_SPAN[rows]) classes.push(ROW_SPAN[rows])
   }
   return classes.length ? classes.join(' ') : undefined
 }
