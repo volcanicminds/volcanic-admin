@@ -3,8 +3,8 @@
  * login/MFA/password flows are demoable without a backend.
  *
  * Demo accounts (any password except empty):
- *   - mfa@dionisi-to.it     → triggers MFA verify (code: 123456)
- *   - setup@dionisi-to.it   → triggers forced MFA setup (code: 123456)
+ *   - mfa@acme.example      → triggers MFA verify (code: 123456)
+ *   - setup@acme.example    → triggers forced MFA setup (code: 123456)
  *   - anything else         → direct login
  * MFA enable/verify accept the code "123456". Current password "wrong" fails.
  */
@@ -13,10 +13,10 @@ import type { AuthClient, AuthData, LoginResponse, MfaSetup } from '@/engine'
 const MFA_KEY = 'volcanic.admin.mock.mfa'
 const DEMO_CODE = '123456'
 
-let currentEmail = 'admin@dionisi-to.it'
+let currentEmail = 'admin@acme.example'
 
 function identity() {
-  const [firstName, lastName] = ['Admin', 'Dionisi']
+  const [firstName, lastName] = ['Admin', 'Acme']
   return {
     id: 'u1',
     firstName,
@@ -55,8 +55,8 @@ export const mockAuthClient: AuthClient = {
   login: async (email, password): Promise<LoginResponse> => {
     if (!password) throw new Error('Invalid credentials')
     currentEmail = email || currentEmail
-    if (email === 'mfa@dionisi-to.it') return { mfaRequired: true, tempToken: 'mock-temp' }
-    if (email === 'setup@dionisi-to.it') return { mfaSetupRequired: true, tempToken: 'mock-temp' }
+    if (email === 'mfa@acme.example') return { mfaRequired: true, tempToken: 'mock-temp' }
+    if (email === 'setup@acme.example') return { mfaSetupRequired: true, tempToken: 'mock-temp' }
     return authData()
   },
 

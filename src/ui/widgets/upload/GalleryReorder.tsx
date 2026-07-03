@@ -1,5 +1,5 @@
 /**
- * Multi-image gallery widget with ordering (e.g. vehicle images). The first item
+ * Multi-image gallery widget with ordering (e.g. a product image gallery). The first item
  * (lowest position) is the cover. Supports add (click or drag&drop), remove,
  * drag-to-reorder, and a per-image alt value.
  *

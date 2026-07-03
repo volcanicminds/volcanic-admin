@@ -63,7 +63,7 @@ src/
     generators/          list · create · edit · show · singleton · routes
     layout/              sidebar (grouped) · tenant switcher · shell
     views/               login
-  mock/     in-memory backend (Dionisi-flavored) for dev without a server
+  mock/     in-memory backend (brand-neutral Acme Corp sample) for dev without a server
   App.tsx   wiring (engine providers + Refine + router)
 ```
 

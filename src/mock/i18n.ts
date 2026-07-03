@@ -1,4 +1,4 @@
-/** Italian (+ minimal English) translations for the Dionisi mock manifest keys. */
+/** Italian (+ minimal English) translations for the Acme Corp mock manifest keys. */
 import type { Dictionaries } from '@/engine'
 
 const it: Record<string, string> = {

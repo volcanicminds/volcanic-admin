@@ -1,4 +1,4 @@
-/** In-memory seed data for the mock backend (Dionisi-flavored). */
+/** In-memory seed data for the mock backend (brand-neutral Acme Corp sample). */
 
 export interface Row {
   id: string
@@ -74,37 +74,37 @@ export const seed: Record<string, Row[]> = {
   ],
   user: [
     {
-      id: 'u1', firstName: 'Admin', lastName: 'Dionisi', email: 'admin@dionisi-to.it',
+      id: 'u1', firstName: 'Admin', lastName: 'Acme', email: 'admin@acme.example',
       username: 'admin', role: 'admin', blocked: false, createdAt: now
     },
     {
-      id: 'u2', firstName: 'Viviana', lastName: 'Dionisi', email: 'viviana@dionisi-to.it',
-      username: 'viviana', role: 'admin', blocked: false, createdAt: now
+      id: 'u2', firstName: 'Laura', lastName: 'Verdi', email: 'laura@acme.example',
+      username: 'laura', role: 'admin', blocked: false, createdAt: now
     },
     {
-      id: 'u3', firstName: 'Marco', lastName: 'Bianchi', email: 'marco@dionisi-to.it',
+      id: 'u3', firstName: 'Marco', lastName: 'Bianchi', email: 'marco@acme.example',
       username: 'marco', role: 'editor', blocked: false, createdAt: now
     }
   ],
   newsletter: [
-    { id: 'n1', email: 'marracris@libero.it', subscribedAt: '2026-06-14T16:07:04Z', privacyAccepted: true },
-    { id: 'n2', email: 'mario.rossi@gmail.com', subscribedAt: '2026-06-12T10:22:00Z', privacyAccepted: true },
-    { id: 'n3', email: 'luisa.bianchi@hotmail.it', subscribedAt: '2026-06-10T08:00:00Z', privacyAccepted: true },
-    { id: 'n4', email: 'g.verdi@azienda.it', subscribedAt: '2026-06-01T14:30:00Z', privacyAccepted: true }
+    { id: 'n1', email: 'alice@example.com', subscribedAt: '2026-06-14T16:07:04Z', privacyAccepted: true },
+    { id: 'n2', email: 'bob@example.com', subscribedAt: '2026-06-12T10:22:00Z', privacyAccepted: true },
+    { id: 'n3', email: 'carol@example.com', subscribedAt: '2026-06-10T08:00:00Z', privacyAccepted: true },
+    { id: 'n4', email: 'dave@example.com', subscribedAt: '2026-06-01T14:30:00Z', privacyAccepted: true }
   ],
   company: [
     {
       id: 'singleton',
-      legalName: 'Dionisi S.a.s.',
-      vatNumber: '07488230017',
+      legalName: 'Acme Corp',
+      vatNumber: '01234567890',
       taxCode: '',
-      address: 'Via Federico Patetta, 23/a',
-      city: 'Torino',
-      province: 'TO',
-      zip: '10155',
-      phone: '+39 011 305 3736',
-      email: 'vendite@dionisi-to.it',
-      website: 'https://rent.dionisigroup.it',
+      address: '1 Example Avenue',
+      city: 'Metropolis',
+      province: 'MP',
+      zip: '00100',
+      phone: '+39 06 1234567',
+      email: 'sales@acme.example',
+      website: 'https://acme.example',
       facebook: '',
       instagram: '',
       linkedin: '',
@@ -115,6 +115,6 @@ export const seed: Record<string, Row[]> = {
 }
 
 export const mockTenants = [
-  { id: 't1', name: 'Dionisi Torino' },
-  { id: 't2', name: 'Dionisi Milano' }
+  { id: 't1', name: 'Acme HQ' },
+  { id: 't2', name: 'Acme West' }
 ]

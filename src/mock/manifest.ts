@@ -1,6 +1,6 @@
 /**
- * Mock manifest modelled on the Dionisi Rent & Service backoffice
- * (BACKOFFICE_BLUEPRINT.md). This mirrors what the BE emits: pure DATA + STRUCTURE
+ * Mock manifest for a brand-neutral Acme Corp rental backoffice sample.
+ * This mirrors what the BE emits: pure DATA + STRUCTURE
  * (fields = name/type/enum/validation/relation/image, capabilities, search,
  * defaultSort) — NO presentation. All presentation & ordering (table columns, card
  * slots, form groups, filterable/sortable) lives in `mock/overrides.ts`, merged on
