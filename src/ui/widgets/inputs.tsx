@@ -44,19 +44,43 @@ function TextWidget({ field, value, onChange, disabled, t }: WidgetProps) {
   )
 }
 
+// A numeric field rendered as a plain text input (inputMode drives the mobile
+// keypad) — NOT `type="number"`. The native number input adds up/down spinners
+// that increment on scroll-wheel or a tiny mouse drag inside the field, silently
+// corrupting the value; a text input avoids that entirely. A local string mirror
+// lets the user type intermediate states (a trailing `.`, an empty field) while
+// the parsed number is what flows out via onChange.
 function NumberWidget({ field, value, onChange, disabled, t }: WidgetProps) {
-  const step = field.validation?.step
+  const isInt = field.type === 'integer'
+  const [text, setText] = useState<string>(value == null ? '' : String(value))
+  const [focused, setFocused] = useState(false)
+  // Resync the visible text to the external value while not editing (e.g. a
+  // server-derived price, a form reset, or switching records).
+  useEffect(() => {
+    if (!focused) setText(value == null ? '' : String(value))
+  }, [value, focused])
+
+  const commit = (raw: string) => {
+    setText(raw)
+    if (raw === '') return onChange(null)
+    if (isInt) {
+      const intPart = raw.split(/[.,]/)[0].replace(/\D/g, '')
+      return onChange(intPart === '' ? null : parseInt(intPart, 10))
+    }
+    const n = parseFloat(raw.replace(',', '.'))
+    if (!Number.isNaN(n)) onChange(n)
+  }
+
   return (
     <Input
-      type="number"
-      step={step}
-      value={value ?? ''}
+      type="text"
+      inputMode={isInt ? 'numeric' : 'decimal'}
+      value={text}
       disabled={disabled}
       placeholder={field.form?.placeholder ? t(field.form.placeholder) : undefined}
-      onChange={(e) => {
-        const v = e.target.value
-        onChange(v === '' ? null : field.type === 'integer' ? parseInt(v, 10) : parseFloat(v))
-      }}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onChange={(e) => commit(e.target.value)}
     />
   )
 }
