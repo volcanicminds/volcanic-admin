@@ -30,6 +30,8 @@ export { RichTextWidget } from './widgets/richtext'
 export { ConfirmDialog } from './components/ConfirmDialog'
 export type { ConfirmDialogProps } from './components/ConfirmDialog'
 export { UnsavedChangesGuard } from './components/UnsavedChangesGuard'
+export { ImagePreviewDialog } from './components/ImagePreviewDialog'
+export type { ImagePreviewDialogProps } from './components/ImagePreviewDialog'
 
 export { notificationProvider } from './notification'
 export { Toaster } from './components/ui/sonner'

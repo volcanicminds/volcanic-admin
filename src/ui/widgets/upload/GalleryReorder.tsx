@@ -20,6 +20,7 @@ import { Input } from '@/ui/components/ui/input'
 import { Badge } from '@/ui/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { interpolatePath } from '@/engine'
+import { ImagePreviewDialog } from '@/ui/components/ImagePreviewDialog'
 import type { WidgetProps } from '../types'
 import { uploadFiles, sendJson, absoluteUrl, imagesFromClipboard } from './rest'
 
@@ -58,6 +59,7 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
   const [items, setItems] = useState<GalleryItem[]>(() => normalize(value))
   const [busy, setBusy] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const [preview, setPreview] = useState<{ src: string; alt: string } | null>(null)
   const dragIndex = useRef<number | null>(null)
 
   const accept = field.image?.accept?.join(',')
@@ -254,7 +256,13 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
               className="space-y-2 rounded-md border p-2"
             >
               <div className="relative aspect-video overflow-hidden rounded bg-muted/30">
-                <img src={absoluteUrl(apiUrl, it.url)} alt={it.altView ?? ''} className="h-full w-full object-cover" />
+                <img
+                  src={absoluteUrl(apiUrl, it.url)}
+                  alt={it.altView ?? ''}
+                  className="h-full w-full cursor-zoom-in object-cover"
+                  title={t('upload.preview')}
+                  onClick={() => setPreview({ src: absoluteUrl(apiUrl, it.url), alt: it.altView ?? '' })}
+                />
                 {i === 0 && (
                   <Badge className="absolute left-1 top-1 gap-1">
                     <Star className="h-3 w-3" /> {t('upload.cover')}
@@ -279,6 +287,13 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
           ))}
         </div>
       )}
+
+      <ImagePreviewDialog
+        open={preview != null}
+        onOpenChange={(o) => !o && setPreview(null)}
+        src={preview?.src}
+        alt={preview?.alt}
+      />
     </div>
   )
 }

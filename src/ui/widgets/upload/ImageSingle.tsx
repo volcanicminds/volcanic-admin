@@ -17,6 +17,7 @@ import { Upload, X } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { cn } from '@/lib/utils'
 import { interpolatePath } from '@/engine'
+import { ImagePreviewDialog } from '@/ui/components/ImagePreviewDialog'
 import type { WidgetProps } from '../types'
 import { uploadFiles, sendJson, absoluteUrl, imagesFromClipboard } from './rest'
 
@@ -28,6 +29,7 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
   const { identifier } = useResource()
   const [busy, setBusy] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   const accept = field.image?.accept?.join(',')
   const maxSize = field.image?.maxSize
@@ -120,7 +122,13 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
         {busy ? (
           <span className="text-xs text-muted-foreground">…</span>
         ) : src ? (
-          <img src={src} alt="" className="h-full w-full object-contain" />
+          <img
+            src={src}
+            alt=""
+            className="h-full w-full cursor-zoom-in object-contain"
+            title={t('upload.preview')}
+            onClick={() => setPreviewOpen(true)}
+          />
         ) : (
           <span className="px-2 text-center text-xs text-muted-foreground">
             {deferred ? t('upload.deferredHint') : t('upload.hint')}
@@ -151,6 +159,8 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
           </Button>
         )}
       </div>
+
+      <ImagePreviewDialog open={previewOpen} onOpenChange={setPreviewOpen} src={src} alt="" />
     </div>
   )
 }
