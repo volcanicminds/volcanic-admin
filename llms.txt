@@ -1,0 +1,409 @@
+# @volcanicminds/admin — LLM guide
+
+> Manifest-driven backoffice **engine** for the Volcanic Minds ecosystem.
+> Codename `phoenix`. Built on **Refine** (headless data/auth/access-control layer)
+> + **shadcn/ui** (Radix + Tailwind). It renders a full admin panel — list / create /
+> edit / show, filters, global search, pagination, XLS import/export, auth + MFA,
+> multi-tenant — from a **manifest** emitted at runtime by a `@volcanicminds/backend`
+> admin capability at `GET /admin/manifest`.
+>
+> This file is an accurate, code-verified reference for an AI agent (or Context7)
+> that needs to consume or extend the engine. When docs and code disagree, the code
+> wins — everything here was checked against `src/`. The engine is **domain-agnostic**;
+> the bundled `src/mock` "Acme Corp" sample is a brand-neutral demo, not part of the API.
+
+## Index
+
+1. What it is (architecture)
+2. Consuming it (`<VolcanicAdmin>`)
+3. The manifest v2 contract (DATA + STRUCTURE only)
+4. The overrides model (`ManifestOverrides<GeneratedFieldMap>`)
+5. Widgets (built-in, type defaults, custom)
+6. Runtime behaviors
+7. Typed field names & the pull CLI
+8. Ecosystem note
+
+---
+
+## 1. What it is (architecture)
+
+The backend **describes** (compiles a manifest of every administrable resource); the
+admin **builds itself** by reading that manifest. Nobody hand-draws the screens. The
+project then **refines** with targeted overrides (labels, ordering, widgets, theme).
+
+The repo is both a **library** (published to npm as `@volcanicminds/admin`) and a
+**demo app** (`src/App.tsx` + `src/mock`) used to develop it. Internal split:
+
+```
+src/
+  engine/   headless, UI-agnostic — NEVER imports ui/
+    types/manifest.ts     manifest spec v2 (the contract) + override types live in merge.ts
+    types/model.ts        interpreted resource model the UI consumes
+    interpreter.ts        manifest → AdminModel + Refine resources (toRefineResources)
+    merge.ts              mergeManifest(generated, overrides) + ManifestOverrides types
+    magic-query.ts        Refine filters/sorters → Magic Query string + v-* headers
+    providers/            data · auth · accessControl · tenant · errors
+    auth/                 auth client (login/refresh/logout + MFA), tokenStore
+    registry.tsx          override registry (id → component: widget | view | action)
+    i18n.tsx              i18n-key → label resolution (defaultDictionaries)
+    manifest.tsx          fetch + interpret + model context (ManifestProvider, useModel)
+  ui/       shadcn implementation — consumes engine, swappable
+    components/ui/         shadcn primitives (Radix)
+    widgets/               input/display widgets per field type (+ upload, richtext)
+    generators/            ListView(Table/Cards) · AutoForm · ShowView · SingletonView · routes · FilterBar · ListIO
+    layout/                sidebar (grouped) · tenant switcher · shell
+    views/                 login / forgot-password / reset-password / account
+  mock/     in-memory backend (brand-neutral Acme Corp) for dev without a server
+  VolcanicAdmin.tsx        the public root component
+  index.ts                 library entry: re-exports engine + ui + <VolcanicAdmin>
+```
+
+The **engine** interprets the manifest into an `AdminModel` and exposes Refine hooks;
+the **ui** renders it. The engine has no shadcn dependency, so the ui is replaceable.
+The publishable build (`vite.config.lib.ts`) explicitly **excludes** `src/mock/**`,
+`src/App.tsx`, `src/main.tsx`.
+
+Stack: Node >= 24, ESM, React 18, TypeScript. Refine/React/react-router/react-hook-form
+are **peer dependencies** (the consumer app provides them).
+
+---
+
+## 2. Consuming it (`<VolcanicAdmin>`)
+
+Install (peers must be provided by the app):
+
+```bash
+npm i @volcanicminds/admin \
+  react react-dom react-router \
+  @refinedev/core @refinedev/react-router @refinedev/react-hook-form react-hook-form
+```
+
+Minimal client (usually one file). Importing `@volcanicminds/admin/styles.css` gives
+the prebuilt theme — **no Tailwind setup needed** in the consumer:
+
+```tsx
+import { createRoot } from 'react-dom/client'
+import { VolcanicAdmin } from '@volcanicminds/admin'
+import '@volcanicminds/admin/styles.css'
+import { dictionaries } from './i18n'
+
+createRoot(document.getElementById('root')!).render(
+  <VolcanicAdmin
+    apiUrl={import.meta.env.VITE_API_BASE_URL} // backend exposing /admin/manifest
+    authMode="cookie"
+    dictionaries={dictionaries}
+  />
+)
+```
+
+### Key `VolcanicAdminProps` (from `src/VolcanicAdmin.tsx`)
+
+| Prop | Type | Purpose |
+|---|---|---|
+| `apiUrl` | `string` | Backend base URL. Fallback `http://0.0.0.0:2230`. Used to fetch the manifest and mount CRUD. |
+| `authMode` | `'cookie' \| 'bearer'` | Auth transport. Defaults to `manifest.auth.mode`. |
+| `basename` | `string` | Router basename when mounted under a sub-path. |
+| `manifest` | `Manifest` | Static manifest — skips fetching. |
+| `loadManifest` | `() => Promise<Manifest>` | Custom loader (default: `GET ${apiUrl}/admin/manifest`, `credentials: 'include'`). |
+| `apiBasePath` | `string` | Base path for CRUD calls. Default `/admin` (generic CRUD); set `''` for hand-written routes. |
+| `manifestOverrides` | `ManifestOverrides<any>` | Project overrides merged onto the fetched/static manifest by (resource, field). See §4. |
+| `dataProvider` | `DataProvider` | Override the Refine data provider (e.g. an in-memory mock). |
+| `authClient` | `AuthClient` | Override the auth client (e.g. a mock). |
+| `dictionaries` | `Dictionaries` | i18n label maps, keyed by locale then i18n key. |
+| `defaultLocale` / `locales` | `string` / `string[]` | Default from `manifest.i18n`. |
+| `overrides` | `{ widget?, view?, action? }` | Components keyed by registry id (see §5, §4). |
+| `theme` | `AdminTheme` | Theme tokens injected as CSS variables (HSL channels, e.g. `"221 83% 53%"`), with a `dark` sub-block. No Tailwind needed. |
+| `branding` | `AdminBranding` | Logo + app name in the sidebar header. |
+| `plugins` | `AdminPlugin[]` | Composable bundles of `widgets`/`views`/`actions`/`routes`/`dictionaries`/`theme`/`branding`. Direct props win on key collisions. `defineAdminPlugin()` is the typed authoring helper. |
+| `fetchTenants` | `() => Promise<TenantOption[]>` | Multi-tenant list loader. Default `GET ${apiUrl}${tenancy.listEndpoint ?? '/tenants'}`. |
+| `routes` | `AdminCustomRoute[]` | Extra screens (dashboards, custom pages). `{ path, element, index?, nav? }` — `index:true` sets the home route; `nav` adds a sidebar entry. |
+| `loading` | `ReactNode` | Rendered while the manifest loads. |
+| `toastPosition` | position enum | Default `'bottom-right'` (keeps the top-right action area clear). |
+
+### Data source resolution
+
+- `manifest` prop → static (no fetch); else `loadManifest`; else fetch `${apiUrl}/admin/manifest`.
+- `dataProvider`/`authClient` props override; otherwise the real Volcanic providers are
+  built from `apiUrl` + `authMode`.
+- **mock vs rest** (demo app, via `VITE_ADMIN_SOURCE`): `mock` uses `src/mock` (static
+  manifest + in-memory data/auth providers, no backend); `rest` fetches the live manifest
+  and talks to `/admin/<path>` using Magic Query and `v-*` pagination headers. Consumers
+  replicate this by passing `manifest`/`dataProvider`/`authClient` for mock, or nothing for rest.
+
+Refine is configured with `syncWithLocation`, `warnWhenUnsavedChanges`,
+`disableTelemetry`, and `mutationMode: 'optimistic'` (edits/deletes apply instantly, roll
+back on error). Routes are wrapped in `<Authenticated>`; unauthenticated users hit `/login`.
+
+---
+
+## 3. The manifest v2 contract (DATA + STRUCTURE only)
+
+Source of truth: `src/engine/types/manifest.ts` + `manifest.v2.schema.json`.
+**Hard principle** (`be-data-only`): the backend emits **only data + structure — never
+presentation, ordering, or literal i18n text**. Every human-facing label is an **i18n KEY**,
+resolved by the admin's dictionaries. Presentation and ordering (§4 view blocks) are authored
+in the project overrides, not by the BE.
+
+### Top level (`Manifest`)
+
+```ts
+{ version: 2, generatedAt: string,
+  i18n: { defaultLocale, locales[] },
+  auth: { mode: 'cookie'|'bearer', endpoints: { login, refresh, logout, ... } },
+  tenancy: { mode: 'single'|'multi', switchable?, header?, listEndpoint? },
+  groups: GroupSpec[],                 // sidebar sections (name, label key, icon?, order?)
+  enums: Record<string, EnumOption[]>, // shared enums (value, label key, color?)
+  resources: ResourceSpec[],
+  capabilities?: CapabilitySpec[] }    // standalone operation sections (not bound to a resource)
+```
+
+v2 unifies v1's `permissions` + boolean `capabilities` + `actions` into a single
+`capabilities: CapabilitySpec[]` (roles declared in one place).
+
+### `ResourceSpec` (structure + hints)
+
+`name`, `path`, `label:{singular,plural}` (keys), `icon?`, `group?`, `order?`, `idField?`,
+`titleField?` (`string|string[]`, joined with spaces), `subtitleField?`, `tenantScoped?`,
+`softDelete?`, `singleton?`, `capabilities: CapabilitySpec[]`, `defaultSort?: SortSpec[]`,
+`search?: SearchSpec` (presence enables the global-search box; `{ fields[], operator? }`,
+emitted as the synthetic `q` param → BE expands to an OR over the fields),
+`clonable?` (default true where create is allowed), `cloneReset?` (values forced on a clone),
+`fields: FieldSpec[]`, plus the override-populated `list?`/`form?` view blocks (§4) and legacy
+`views?`. Resource hints (`group`, `titleField`, `subtitleField`, `search`) are the small
+"assembly hints" the BE is allowed to emit.
+
+### `CapabilitySpec` (unified CRUD verb + custom action)
+
+`name` (unique in scope), `kind: 'list'|'read'|'create'|'update'|'delete'|'action'`,
+`method`, `path` (real endpoint binding), `roles: string[]`, `enabled?`. Action-only
+presentation/behavior: `label?`, `icon?`, `target?: ('row'|'bulk'|'collection')[]`,
+`payload?` (static body merge), `confirm?`/`confirmText?`, `visibleWhen?` (field→operator→value
+row condition), `refresh?`, `download?` (mime for file responses), `component?` (registry id,
+`null` → generic handler), `input?: ActionInput` (prompt fields sent as the body, e.g. set
+password). The manifest is **role-filtered server-side**: presence of a capability means the
+current user may perform it, so the UI gates purely on presence.
+
+### `FieldSpec` (DATA + STRUCTURE only)
+
+```ts
+{ name, type, label?, required?, readOnly?, writeOnly?, nullable?, default?, help?,
+  enum?: EnumOption[], enumRef?: string,          // enum: inline OR ref into Manifest.enums
+  relation?: RelationSpec, image?: ImageSpec, validation?: ValidationSpec,
+  // semantic collection capabilities (shared by table, card AND filters):
+  filterable?, sortable?, operators?: FilterOperator[] }
+```
+
+- `type` (`FieldType`): `string | text | textarea | richtext | integer | number | boolean |
+  date | datetime | enum | relation | email | url | uuid | json | image | file`.
+- `enum` + `color` on `EnumOption` is a UI hint for badges/chips (e.g. `"green"`, `"amber"`).
+- `RelationSpec`: `{ resource, kind?, titleField?, foreignKey?, inverse? }`. The BE emits it
+  schema-only (bare `resource`/`titleField`); `kind`/`foreignKey` typically come via overrides.
+  The relation object is **output-only**; the form binds to its `foreignKey` (e.g. `brandId`).
+- `ImageSpec`: `multiple?`, `ordered?`, `fit?: 'cover'|'contain'` (contain for logos/icons),
+  `cover?: 'first'|'flag'`, `altField?`, `accept?`, `maxSize?`, `storage?`, and per-op
+  `endpoints?: { upload?, reorder?, update?, remove? }`.
+- `ValidationSpec`: `required`, `min`, `max`, `minLength`, `maxLength`, `pattern`, `step`.
+- **Output-only fields**: the BE marks read-derived fields `readOnly` (they render disabled
+  and are dropped from the write payload). `writeOnly` fields (e.g. `password`) live only in
+  the write body — never read/listed, and excluded from table columns and bulk XLS import/export.
+
+`FilterOperator` (Magic Query subset exposed to the UI; `raw` is never exposed): `eq, neq,
+contains, containsi, ncontains, ncontainsi, starts, startsi, ends, endsi, gt, ge, lt, le,
+between, in, nin, null, notNull`.
+
+The engine **interprets** the manifest (`interpretManifest`) into an `AdminModel` /
+`ResourceModel` (`src/engine/types/model.ts`): enums resolved, table columns / card slots /
+form sections precomputed with fallbacks, `hasAction()`/`roles()`/`actions` derived from
+capabilities. `toRefineResources()` turns it into Refine's resource list (singletons expose
+only an edit screen; others get list/create/edit/show sorted by group order then resource order).
+
+---
+
+## 4. The overrides model (`ManifestOverrides<GeneratedFieldMap>`)
+
+Source: `src/engine/merge.ts`. The project keeps a hand-edited overrides object merged onto
+the generated manifest by **canonical identity — resources and fields by `name`** — so
+overrides survive regeneration. `mergeManifest(generated, overrides)` runs at build/runtime.
+
+```ts
+interface ManifestOverrides<FM extends FieldMap = FieldMap> {
+  i18n?, auth?, tenancy?, enums?                // top-level patches (shallow / deep-merge)
+  groups?: GroupSpec[]                          // merge by name + append new
+  cardDefaults?: { cardColumns?, cardMinWidth?, cardMaxWidth? }  // fills card sizing where a resource defines none
+  resources?: { [R in keyof FM]?: ResourceOverride<FM[R]> }      // patch by resource name
+  addResources?: ResourceSpec[]
+  excludeResources?: (keyof FM)[]
+}
+```
+
+`ResourceOverride<F>` (per-resource, `F` = that resource's field-name union):
+`titleField`/`subtitleField`, `fields?: Record<F, FieldOverride>` (patch intrinsics — deep-merge
+by name), `addFields?`, `excludeFields?: F[]`, `capabilities?: Record<name, CapabilityOverride>`
+(deep-merge; unknown names are added), `excludeCapabilities?`, plus the two **ordered view blocks**
+`list?: ListViewSpec<F>` and `form?: FormViewSpec<F>`.
+
+Merge semantics: resource props patch; `fields`/`capabilities` deep-merge by name;
+`addFields`/`addResources` append; `exclude*` remove; the `list`/`form` blocks **deep-merge
+their scalars but replace their arrays wholesale** (columns, groups, fields).
+
+### The ordered view blocks (this is where presentation lives)
+
+**Array order IS render order.** When an array is present it is the **authoritative allowlist**:
+a field not listed does not appear in that view. When a block is absent the engine derives a
+sensible default from the resource fields (schema order; heavy/writeOnly types excluded from tables).
+
+`ListViewSpec<F>` (collection view — shared toolbar of search/sort/filter over table & card layouts):
+- `layouts?: ('table'|'card')[]` — more than one shows a layout toggle.
+- `defaultLayout?` — falls back to first of `layouts`, else `'table'`.
+- `sort?: F[]` — field names in the "sort by" control (a relation tie-breaks by row title).
+  Absent → the sortable columns.
+- `table?: { columns?: ColumnSpec<F>[] }` — `ColumnSpec = { field, label?, align?, width? }`.
+- `card?: CardViewSpec<F>`:
+  - grid: `minWidth`/`maxWidth` (setting `maxWidth` enables fluid auto-fill mode) OR fixed
+    `columns`; `align?: 'left'|'center'`.
+  - slots: `image?: F`, `title?: F|F[]`, `subtitle?: F|F[]` (arrays joined with spaces),
+    `badges?: F[]` (enum chips, in order), `body?: { field, label? }[]` (extra labeled rows),
+    `highlight?: F` (boolean field → "featured" accent ring + star). Omitted slots default:
+    image → first image field, title → `titleField`, subtitle → `subtitleField`.
+
+`FormViewSpec<F>` (create/edit **and** show layout):
+- `columns?: number` — default group-grid column count (clamped 1–4, default 2). Image/richtext
+  and `colSpan>1` fields still span the full row.
+- `groups?: FormGroupSpec<F>[]` — `{ name, label?, columns?, fields: FormFieldSpec<F>[] }`.
+  Each group is a sidebar/card section; its `fields` array is the authoritative allowlist for it.
+
+`FormFieldSpec<F>` (a field placed in a group):
+- `field: F` (required reference), `label?`, `widget?` (registry/built-in id or `'auto'`),
+  `colSpan?`, **`colStart?`** (1-based grid column the field is forced to start at — leaves
+  earlier cells empty, wraps to next row if taken; used to break rows / align columns),
+  **`rowSpan?`** (grid rows the field spans, e.g. a tall textarea beside stacked fields),
+  `visibleOn?: 'create'|'edit'` (restrict to one form mode; omitted = both), `placeholder?`,
+  `suggestions?: (string|number)[]` (non-binding options for the `combobox` widget).
+
+The interpreter overlays each `FormFieldSpec` onto a clone of the resolved field as
+`field.form?.*`, so widgets read `field.form?.widget`, `field.form?.colSpan`, etc.
+
+`FieldOverride` patches **intrinsics only** (`Partial<FieldSpec>` minus name; `relation`/`image`
+are `Partial`, `validation` is full). Presentation is never patched on the field — it goes in
+the view blocks.
+
+---
+
+## 5. Widgets
+
+Source: `src/ui/widgets/inputs.tsx` (`FieldInput`, `pickWidget`), `defaults.ts`, `upload/`,
+`richtext/`, `ReferenceSelect.tsx`. Widgets are controlled components:
+`WidgetProps = { field, value, onChange, disabled?, t }`.
+
+### Selection order (in `FieldInput`)
+
+1. **Override registry** by id — `field.form?.widget` resolved as a registered `'widget'` component.
+2. **Built-in widget by name** — for `field.form?.widget` in `{ multiselect, combobox }`.
+3. **Type default** — richtext with no explicit widget resolves the registered `rich-text`
+   editor; otherwise `pickWidget(field.type)`.
+
+### Built-in by name (set `form.widget` on the field entry)
+
+| id | Widget |
+|---|---|
+| `multiselect` | Checkbox list for an array-valued `enum` field (value is `string[]`). |
+| `combobox` | Editable select — free-text input + dropdown of `suggestions` (pick or type). Integer/number-aware. |
+| `image-single` | Single-image upload (from `upload/`). |
+| `gallery-reorder` | Multi-image gallery with drag reorder (from `upload/`). |
+| `rich-text` | TipTap editor, lazy-loaded (kept out of the main bundle). |
+| `password` | (via `TextWidget`) renders `type="password"`. |
+
+### Type defaults (`pickWidget`)
+
+| Field type | Default widget |
+|---|---|
+| `relation` | `ReferenceSelect` (server-sorted by the relation `titleField`; binds the `foreignKey`) |
+| `text` / `textarea` | `Textarea` |
+| `richtext` | registered `rich-text` if present, else `Textarea` |
+| `integer` / `number` | `NumberWidget` — a **plain text input, NOT `type="number"`** (no spinner, so scroll/drag can't corrupt the value); `inputMode` numeric/decimal, local string mirror, parses out int/float |
+| `boolean` | `Switch` |
+| `enum` | `Select` (single) |
+| `date` / `datetime` | native `date` / `datetime-local` input (ISO normalized) |
+| `json` | monospace `Textarea` (parses JSON, falls back to raw string) |
+| `image` / `file` | placeholder prompting a dedicated upload widget override |
+| `email` / `url` / `string` / default | `Input` (`type` from field type) |
+
+Validation rules are derived from `field.required`/`validation` into react-hook-form rules
+(required, min/max, minLength/maxLength, pattern). Errors outline the actual control.
+
+### Registering custom widgets
+
+Pass components keyed by id via `overrides.widget` (or a plugin's `widgets`). They are merged
+over `defaultWidgets` in `VolcanicAdmin`, so a project can override any built-in id (e.g. supply
+its own `rich-text` or `image-single`) by registering the same id. Reference the id from a form
+entry's `widget`. The registry has three kinds: `widget`, `view`, `action`.
+
+---
+
+## 6. Runtime behaviors
+
+- **Sticky toolbar**: both the create/edit form (`AutoForm`) and the show view (`ShowView`)
+  pin a title + action bar (Cancel/Save, or Back/Clone/Edit) flush under the app topbar while
+  the body scrolls.
+- **Save → detail**: create/edit forms redirect to the record's **show** view on success
+  (`redirect` prop; singletons stay on their fixed edit path).
+- **readOnly / output-only fields** render **disabled** and are **never submitted**: the form
+  payload is built only from editable fields, skipping `readOnly` and image/file fields that
+  have their own upload `endpoints` (managed out-of-band, not in the body). Relations inherit
+  writability/required from their `foreignKey`, so the FK is editable and actually submitted.
+- **Server errors** keep the user on the form (data provider throws → no redirect); the message
+  surfaces in a banner scrolled into view. Invalid submits scroll the first error into view.
+- **Clone** (`CopyPlus`): opens the create form pre-seeded with the record's writable values
+  (relations mapped to FKs, upload fields skipped), then `spec.cloneReset` forces any resets.
+- **Magic Query** (`buildMagicQuery`): Refine filters/sorters → `field:operator=value`,
+  `sort=field:order`, `page`, `pageSize`. Refine operators map to MQ ops (`contains`→`containsi`,
+  `containss`→`contains`, `lte`→`le`, etc.); `raw` is never produced. The synthetic `q` field
+  becomes a raw `q=` global-search param. `null`/`notNull` carry boolean intent.
+- **Pagination headers** (`readTotal`): total record count read from the `v-total` (or `v-count`)
+  response header.
+- **XLS** (`ListIO`, lazy `xlsx`): export current list to `.xlsx`; import = bulk edit (each row
+  with an `id` updates that record). writeOnly fields are excluded.
+- **Auth + MFA** (`src/engine/auth/client.ts`): login may return an MFA-pending body
+  (`mfaRequired` / `mfaSetupRequired` + `tempToken`); the client then drives
+  `/auth/mfa/{setup,enable,verify,disable}` with the temp token until TOTP is verified. Token
+  transport is cookie (HttpOnly) or bearer per `authMode`; refresh/logout via manifest endpoints.
+- **Multi-tenant**: `TenantProvider` + a tenant switcher; the selected tenant's headers
+  (`tenantStore.headers()`) ride every data request.
+
+---
+
+## 7. Typed field names & the pull CLI
+
+`volcanic-admin-pull` (bin → `scripts/pull-manifest.mjs`) snapshots the manifest into a project:
+
+```bash
+volcanic-admin-pull --url http://localhost:2230 [--token <bearer>] [--out ./src]
+volcanic-admin-pull --from ./manifest.json [--out ./src]
+```
+
+It validates the fetched manifest against `manifest.v2.schema.json` (Ajv), then writes:
+
+- **`<out>/manifest.generated.ts`** — always overwritten, never hand-edited. Exports
+  `generatedManifest` **and** `export type GeneratedFieldMap` = a `{ resourceName: 'field1' |
+  'field2' | ... }` type alias (one entry per resource; `never` if no fields).
+- **`<out>/manifest.overrides.ts`** — scaffolded once if absent (kept thereafter). Your
+  customizations: `export const overrides: ManifestOverrides<GeneratedFieldMap> = {}`.
+
+Typing the overrides against `GeneratedFieldMap` gives **compile-time, per-resource field-name
+autocomplete and typo checking** (every `field:`/`excludeFields`/`fields` key is checked against
+the real field union). `GeneratedFieldMap` is a `type` alias (not `interface`) so its implicit
+index signature satisfies the `FieldMap` constraint. Wire it up by passing `overrides` to
+`<VolcanicAdmin manifestOverrides={overrides} manifest={generatedManifest} />` (or let the app
+fetch the manifest live and pass only `manifestOverrides`).
+
+---
+
+## 8. Ecosystem note
+
+`@volcanicminds/admin` pairs with **`@volcanicminds/backend`** (codename `rome`), whose core
+HTTP/Fastify layer plus data layer (subpath `@volcanicminds/backend/typeorm`, Magic Query +
+multi-tenant) emit the `GET /admin/manifest` and serve the generic CRUD under `/admin/<path>`
+using Magic Query + `v-*` pagination headers. The backend emits **only data + structure**; all
+presentation, ordering, i18n text, theming, and custom widgets live in this admin (via overrides,
+dictionaries, theme tokens, and the registry). The bundled `src/mock` (Acme Corp) is a
+brand-neutral development sample and is excluded from the published build.
