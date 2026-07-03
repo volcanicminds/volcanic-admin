@@ -1,65 +1,65 @@
 # Manifest & Engine — Design (v2)
 
-> Documento **unico** di design del backoffice manifest-driven dell'ecosistema Volcanic Minds. Definisce il
-> **contratto** (il Manifest v2), il **lifecycle** (come nasce, dove vive, come si consuma), l'**architettura
-> engine/ui** (Refine + shadcn), il **modello di override** e il **multi-tenant**. Fonde e sostituisce il
-> precedente `VOLCANIC_ADMIN_BLUEPRINT.md` (ritirato), riallineato alle decisioni v2.
-> Documento gemello operativo: `MANIFEST_PLAN.md` (piano a task). In caso di conflitto col codice, **vince il codice**.
+> **Single** design document for the manifest-driven backoffice of the Volcanic Minds ecosystem. It defines the
+> **contract** (Manifest v2), the **lifecycle** (how it is born, where it lives, how it is consumed), the
+> **engine/ui architecture** (Refine + shadcn), the **override model** and **multi-tenancy**. It merges and replaces
+> the previous `VOLCANIC_ADMIN_BLUEPRINT.md` (retired), realigned to the v2 decisions.
+> Operational twin document: `MANIFEST_PLAN.md` (task plan). In case of conflict with the code, **the code wins**.
 >
-> **Stato**: design. L'engine admin implementa oggi la **v1** (`src/engine/types/manifest.ts`); questo documento
-> descrive la **v2** target. La migrazione v1→v2 dell'engine è il task ADM-1 del piano.
+> **Status**: design. The admin engine today implements **v1** (`src/engine/types/manifest.ts`); this document
+> describes the target **v2**. The v1→v2 migration of the engine is task ADM-1 of the plan.
 
 ---
 
-## 0. Decisioni fondative (v2)
+## 0. Foundational decisions (v2)
 
-- **Base frontend**: **Refine** (MIT, headless) + **shadcn/ui**. Identità nostra, ownable.
-- **Sorgente schema**: **Manifest Volcanic** emesso dal backend, derivato **solo da route + JSON Schema** (vedi §3).
-- **Contratto = Manifest v2**: array unificato **`capabilities`** (`CapabilitySpec[]`) che collassa i v1
-  `permissions` + `capabilities`(boolean) + `actions`; `roles` in un posto solo (decisione D1).
-- **Scope**: `resources[]` (CRUD) **+** `capabilities[]` top-level (sezioni *operation* standalone) (D2).
-- **Generazione schema-only**: il generatore **non** legge il data layer (niente entity-metadata). Conseguenza:
-  `relation` magra (no `kind`/`foreignKey`), enum solo se nello schema; il di più va negli overrides (D3).
-- **Sensitive graduata**: `password` write-only; `token`/`mfaSecret`/`externalId` esclusi sempre (D4).
-- **Override**: structural hints lato BE in `config` del `routes.ts` + split **generated/overrides** lato admin
-  (niente `defineAdminResource`) (D5).
-- **Niente autoCrud**: il manifest descrive **endpoint hand-written reali** (`/vehicles`, …), non `/admin/<resource>`
-  auto-montati. AutoCrud resta capability futura separata (D6).
-- **Consumo build-time + snapshot**, manifest **full** con `roles[]` dichiarati (non runtime per-ruolo) (D7).
-- **Packaging**: un solo pacchetto frontend `@volcanicminds/admin` (interno `engine` headless + `ui` shadcn); la
-  generazione manifest è una **capability opzionale di `@volcanicminds/backend`**, non un secondo pacchetto.
-- **Lingua codice**: tutto inglese (entità, field, enum, path, chiavi manifest). Etichette UI via i18n.
-
----
-
-## 1. Cos'è il manifest
-
-Un **descrittore JSON** dell'API amministrabile, prodotto dal backend e consumato dall'admin per **generare il
-pannello senza codice**. È l'altra proiezione della stessa sorgente che alimenta Swagger: `route + schema`. Una
-sola manutenzione, due output (OAS per gli sviluppatori, manifest per l'admin).
-
-Principi invarianti:
-
-- **Identità canonica del campo = `(resource, field)`**, non `(schema, property)`. Le N proiezioni schema
-  (body/response/public) collassano sull'identità canonica.
-- **Ogni label è una chiave i18n**, mai testo letterale. La traduzione è dato di progetto/admin.
-- **Confine di responsabilità**: il BE descrive *struttura, dominio, sicurezza*; l'admin decide *presentazione*.
-
-Differenza vs AdminJS (DB-coupled): lì si leggevano i model ORM bypassando la logica. Qui la ricchezza è derivata
-dai metadati ma **consegnata via API/manifest**: il motore non tocca il DB, rispetta service layer, Magic Query,
-multi-tenancy, sensitive fields, permessi.
+- **Frontend base**: **Refine** (MIT, headless) + **shadcn/ui**. Our own identity, ownable.
+- **Schema source**: **Volcanic Manifest** emitted by the backend, derived **only from route + JSON Schema** (see §3).
+- **Contract = Manifest v2**: unified array **`capabilities`** (`CapabilitySpec[]`) that collapses the v1
+  `permissions` + `capabilities`(boolean) + `actions`; `roles` in a single place (decision D1).
+- **Scope**: `resources[]` (CRUD) **+** top-level `capabilities[]` (standalone *operation* sections) (D2).
+- **Schema-only generation**: the generator does **not** read the data layer (no entity-metadata). Consequence:
+  lean `relation` (no `kind`/`foreignKey`), enums only if in the schema; anything beyond goes into the overrides (D3).
+- **Graduated sensitivity**: `password` write-only; `token`/`mfaSecret`/`externalId` always excluded (D4).
+- **Override**: structural hints on the BE side in `config` of `routes.ts` + **generated/overrides** split on the admin side
+  (no `defineAdminResource`) (D5).
+- **No autoCrud**: the manifest describes **real hand-written endpoints** (`/vehicles`, …), not `/admin/<resource>`
+  auto-mounted ones. AutoCrud remains a separate future capability (D6).
+- **Build-time consumption + snapshot**, **full** manifest with declared `roles[]` (not runtime per-role) (D7).
+- **Packaging**: a single frontend package `@volcanicminds/admin` (internal headless `engine` + shadcn `ui`); manifest
+  generation is an **optional capability of `@volcanicminds/backend`**, not a second package.
+- **Code language**: everything in English (entities, fields, enums, paths, manifest keys). UI labels via i18n.
 
 ---
 
-## 2. Contratto v2 (tipi)
+## 1. What the manifest is
 
-> **Il manifest emesso è DATA + STRUCTURE only.** Il BE emette i `fields`
-> (`name`/`type`/`enum`/`relation`/`image`/`validation` + le *capability semantiche*
-> `filterable`/`sortable`/`operators`/`writeOnly`), le `capabilities`, `search` e
-> `defaultSort`. Non emette **mai** presentazione né ordinamento: colonne, card,
-> layout e gruppi form vivono nei **view block ordinati** `list`/`form` della risorsa,
-> popolati **solo dagli override** (§2.5). Per questo il file `generated` è sempre
-> riscrivibile senza perdere la UI.
+A **JSON descriptor** of the administrable API, produced by the backend and consumed by the admin to **generate the
+panel with no code**. It is the other projection of the same source that feeds Swagger: `route + schema`. A single
+maintenance, two outputs (OAS for developers, manifest for the admin).
+
+Invariant principles:
+
+- **Canonical field identity = `(resource, field)`**, not `(schema, property)`. The N schema projections
+  (body/response/public) collapse onto the canonical identity.
+- **Every label is an i18n key**, never literal text. Translation is a project/admin datum.
+- **Responsibility boundary**: the BE describes *structure, domain, security*; the admin decides *presentation*.
+
+Difference vs AdminJS (DB-coupled): there the ORM models were read, bypassing the logic. Here the richness is derived
+from metadata but **delivered via API/manifest**: the engine does not touch the DB, it respects the service layer, Magic Query,
+multi-tenancy, sensitive fields, permissions.
+
+---
+
+## 2. v2 contract (types)
+
+> **The emitted manifest is DATA + STRUCTURE only.** The BE emits the `fields`
+> (`name`/`type`/`enum`/`relation`/`image`/`validation` + the *semantic capabilities*
+> `filterable`/`sortable`/`operators`/`writeOnly`), the `capabilities`, `search` and
+> `defaultSort`. It **never** emits presentation or ordering: columns, cards,
+> layout and form groups live in the resource's ordered `list`/`form` **view blocks**,
+> populated **only from overrides** (§2.5). This is why the `generated` file is always
+> rewritable without losing the UI.
 
 ### 2.1 Top level
 
@@ -73,42 +73,42 @@ interface Manifest {
   groups: GroupSpec[]
   enums: Record<string, EnumOption[]>
   resources: ResourceSpec[]
-  capabilities?: CapabilitySpec[]   // sezioni "operation" standalone (non legate a una risorsa)
+  capabilities?: CapabilitySpec[]   // standalone "operation" sections (not tied to a resource)
 }
 ```
 
-### 2.2 `CapabilitySpec` — il cuore della v2
+### 2.2 `CapabilitySpec` — the heart of v2
 
-Un solo tipo che **unifica** ciò che in v1 erano tre campi separati (`permissions` + `capabilities` booleano +
-`actions`). Usato in **due posizioni**: dentro la risorsa (`ResourceSpec.capabilities`) e top-level
-(`Manifest.capabilities`, le sezioni operation). I `roles` stanno **in un posto solo**.
+A single type that **unifies** what in v1 were three separate fields (`permissions` + boolean `capabilities` +
+`actions`). Used in **two positions**: inside the resource (`ResourceSpec.capabilities`) and top-level
+(`Manifest.capabilities`, the operation sections). The `roles` stay **in a single place**.
 
 ```ts
 type CapabilityKind = 'list' | 'read' | 'create' | 'update' | 'delete' | 'action'
 
 interface CapabilitySpec {
-  name: string                 // univoco nello scope: 'list' | 'create' | ... | 'publish' | 'export'
-  kind: CapabilityKind         // CRUD standard, oppure 'action' per le custom
+  name: string                 // unique within the scope: 'list' | 'create' | ... | 'publish' | 'export'
+  kind: CapabilityKind         // standard CRUD, or 'action' for custom ones
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
-  path: string                 // binding all'endpoint REALE — fonte unica
-  roles: string[]              // autorizzazione dichiarata (gating effettivo: admin runtime + enforcement BE)
+  path: string                 // binding to the REAL endpoint — single source
+  roles: string[]              // declared authorization (effective gating: admin runtime + BE enforcement)
   enabled?: boolean            // default true
 
-  // --- solo per kind:'action' (presentazione/comportamento) ---
+  // --- only for kind:'action' (presentation/behavior) ---
   label?: I18nKey
   icon?: string
   target?: ('row' | 'bulk' | 'collection')[]
-  payload?: Record<string, unknown>          // body statico merge-ato nella richiesta
+  payload?: Record<string, unknown>          // static body merged into the request
   confirm?: boolean
   confirmText?: I18nKey
-  visibleWhen?: Record<string, Record<string, unknown>>   // condizione di riga (field→operator→value)
+  visibleWhen?: Record<string, Record<string, unknown>>   // row condition (field→operator→value)
   refresh?: boolean
-  download?: string                          // mime-type quando l'azione ritorna un file
-  component?: string | null                  // override registry id; null → handler generico
+  download?: string                          // mime-type when the action returns a file
+  component?: string | null                  // override registry id; null → generic handler
 }
 ```
 
-**Regole di derivazione (engine):**
+**Derivation rules (engine):**
 
 ```ts
 const can = (caps, kind) => caps.some(c => c.kind === kind && c.enabled !== false)
@@ -116,35 +116,35 @@ canCreate = can(resource.capabilities, 'create')
 canUpdate = can(resource.capabilities, 'update')
 canDelete = can(resource.capabilities, 'delete')
 canBulkDelete = resource.capabilities.some(c => c.kind === 'delete' && c.target?.includes('bulk'))
-// 'list'/'read' implicite alla presenza della risorsa; la ricerca è resource.search (vedi 2.4), non una capability.
+// 'list'/'read' implicit given the presence of the resource; search is resource.search (see 2.4), not a capability.
 ```
 
 ### 2.3 `ResourceSpec`
 
 ```ts
 interface ResourceSpec {
-  name: string                 // singolare canonico (es. 'vehicle') — chiave del mapping schema→resource
-  path: string                 // segmento URL plurale (es. 'vehicles')
+  name: string                 // canonical singular (e.g. 'vehicle') — key of the schema→resource mapping
+  path: string                 // plural URL segment (e.g. 'vehicles')
   label: { singular: I18nKey; plural: I18nKey }
   icon?: string; group?: string; order?: number
   idField?: string
-  titleField?: string | string[]      // BE indica i campi; template i18n = override admin
+  titleField?: string | string[]      // BE indicates the fields; i18n template = admin override
   subtitleField?: string | string[]
   tenantScoped?: boolean; softDelete?: boolean; singleton?: boolean
-  capabilities: CapabilitySpec[]       // CRUD + azioni custom (sostituisce permissions+capabilities+actions v1)
+  capabilities: CapabilitySpec[]       // CRUD + custom actions (replaces v1 permissions+capabilities+actions)
   defaultSort?: SortSpec[]
-  search?: SearchSpec                  // config ricerca (globalSearch), NON una capability
-  list?: ListViewSpec          // vista collezione ordinata (table + card) — SOLO da override, mai dal BE
-  form?: FormViewSpec          // vista form/show ordinata — SOLO da override, mai dal BE
+  search?: SearchSpec                  // search config (globalSearch), NOT a capability
+  list?: ListViewSpec          // ordered collection view (table + card) — ONLY from override, never from the BE
+  form?: FormViewSpec          // ordered form/show view — ONLY from override, never from the BE
   fields: FieldSpec[]
   views?: { list?: ViewMode; create?: ViewMode; edit?: ViewMode; show?: ViewMode }
 }
 ```
 
-> I flat prop di presentazione della v1 iniziale (`listLayouts`/`defaultListLayout`/
-> `cardFields` e simili) **non esistono più**: layouts, colonne e card sono ora
-> descritti dai view block ordinati `list`/`form` (§2.5), autorati **solo** negli
-> override — il BE non li emette mai.
+> The presentation flat props of the initial v1 (`listLayouts`/`defaultListLayout`/
+> `cardFields` and the like) **no longer exist**: layouts, columns and cards are now
+> described by the ordered `list`/`form` view blocks (§2.5), authored **only** in the
+> overrides — the BE never emits them.
 
 ### 2.4 `FieldSpec`, enums, search, relation
 
@@ -153,166 +153,166 @@ type FieldType =
   | 'string' | 'text' | 'textarea' | 'richtext' | 'integer' | 'number' | 'boolean' | 'date' | 'datetime'
   | 'enum' | 'relation' | 'email' | 'url' | 'uuid' | 'json' | 'image' | 'file'
 
-// FieldSpec = DATA + STRUCTURE only: il BE emette esattamente questo. Nessuna
-// presentazione né ordinamento qui — vivono nei view block della risorsa (§2.5).
+// FieldSpec = DATA + STRUCTURE only: the BE emits exactly this. No
+// presentation or ordering here — they live in the resource's view blocks (§2.5).
 interface FieldSpec {
   name: string
   type: FieldType
   label?: I18nKey
   required?: boolean; readOnly?: boolean; nullable?: boolean; default?: unknown; help?: I18nKey
-  writeOnly?: boolean          // nel body di scrittura, mai letto/listato (es. password)
+  writeOnly?: boolean          // in the write body, never read/listed (e.g. password)
   enum?: EnumOption[]; enumRef?: string
-  relation?: { resource: string; titleField?: string; kind?: RelationKind; foreignKey?: string }  // kind/fk: solo via override (schema-only)
-  image?: ImageSpec            // popolato solo via override admin (il BE non lo genera)
-  validation?: ValidationSpec  // required/min/max/minLength/maxLength/pattern/step — dallo schema
-  // capability semantiche (condivise da table + card + filtri): descrivono cosa il
-  // campo PUÒ fare, non come appare
+  relation?: { resource: string; titleField?: string; kind?: RelationKind; foreignKey?: string }  // kind/fk: only via override (schema-only)
+  image?: ImageSpec            // populated only via admin override (the BE does not generate it)
+  validation?: ValidationSpec  // required/min/max/minLength/maxLength/pattern/step — from the schema
+  // semantic capabilities (shared by table + card + filters): describe what the
+  // field CAN do, not how it appears
   filterable?: boolean
-  sortable?: boolean           // default true per non-relation/json; il BE può imporre false
+  sortable?: boolean           // default true for non-relation/json; the BE can force false
   operators?: FilterOperator[]
 }
 
-interface SearchSpec { fields: string[]; operator?: FilterOperator }   // globalSearch: OR su più campi
+interface SearchSpec { fields: string[]; operator?: FilterOperator }   // globalSearch: OR over multiple fields
 interface EnumOption { value: string; label: I18nKey; color?: string }
 ```
 
-> Il precedente `FieldListSpec` è stato **rimosso**; `FieldFormSpec` sopravvive solo
-> come tipo **interno all'interprete** (presentazione form *risolta* per-campo dal
-> view block `form`, letta dai widget) — **non** è più un sotto-oggetto autorabile del
-> campo. La presentazione lista/form si autora nei view block ordinati (§2.5), non sul
-> campo.
+> The previous `FieldListSpec` has been **removed**; `FieldFormSpec` survives only
+> as a type **internal to the interpreter** (per-field form presentation *resolved* from the
+> `form` view block, read by the widgets) — it is **no longer** an authorable sub-object of the
+> field. List/form presentation is authored in the ordered view blocks (§2.5), not on the
+> field.
 
-### 2.5 View block ordinati (`list` / `form`) — solo override
+### 2.5 Ordered view blocks (`list` / `form`) — override only
 
-Presentazione e ordinamento vivono in **view block ordinati**, autorati negli
-override di progetto: il BE non li emette mai. **L'ordine dell'array È l'ordine di
-render** e, quando presente, l'array è l'**allowlist autorevole** (un campo non
-elencato non compare in quella vista); un block **assente** → l'engine deriva un
-default sensato dai `fields` (ordine di dichiarazione). Sostituisce il vecchio
-comportamento in cui il riordino non aveva effetto (merge by-name che preservava
-l'ordine generato).
+Presentation and ordering live in **ordered view blocks**, authored in the project
+overrides: the BE never emits them. **The order of the array IS the render order**
+and, when present, the array is the **authoritative allowlist** (a field not
+listed does not appear in that view); an **absent** block → the engine derives a
+sensible default from the `fields` (declaration order). This replaces the old
+behavior where reordering had no effect (merge by-name that preserved the
+generated order).
 
-I tipi sono **generici sul field-name union `F`** (default `string`, così il
-`ResourceSpec` a runtime e gli override non tipati continuano a funzionare); gli
-override di progetto opt-in al type-check dei nomi campo a compile time passando una
-field-map generata a `ManifestOverrides<FM>` (`volcanic-admin-pull` emette
+The types are **generic over the field-name union `F`** (default `string`, so that the
+runtime `ResourceSpec` and untyped overrides keep working); project overrides
+opt into compile-time type-checking of field names by passing a generated
+field-map to `ManifestOverrides<FM>` (`volcanic-admin-pull` emits
 `GeneratedFieldMap`).
 
 ```ts
 interface ListViewSpec {
-  layouts?: ('table' | 'card')[]     // >1 → compare il toggle di layout
+  layouts?: ('table' | 'card')[]     // >1 → the layout toggle appears
   defaultLayout?: 'table' | 'card'   // fallback: layouts[0], else 'table'
-  sort?: string[]                    // opzioni "sort by", in ordine (assente → i campi sortable)
-  table?: { columns?: ColumnSpec[] } // allowlist ordinata di colonne
+  sort?: string[]                    // "sort by" options, in order (absent → the sortable fields)
+  table?: { columns?: ColumnSpec[] } // ordered allowlist of columns
   card?: CardViewSpec
 }
 
 interface ColumnSpec { field: string; label?: I18nKey; align?: 'left'|'center'|'right'; width?: number }
 
 interface CardViewSpec {
-  minWidth?: number; maxWidth?: number   // maxWidth abilita la griglia fluida (vince su columns)
-  columns?: number                       // griglia a colonne fisse (usata se maxWidth non è settato)
+  minWidth?: number; maxWidth?: number   // maxWidth enables the fluid grid (wins over columns)
+  columns?: number                       // fixed-column grid (used if maxWidth is not set)
   align?: 'left' | 'center'
-  highlight?: string                     // campo boolean → card "featured" (ring accento + stella)
-  image?: string                         // campo immagine per il carousel di copertina
+  highlight?: string                     // boolean field → "featured" card (accent ring + star)
+  image?: string                         // image field for the cover carousel
   title?: string | string[]              // default: titleField (array → space-joined)
   subtitle?: string | string[]           // default: subtitleField
-  badges?: string[]                      // campi enum resi come chip, in ordine
-  body?: { field: string; label?: I18nKey }[]   // righe key/value extra etichettate, in ordine
+  badges?: string[]                      // enum fields rendered as chips, in order
+  body?: { field: string; label?: I18nKey }[]   // extra labeled key/value rows, in order
 }
 
 interface FormViewSpec {
-  columns?: number                       // colonne di default della griglia (1–4, default 2)
+  columns?: number                       // default grid columns (1–4, default 2)
   groups?: {
-    name: string                         // 'default' → reso senza header
+    name: string                         // 'default' → rendered without header
     label?: I18nKey                      // fallback group.<name>
-    columns?: number                     // override delle colonne per questo gruppo
-    fields: FormFieldSpec[]              // allowlist ordinata di campi del gruppo
+    columns?: number                     // column override for this group
+    fields: FormFieldSpec[]              // ordered allowlist of the group's fields
   }[]
 }
 
 interface FormFieldSpec {
   field: string
   label?: I18nKey
-  widget?: string                        // 'auto' o un widget id registrato/built-in
-  colSpan?: number                       // colonne occupate nella griglia (cap alla larghezza)
-  colStart?: number                      // colonna di partenza 1-based (md+): lascia vuote le celle
-                                         //   precedenti e spezza la riga se già occupata
-  rowSpan?: number                       // righe occupate (md+): es. una textarea alta accanto a
-                                         //   più campi impilati in un'altra colonna
-  visibleOn?: 'create' | 'edit'          // limita a una modalità (omesso = entrambe)
+  widget?: string                        // 'auto' or a registered/built-in widget id
+  colSpan?: number                       // columns occupied in the grid (capped at the width)
+  colStart?: number                      // 1-based starting column (md+): leaves the preceding
+                                         //   cells empty and breaks the row if already occupied
+  rowSpan?: number                       // rows occupied (md+): e.g. a tall textarea next to
+                                         //   several fields stacked in another column
+  visibleOn?: 'create' | 'edit'          // limits to one mode (omitted = both)
   placeholder?: I18nKey
-  suggestions?: (string | number)[]      // suggerimenti non vincolanti per il widget 'combobox'
+  suggestions?: (string | number)[]      // non-binding suggestions for the 'combobox' widget
 }
 ```
 
-**Tipi di campo (render default):** `string`→input · `text`→textarea · `richtext`→WYSIWYG (HTML sanitizzato lato
-server) · `integer`/`number`→numerico · `boolean`→switch · `date`/`datetime`→picker · `enum`→select (inline o
-`enumRef`) · `relation`→reference-select · `email`/`url`→input validato · `uuid`→readOnly · `json`→editor ·
+**Field types (default render):** `string`→input · `text`→textarea · `richtext`→WYSIWYG (HTML sanitized on the server
+side) · `integer`/`number`→numeric · `boolean`→switch · `date`/`datetime`→picker · `enum`→select (inline or
+`enumRef`) · `relation`→reference-select · `email`/`url`→validated input · `uuid`→readOnly · `json`→editor ·
 `image`/`file`→uploader.
 
-**Operatori filtro (`FilterOperator`)** = sottoinsieme Magic Query esposto alla UI: `eq, neq, contains[i],
-ncontains[i], starts[i], ends[i], gt, ge, lt, le, between, in, nin, null, notNull`. `:raw` **mai** esposto. La
-mappa tipo→operatori consigliati è una scelta di presentazione (admin); il BE può solo restringere.
+**Filter operators (`FilterOperator`)** = subset of Magic Query exposed to the UI: `eq, neq, contains[i],
+ncontains[i], starts[i], ends[i], gt, ge, lt, le, between, in, nin, null, notNull`. `:raw` is **never** exposed. The
+type→recommended-operators map is a presentation choice (admin); the BE can only restrict.
 
 ---
 
-## 3. Generazione lato backend (capability opzionale, schema-only)
+## 3. Backend-side generation (optional capability, schema-only)
 
-Attivabile via `start({ admin: { manifest: true } })`. **Una** responsabilità: generare il manifest sopra gli
-**endpoint hand-written esistenti**. **Niente** generic-CRUD auto-mount (D6): il manifest collega gli endpoint
-reali; le rotte custom (immagini, status, export) restano nei loro moduli.
+Enabled via `start({ admin: { manifest: true } })`. **One** responsibility: generate the manifest over the
+**existing hand-written endpoints**. **No** generic-CRUD auto-mount (D6): the manifest links the real endpoints;
+the custom routes (images, status, export) stay in their modules.
 
-### 3.1 Le sorgenti (solo route + schema)
+### 3.1 The sources (only route + schema)
 
-Il generatore **deriva**, non inventa, combinando in ordine di autorità crescente:
+The generator **derives**, it does not invent, combining in increasing order of authority:
 
-1. **`global.routes`** (esposto dal core, task BE-1): method, path **reale**, `roles`, e il `config` file-level +
-   per-route con gli **hint strutturali** (§3.4).
-2. **JSON Schema registrati** (`server.getSchemas()`): per ogni route, risolve i `$ref` di `doc.body`/`doc.response`
-   → campi, tipi, `required`, `validation` (`min/max/minLength/maxLength/pattern/format`), `enum` inline.
-3. **Hint `config`** del `routes.ts` (§3.4): `resource.name` (mapping schema→resource, niente euristica fragile),
+1. **`global.routes`** (exposed by the core, task BE-1): method, **real** path, `roles`, and the file-level +
+   per-route `config` with the **structural hints** (§3.4).
+2. **Registered JSON Schemas** (`server.getSchemas()`): for each route, it resolves the `$ref`s of `doc.body`/`doc.response`
+   → fields, types, `required`, `validation` (`min/max/minLength/maxLength/pattern/format`), inline `enum`.
+3. **`config` hints** of `routes.ts` (§3.4): `resource.name` (schema→resource mapping, no fragile heuristics),
    `group`, `titleField`, `subtitleField`, `globalSearch`.
 
-> **Niente entity-metadata** (D3). Quindi `relation.kind`, `foreignKey`, `image`, e gli enum non dichiarati nello
-> schema **non** sono generati: si colmano negli `overrides` admin. È un downgrade voluto di fedeltà in cambio del
-> disaccoppiamento totale dal data layer (il core non importa né interroga `/typeorm`).
+> **No entity-metadata** (D3). So `relation.kind`, `foreignKey`, `image`, and enums not declared in the
+> schema are **not** generated: they are filled in the admin `overrides`. It is a deliberate downgrade of fidelity in exchange for
+> total decoupling from the data layer (the core neither imports nor queries `/typeorm`).
 
 ### 3.2 Pipeline
 
 ```
 global.routes (+ config hints)  ─┐
 server.getSchemas() ($ref deref) ─┼─▶ per resource:
-hint config (group/title/search) ─┘   1. raggruppa le route per resource (hint resource.name + path)
-                                       2. campi ← collasso proiezioni schema su (resource, field)
-                                       3. capabilities ← verbi CRUD + rotte custom (kind:'action')
-                                       4. roles ← route.roles (un posto solo)
-                                       5. drop sensitive (graduata §5/§9)
+hint config (group/title/search) ─┘   1. group the routes by resource (hint resource.name + path)
+                                       2. fields ← collapse of schema projections onto (resource, field)
+                                       3. capabilities ← CRUD verbs + custom routes (kind:'action')
+                                       4. roles ← route.roles (a single place)
+                                       5. drop sensitive (graduated §5/§9)
                                        ▶ ResourceSpec
-endpoint non-resource ───────────────▶ Manifest.capabilities[] (sezioni operation)
+non-resource endpoints ───────────────▶ Manifest.capabilities[] (operation sections)
 manifest = { meta, i18n, auth, tenancy, groups, enums, resources[], capabilities[] }
 ```
 
-Precedenza per proprietà: **hint config > JSON Schema > default per tipo**.
+Per-property precedence: **hint config > JSON Schema > default per type**.
 
 ### 3.3 i18n by convention
 
-Il generatore emette **chiavi**, mai testo: `res.<name>.{singular,plural}`, `field.<resource>.<field>`,
-`enum.<EnumName>.<value>`, `action.<resource>.<action>`, `group.<name>`, `op.<name>` (sezioni operation). Il
-progetto fornisce le traduzioni; chiavi mancanti → fallback alla chiave o a una label umanizzata.
+The generator emits **keys**, never text: `res.<name>.{singular,plural}`, `field.<resource>.<field>`,
+`enum.<EnumName>.<value>`, `action.<resource>.<action>`, `group.<name>`, `op.<name>` (operation sections). The
+project provides the translations; missing keys → fallback to the key or to a humanized label.
 
-### 3.4 Hint strutturali nel `routes.ts` (L1, lato BE)
+### 3.4 Structural hints in `routes.ts` (L1, BE side)
 
-Additivi, opzionali, dominio (niente UI). Raggruppati sotto **`config.manifest`** (file-level e/o per-route), per
-tenerli separati dalla config operativa della rotta (schema Fastify, controller, …):
+Additive, optional, domain (no UI). Grouped under **`config.manifest`** (file-level and/or per-route), to
+keep them separate from the route's operational config (Fastify schema, controller, …):
 
 ```ts
 export const config = {
-  // …config operativa (title, controller, tags, …)…
+  // …operational config (title, controller, tags, …)…
   manifest: {
     group: 'catalog',
     resource: {
-      name: 'vehicle',               // mapping schema→resource (autorevole); path 'vehicles' → name 'vehicle'
+      name: 'vehicle',               // schema→resource mapping (authoritative); path 'vehicles' → name 'vehicle'
       titleField: 'name',
       subtitleField: 'trimLevel',
       globalSearch: ['name', 'trimLevel', 'description', 'tag', 'brand.name']
@@ -321,162 +321,162 @@ export const config = {
 }
 ```
 
-> **Convenzione (≥ 3.3.0)**: gli hint vivono sotto `config.manifest`; la forma flat `config.{group,resource}` **non è
-> più supportata** (nessuna retro-compatibilità). Le API native del framework (`users`/`tenants`) dichiarano già gli
-> hint → risorse `user`/`tenant` (nome singolare, `path` plurale invariato), gruppo `system`.
+> **Convention (≥ 3.3.0)**: the hints live under `config.manifest`; the flat form `config.{group,resource}` is **no
+> longer supported** (no backward compatibility). The framework's native APIs (`users`/`tenants`) already declare the
+> hints → resources `user`/`tenant` (singular name, `path` plural unchanged), group `system`.
 
-Se `group` manca → fallback al nome cartella dell'API. Se `titleField` manca → euristica (`name`→`title`→`label`→
-primo `string`). `globalSearch` è la **fonte unica** dei campi omni-search (lato controller si legge da qui,
-eliminando duplicazioni tipo `omniSearch.ts`).
+If `group` is missing → fallback to the API folder name. If `titleField` is missing → heuristic (`name`→`title`→`label`→
+first `string`). `globalSearch` is the **single source** of the omni-search fields (on the controller side it is read from here,
+eliminating duplications such as `omniSearch.ts`).
 
-### 3.5 Consegna: full manifest + build-time
+### 3.5 Delivery: full manifest + build-time
 
-- **Full manifest** (non per-utente): elenca tutte le risorse/capability con i `roles` **dichiarati**.
-- **`GET /admin/manifest`** (DEV): l'admin fa fetch all'avvio.
-- **Dump/snapshot** (BUILD): comando che emette `manifest.json` su file → la CI dell'admin builda senza il BE live.
-- Il **gating per-ruolo** è admin a runtime (nasconde ciò che il ruolo non può usare) **+ enforcement autorevole
-  sugli endpoint BE** (difesa in profondità). Niente cache per-ruolo lato BE (era un'esigenza del modello runtime v1,
-  superata dal consumo build-time).
+- **Full manifest** (not per-user): lists all resources/capabilities with the **declared** `roles`.
+- **`GET /admin/manifest`** (DEV): the admin fetches it at startup.
+- **Dump/snapshot** (BUILD): a command that emits `manifest.json` to a file → the admin CI builds without the live BE.
+- **Per-role gating** is admin at runtime (hides what the role cannot use) **+ authoritative enforcement
+  on the BE endpoints** (defense in depth). No per-role cache on the BE side (it was a need of the v1 runtime model,
+  superseded by build-time consumption).
 
 ---
 
-## 4. Lifecycle (build-time, split generated/overrides)
+## 4. Lifecycle (build-time, generated/overrides split)
 
 ```
 ┌─ BE (volcanic-backend) ───────────────────────────────────────────────┐
 │ start({ admin:{manifest:true} })                                       │
-│   global.routes  +  server.getSchemas()   ── generator (schema-only) ──▶ Manifest JSON (full, roles dichiarati)
-│   GET /admin/manifest        e/o          dump → manifest.json (snapshot CI)                                   │
+│   global.routes  +  server.getSchemas()   ── generator (schema-only) ──▶ Manifest JSON (full, declared roles)
+│   GET /admin/manifest        and/or       dump → manifest.json (CI snapshot)                                   │
 └────────────────────────────────────────────────────────────────────────┘
-                                   │ fetch (DEV all'avvio) / snapshot (BUILD)
+                                   │ fetch (DEV at startup) / snapshot (BUILD)
                                    ▼
 ┌─ Admin (volcanic-admin) ──────────────────────────────────────────────┐
-│ manifest.generated.ts   ← sempre rigenerato, MAI editato a mano        │
-│ manifest.overrides.ts   ← solo progetto, scaffold vuoto, MAI rigenerato│
-│                         merge( generated, overrides )  per (resource,field)
+│ manifest.generated.ts   ← always regenerated, NEVER edited by hand     │
+│ manifest.overrides.ts   ← project only, empty scaffold, NEVER regenerated│
+│                         merge( generated, overrides )  by (resource,field)
 │                                   ▼                                     │
-│                 engine + ui  → pannello (zero-config + override)        │
+│                 engine + ui  → panel (zero-config + override)          │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **DEV**: fetch a `GET /admin/manifest` all'avvio. **BUILD**: legge lo snapshot committato (CI admin disaccoppiata).
-- **Split**: il rigeneratore sovrascrive solo `generated`; gli `overrides` sopravvivono → niente drift distruttivo.
-- **Merge per identità `(resource, field)`**: gli override *intrinseci* di campo e di capability agganciano per chiave canonica, non per posizione/schema. L'**ordine di render**, invece, è dato dagli array dei view block `list`/`form` (l'ordine dell'array È l'ordine di render — §2.5).
+- **DEV**: fetch to `GET /admin/manifest` at startup. **BUILD**: reads the committed snapshot (decoupled admin CI).
+- **Split**: the regenerator overwrites only `generated`; the `overrides` survive → no destructive drift.
+- **Merge by identity `(resource, field)`**: the *intrinsic* field and capability overrides hook by canonical key, not by position/schema. The **render order**, instead, is given by the arrays of the `list`/`form` view blocks (the order of the array IS the render order — §2.5).
 
 ---
 
-## 5. Engine + UI (Refine, split interno)
+## 5. Engine + UI (Refine, internal split)
 
-Un pacchetto, due metà. L'**`engine`** è headless e **non importa shadcn**; la **`ui`** consuma l'engine e rende con
-shadcn → la UI è sostituibile.
+One package, two halves. The **`engine`** is headless and does **not import shadcn**; the **`ui`** consumes the engine and renders with
+shadcn → the UI is replaceable.
 
 ```
 @volcanicminds/admin
   ├─ engine/   (headless)
-  │   ├─ manifest interpreter   → manifest → modello risorse → <Resource> Refine
-  │   ├─ dataProvider           → operazioni Refine → REST + Magic Query (field:op=value, sort, page/pageSize) + header v-*
+  │   ├─ manifest interpreter   → manifest → resource model → <Resource> Refine
+  │   ├─ dataProvider           → Refine operations → REST + Magic Query (field:op=value, sort, page/pageSize) + v-* header
   │   ├─ authProvider           → /auth (login/refresh/logout), AUTH_MODE BEARER|COOKIE
-  │   ├─ accessControlProvider  → capabilities[].roles × ruoli utente → nasconde/disabilita
-  │   ├─ tenantProvider         → switch tenant + header di contesto (attivo solo se tenancy.mode='multi')
-  │   └─ override registry      → componentId → componente custom
+  │   ├─ accessControlProvider  → capabilities[].roles × user roles → hides/disables
+  │   ├─ tenantProvider         → tenant switch + context header (active only if tenancy.mode='multi')
+  │   └─ override registry      → componentId → custom component
   └─ ui/      (shadcn)
       ├─ resource generator     → field spec → list / create / edit / show
-      ├─ widget set             → input per tipo (enum/relation/richtext/image/…)
+      ├─ widget set             → input per type (enum/relation/richtext/image/…)
       └─ theme / layout / i18n
 ```
 
-**Flusso**: avvio → manifest (fetch DEV / snapshot BUILD) → l'engine costruisce il modello e registra le
-`<Resource>` → la ui genera le schermate dai field spec; dove il manifest indica un `componentId`, il registry
-inietta il componente di override.
+**Flow**: startup → manifest (fetch DEV / snapshot BUILD) → the engine builds the model and registers the
+`<Resource>`s → the ui generates the screens from the field specs; where the manifest indicates a `componentId`, the registry
+injects the override component.
 
-**Zero-config rendering**: senza override, dal manifest si ottiene sidebar (da `groups`+`resources`), liste
-table/card (layout e colonne **derivati dai `fields`** in assenza dei view block `list`/`form`), dettaglio con
-layout standard, e le **sezioni operation** top-level (`Manifest.capabilities[]`) come pagine/azioni dedicate. I
-view block negli override raffinano layout, colonne, card, gruppi form e ordine.
+**Zero-config rendering**: without overrides, from the manifest you get the sidebar (from `groups`+`resources`), table/card
+lists (layout and columns **derived from the `fields`** in the absence of the `list`/`form` view blocks), detail with
+standard layout, and the top-level **operation sections** (`Manifest.capabilities[]`) as dedicated pages/actions. The
+view blocks in the overrides refine layout, columns, cards, form groups and order.
 
 ---
 
-## 6. Modello di override
+## 6. Override model
 
-Due piani, dal dominio alla presentazione:
+Two planes, from domain to presentation:
 
-- **L1 — structural hints (BE, `routes.ts` config)**: dominio. `resource.name/titleField/subtitleField/globalSearch`,
-  `group`. Niente UI. Finiscono nel `generated`.
-- **L2 — presentation overrides (admin, `manifest.overrides.ts` + props/plugin)**: UI. Quattro granularità, dal più
-  fine al più grosso:
-  1. **manifest tweak** — riordino campi (via l'ordine degli array dei view block), label, allowlist di
-     colonne/campi, operatori, gruppi form, card. Zero React.
-  2. **widget di campo** — `form.groups[].fields[].widget = "gallery-reorder"` → componente custom per quell'input.
-  3. **capability/action component** — `capability.component = "status-workflow"` per bottoni row/bulk/collection.
-  4. **view/page** — `views.edit = "vehicle-edit-custom"` o pagina extra (dashboard/report) nel router del progetto.
+- **L1 — structural hints (BE, `routes.ts` config)**: domain. `resource.name/titleField/subtitleField/globalSearch`,
+  `group`. No UI. They end up in the `generated`.
+- **L2 — presentation overrides (admin, `manifest.overrides.ts` + props/plugin)**: UI. Four granularities, from the
+  finest to the coarsest:
+  1. **manifest tweak** — field reordering (via the order of the view block arrays), labels, allowlist of
+     columns/fields, operators, form groups, cards. Zero React.
+  2. **field widget** — `form.groups[].fields[].widget = "gallery-reorder"` → custom component for that input.
+  3. **capability/action component** — `capability.component = "status-workflow"` for row/bulk/collection buttons.
+  4. **view/page** — `views.edit = "vehicle-edit-custom"` or an extra page (dashboard/report) in the project router.
 
-Inoltre L2 colma i **limiti dello schema-only**: `relation.kind`/`foreignKey`, `image` config, enum non dichiarati.
+Furthermore L2 fills the **limits of schema-only**: `relation.kind`/`foreignKey`, `image` config, undeclared enums.
 
-Principio: **80% OOTB dal manifest, 20% override mirati**. Nessun progetto riscrive la base CRUD. Gli override sono
-**iniettati** (props `overrides/routes/theme/dictionaries` o `plugins`), mai fork/monkey-patch.
+Principle: **80% OOTB from the manifest, 20% targeted overrides**. No project rewrites the CRUD base. The overrides are
+**injected** (props `overrides/routes/theme/dictionaries` or `plugins`), never fork/monkey-patch.
 
 ---
 
 ## 7. Multi-tenant
 
-- **single**: nessuno switcher; `tenancy.mode = 'single'`.
-- **multi**: topbar con **selettore tenant** (lista da `tenancy.listEndpoint`, default `/tenants`); il tenant scelto
-  definisce il contesto delle risorse `tenantScoped`. Le risorse globali (`tenant`, talvolta `user`) restano fuori
-  scope. Il backend isola via `search_path`/`runInTenantContext` (mai switch globale); l'header di contesto
-  (`tenancy.header`, es. `x-tenant-id`) è iniettato dal `tenantProvider` su ogni richiesta.
+- **single**: no switcher; `tenancy.mode = 'single'`.
+- **multi**: topbar with a **tenant selector** (list from `tenancy.listEndpoint`, default `/tenants`); the chosen tenant
+  defines the context of the `tenantScoped` resources. The global resources (`tenant`, sometimes `user`) stay out of
+  scope. The backend isolates via `search_path`/`runInTenantContext` (never a global switch); the context header
+  (`tenancy.header`, e.g. `x-tenant-id`) is injected by the `tenantProvider` on every request.
 
 ---
 
-## 8. Ripartizione BE ↔ Admin (copertura)
+## 8. BE ↔ Admin split (coverage)
 
-| Informazione | Sorgente | Note |
+| Information | Source | Notes |
 |---|---|---|
-| risorse, `path`, `name` | **BE** | da route + hint `resource.name` |
-| campi, tipi, `required`, `validation` | **BE** | da JSON Schema (collasso `$ref`) |
-| `filterable`/`sortable`/`operators`, `writeOnly` (capability semantiche di campo) | **BE** | emesse col field (DATA-only); il BE può restringere |
-| enum-values | **BE** | solo se presenti nello schema |
-| `capabilities` (CRUD + azioni) | **BE** | binding endpoint reali + `roles` |
-| `roles` per capability | **BE** | dichiarati; gating effettivo a runtime |
+| resources, `path`, `name` | **BE** | from route + hint `resource.name` |
+| fields, types, `required`, `validation` | **BE** | from JSON Schema (`$ref` collapse) |
+| `filterable`/`sortable`/`operators`, `writeOnly` (semantic field capabilities) | **BE** | emitted with the field (DATA-only); the BE can restrict |
+| enum-values | **BE** | only if present in the schema |
+| `capabilities` (CRUD + actions) | **BE** | binding to real endpoints + `roles` |
+| `roles` per capability | **BE** | declared; effective gating at runtime |
 | `relation.resource` | **BE** | target |
-| `relation.kind` / `foreignKey` | **Admin (override)** | non deducibili dallo schema |
-| `image` config (accept/maxSize/storage/endpoints) | **Admin (override)** | il BE non lo genera |
-| `group` (presenza), `titleField`/`subtitleField` (campi) | **BE** | hint `config`, fallback euristica |
-| `group` label/icon/order, `titleField` template i18n | **Admin** | presentazione |
-| view block `list`/`form` (colonne, card, gruppi form, widget, `colSpan`/`colStart`/`rowSpan`, ordine…) | **Admin (override)** | il BE non li emette **mai**: presentazione + ordinamento |
-| layouts, `defaults`, theming, dashboard, shortcut, dizionari | **Admin** | presentazione pura |
-| `globalSearch` (campi) | **BE** | hint `resource.globalSearch` |
+| `relation.kind` / `foreignKey` | **Admin (override)** | not deducible from the schema |
+| `image` config (accept/maxSize/storage/endpoints) | **Admin (override)** | the BE does not generate it |
+| `group` (presence), `titleField`/`subtitleField` (fields) | **BE** | `config` hint, heuristic fallback |
+| `group` label/icon/order, `titleField` i18n template | **Admin** | presentation |
+| view block `list`/`form` (columns, cards, form groups, widgets, `colSpan`/`colStart`/`rowSpan`, order…) | **Admin (override)** | the BE **never** emits them: presentation + ordering |
+| layouts, `defaults`, theming, dashboard, shortcuts, dictionaries | **Admin** | pure presentation |
+| `globalSearch` (fields) | **BE** | hint `resource.globalSearch` |
 
 ---
 
-## 9. Modello di sicurezza
+## 9. Security model
 
-- Il manifest build-time è **full**: elenca tutte le risorse/capability con i `roles` **dichiarati**.
-- **Gating duplice**: l'admin nasconde a runtime ciò che il ruolo non può usare; il **BE resta l'autorità** e rifiuta
-  comunque le chiamate non autorizzate sugli endpoint.
-- **Sensitive policy graduata** (D4): `password` esclusa da read/list, ammessa **write-only** in create/update;
-  `token`/`mfaSecret`/`externalId` esclusi **sempre**. Blacklist estensibile via config del BE.
+- The build-time manifest is **full**: it lists all resources/capabilities with the **declared** `roles`.
+- **Double gating**: the admin hides at runtime what the role cannot use; the **BE remains the authority** and rejects
+  unauthorized calls on the endpoints anyway.
+- **Graduated sensitive policy** (D4): `password` excluded from read/list, allowed **write-only** in create/update;
+  `token`/`mfaSecret`/`externalId` **always** excluded. Blacklist extensible via BE config.
 
 ---
 
-## 10. Diff v1 → v2 (impatto migrazione)
+## 10. Diff v1 → v2 (migration impact)
 
-| v1 (oggi, `src/engine/types/manifest.ts`) | v2 (target) |
+| v1 (today, `src/engine/types/manifest.ts`) | v2 (target) |
 |---|---|
 | `version: 1` | `version: 2` |
-| `resource.permissions: Partial<Record<CrudAction,string[]>>` | confluito in `capabilities[].roles` |
-| `resource.capabilities: { create?:bool, … }` | confluito in `capabilities[]` (presenza/`enabled`) |
-| `resource.actions: ActionSpec[]` | confluito in `capabilities[]` con `kind:'action'` |
-| — | nuovo `Manifest.capabilities[]` top-level (sezioni operation) |
-| `bulkDelete?: boolean` | `delete` con `target` incl. `'bulk'` |
-| `search` (capability boolean) | derivato dalla presenza di `resource.search` |
+| `resource.permissions: Partial<Record<CrudAction,string[]>>` | merged into `capabilities[].roles` |
+| `resource.capabilities: { create?:bool, … }` | merged into `capabilities[]` (presence/`enabled`) |
+| `resource.actions: ActionSpec[]` | merged into `capabilities[]` with `kind:'action'` |
+| — | new top-level `Manifest.capabilities[]` (operation sections) |
+| `bulkDelete?: boolean` | `delete` with `target` incl. `'bulk'` |
+| `search` (boolean capability) | derived from the presence of `resource.search` |
 
-**File da migrare (task ADM-1):** `src/engine/types/manifest.ts`, `src/engine/interpreter.ts` (`:59-62`),
+**Files to migrate (task ADM-1):** `src/engine/types/manifest.ts`, `src/engine/interpreter.ts` (`:59-62`),
 `src/engine/providers/accessControl.ts` (`:41`), `src/ui/generators/ListView.tsx` (`:98-100`,`:150`),
 `src/ui/generators/ShowView.tsx`, `src/mock/manifest.ts`, `src/mock/manifestUnchanged.ts`.
 
 ---
 
-## 11. Esempio (risorsa `vehicle`, v2)
+## 11. Example (resource `vehicle`, v2)
 
 ```ts
 {
@@ -496,15 +496,15 @@ Principio: **80% OOTB dal manifest, 20% override mirati**. Nessun progetto riscr
   ],
   search: { fields: ['name', 'trimLevel', 'description', 'tag'], operator: 'containsi' },
   defaultSort: [{ field: 'importance', order: 'desc' }],
-  // Nessuna presentazione qui: layouts/colonne/card/gruppi form vivono nei view block
-  // `list`/`form` degli override (§2.5), mai nel manifest emesso.
-  fields: [ /* … field DATA-only (name/type/enum/relation/image/validation +
-               filterable/sortable/operators). relation 'brand' magra:
+  // No presentation here: layouts/columns/cards/form groups live in the
+  // `list`/`form` view blocks of the overrides (§2.5), never in the emitted manifest.
+  fields: [ /* … DATA-only fields (name/type/enum/relation/image/validation +
+               filterable/sortable/operators). lean 'brand' relation:
                { resource:'brand', titleField:'name' }; kind/foreignKey via override … */ ]
 }
 ```
 
-Presentazione, **negli override admin** (mai dal BE): view block ordinati per `vehicle`.
+Presentation, **in the admin overrides** (never from the BE): ordered view blocks for `vehicle`.
 
 ```ts
 resources: {
@@ -527,7 +527,7 @@ resources: {
 }
 ```
 
-Sezione operation standalone (top-level `Manifest.capabilities[]`):
+Standalone operation section (top-level `Manifest.capabilities[]`):
 
 ```ts
 capabilities: [
@@ -538,11 +538,10 @@ capabilities: [
 
 ---
 
-## 12. Dionisi come prima istanza (validazione del contratto)
+## 12. Dionisi as the first instance (contract validation)
 
-I 5 override Dionisi sono il test di completezza della v2 (devono essere esprimibili senza forzature):
-`company` **singleton** (solo edit) · **gallery-reorder** con cover + dropdown `altView` · **status workflow**
-(`publish`/`archive` come `capabilities` `kind:'action'`) · **export CSV** newsletter (capability `kind:'action'`,
-`target:['collection']`, `download`) · **image-single** (logo brand). Dettaglio dominio in
-`dionisi-group/BACKOFFICE_BLUEPRINT.md`; cablaggio in `BACKEND_IMPLEMENTATION_TODO.md` (Fase 8) e
-`BO_ADMIN_IMPLEMENTATION_TODO.md`.
+The 5 Dionisi overrides are the v2 completeness test (they must be expressible without contortions):
+`company` **singleton** (edit only) · **gallery-reorder** with cover + `altView` dropdown · **status workflow**
+(`publish`/`archive` as `capabilities` `kind:'action'`) · **CSV export** newsletter (capability `kind:'action'`,
+`target:['collection']`, `download`) · **image-single** (brand logo). Domain detail in
+`dionisi-group/BACKOFFICE_BLUEPRINT.md`; admin wiring in `BO_ADMIN_IMPLEMENTATION_TODO.md`.
