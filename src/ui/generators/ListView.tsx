@@ -147,6 +147,10 @@ export function ListView({ model }: { model: ResourceModel }) {
 
   return (
     <div className="space-y-4">
+      {/* Sticky toolbar: title + actions + search/filter/sort, pinned while the
+          list scrolls (flush under the app topbar), mirroring the form header.
+          `-mx-6 px-6` = full-width bar, `-top-6` cancels the main's top padding. */}
+      <div className="sticky -top-6 z-20 -mx-6 space-y-3 border-b bg-background px-6 py-4">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">{t(spec.label.plural)}</h1>
         <div className="flex items-center gap-2">
@@ -248,6 +252,7 @@ export function ListView({ model }: { model: ResourceModel }) {
           )}
         </div>
       )}
+      </div>
 
       {layout === 'card' ? (
         <ListCards {...presentation} />

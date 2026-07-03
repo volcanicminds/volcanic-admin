@@ -56,6 +56,23 @@ async function parse(res: Response): Promise<any> {
   }
 }
 
+/**
+ * Extract files an upload widget staged during create (deferred upload). On
+ * create there is no record id yet, so the widget keeps the picked File(s) on
+ * its value (gallery items carry `_file`, the single-image value is
+ * `{ url, _pendingFile }`); AutoForm reads them out and uploads once the record
+ * exists. Order follows the value's order (the gallery is position-sorted).
+ */
+export function pendingFiles(value: unknown): File[] {
+  if (Array.isArray(value)) {
+    return value.map((it: any) => it?._file).filter((f: unknown): f is File => f instanceof File)
+  }
+  if (value && typeof value === 'object' && (value as any)._pendingFile instanceof File) {
+    return [(value as any)._pendingFile]
+  }
+  return []
+}
+
 /** POST a multipart upload (one or more files under the `files` field). */
 export async function uploadFiles(apiUrl: string, path: string, files: File[]): Promise<any> {
   const form = new FormData()

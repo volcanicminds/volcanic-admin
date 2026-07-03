@@ -3,9 +3,11 @@
  *
  * Real mode (the field declares `image.endpoints.upload` and the record already
  * exists): the picked file is POSTed as multipart to the dedicated endpoint and
- * the stored URL is read back from the response. Create mode (no id yet) asks the
- * user to save first. With no endpoints (mock), it falls back to an inline data
- * URL so it round-trips through the generic CRUD body without a backend.
+ * the stored URL is read back from the response. Deferred mode (endpoints declared
+ * but no id yet, i.e. create): the value becomes `{ url, _pendingFile }` so a preview
+ * shows and AutoForm uploads the file once the record is created. With no endpoints
+ * (mock), it falls back to an inline data URL so it round-trips through the generic
+ * CRUD body without a backend.
  */
 import { useRef, useState } from 'react'
 import { useApiUrl, useInvalidate, useResource } from '@refinedev/core'
@@ -31,7 +33,8 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
   const maxSize = field.image?.maxSize
   const endpoints = field.image?.endpoints
   const realMode = Boolean(endpoints?.upload && id)
-  const needsSave = Boolean(endpoints?.upload && !id)
+  // Create: no id yet — stage the file locally and let AutoForm upload it on save.
+  const deferred = Boolean(endpoints?.upload && !id)
 
   const refresh = () => {
     if (identifier) invalidate({ resource: identifier, invalidates: ['list', 'detail'] })
@@ -44,9 +47,11 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
       return
     }
     if (!realMode) {
-      // Mock / no backend: inline the file as a data URL.
+      // Mock: inline as a data URL. Deferred (create): also keep the File so
+      // AutoForm uploads it to the real endpoint once the record exists.
       const reader = new FileReader()
-      reader.onload = () => onChange(reader.result as string)
+      reader.onload = () =>
+        onChange(deferred ? { url: reader.result as string, _pendingFile: file } : (reader.result as string))
       reader.readAsDataURL(file)
       return
     }
@@ -80,10 +85,12 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
     onChange(null)
   }
 
-  const src = realMode || typeof value === 'string' ? absoluteUrl(apiUrl, value) : value
+  // Deferred value is `{ url, _pendingFile }`; every other mode stores a URL string.
+  const rawUrl = value && typeof value === 'object' ? (value as { url?: string }).url : (value as string | null)
+  const src = rawUrl ? absoluteUrl(apiUrl, rawUrl) : null
 
   const onPaste = (e: React.ClipboardEvent) => {
-    if (disabled || needsSave) return
+    if (disabled) return
     const imgs = imagesFromClipboard(e.clipboardData)
     if (!imgs.length) return
     e.preventDefault()
@@ -93,9 +100,9 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
   return (
     <div className="space-y-2" onPaste={onPaste}>
       <div
-        tabIndex={disabled || needsSave ? -1 : 0}
+        tabIndex={disabled ? -1 : 0}
         onDragOver={(e) => {
-          if (disabled || needsSave) return
+          if (disabled) return
           e.preventDefault()
           setDragOver(true)
         }}
@@ -116,7 +123,7 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
           <img src={src} alt="" className="h-full w-full object-contain" />
         ) : (
           <span className="px-2 text-center text-xs text-muted-foreground">
-            {needsSave ? t('upload.saveFirst') : t('upload.hint')}
+            {deferred ? t('upload.deferredHint') : t('upload.hint')}
           </span>
         )}
       </div>
@@ -125,7 +132,7 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
         type="file"
         accept={accept}
         hidden
-        disabled={disabled || needsSave}
+        disabled={disabled}
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
       <div className="flex gap-2">
@@ -133,7 +140,7 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
           type="button"
           variant="secondary"
           size="sm"
-          disabled={disabled || busy || needsSave}
+          disabled={disabled || busy}
           onClick={() => inputRef.current?.click()}
         >
           <Upload /> {t('upload.button')}

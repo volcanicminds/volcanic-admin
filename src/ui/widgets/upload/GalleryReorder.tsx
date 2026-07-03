@@ -5,8 +5,10 @@
  *
  * Real mode (the field declares `image.endpoints` and the record exists): every
  * op maps to its dedicated endpoint (upload/reorder/update/remove) and the gallery
- * is re-read from the response. Create mode asks the user to save first. With no
- * endpoints (mock), files are inlined as data URLs in the array value.
+ * is re-read from the response. Deferred mode (endpoints declared but no id yet, i.e.
+ * create): files are staged locally with a preview and their `File` kept on each item
+ * so AutoForm can upload them once the record is created. With no endpoints (mock),
+ * files are inlined as data URLs in the array value.
  */
 import { useEffect, useRef, useState } from 'react'
 import { useApiUrl, useInvalidate, useResource } from '@refinedev/core'
@@ -26,6 +28,8 @@ interface GalleryItem {
   url: string
   position: number
   altView?: string
+  /** Set on items staged during create (deferred upload); uploaded on save. */
+  _file?: File
 }
 
 const sig = (v: unknown) =>
@@ -37,7 +41,9 @@ function normalize(v: unknown): GalleryItem[] {
       id: it?.id ?? String(i),
       url: it?.url ?? it,
       position: it?.position ?? i,
-      altView: it?.altView ?? ''
+      altView: it?.altView ?? '',
+      // Preserve the staged File across re-syncs so a deferred upload isn't lost.
+      _file: it?._file
     }))
     .sort((a, b) => a.position - b.position)
 }
@@ -58,7 +64,8 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
   const maxSize = field.image?.maxSize
   const endpoints = field.image?.endpoints
   const realMode = Boolean(endpoints?.upload && id)
-  const needsSave = Boolean(endpoints?.upload && !id)
+  // Create: no id yet — stage files locally and let AutoForm upload them on save.
+  const deferred = Boolean(endpoints?.upload && !id)
 
   // Re-sync from the record when it loads/changes externally (not from our own ops).
   useEffect(() => {
@@ -77,20 +84,28 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
   const fail = (e: unknown) => toast.error((e as Error)?.message ?? t('upload.failed'))
 
   const addFiles = async (fileList: FileList | File[] | null) => {
-    if (!fileList?.length || disabled || busy || needsSave) return
+    if (!fileList?.length || disabled || busy) return
     const files = Array.from(fileList).filter((f) => !maxSize || f.size <= maxSize)
     if (!files.length) {
       toast.error(t('upload.tooLarge'))
       return
     }
     if (!realMode) {
+      // Mock or deferred (create): show a preview now. When deferred, keep the
+      // File on the item so AutoForm uploads it to the real endpoint on save.
       const added = await Promise.all(
         files.map(
           (f) =>
             new Promise<GalleryItem>((resolve) => {
               const reader = new FileReader()
               reader.onload = () =>
-                resolve({ id: crypto.randomUUID(), url: reader.result as string, position: 0, altView: '' })
+                resolve({
+                  id: crypto.randomUUID(),
+                  url: reader.result as string,
+                  position: 0,
+                  altView: '',
+                  ...(deferred ? { _file: f } : {})
+                })
               reader.readAsDataURL(f)
             })
         )
@@ -175,7 +190,7 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
   }
 
   const onPaste = (e: React.ClipboardEvent) => {
-    if (disabled || needsSave) return
+    if (disabled) return
     const imgs = imagesFromClipboard(e.clipboardData)
     if (!imgs.length) return
     e.preventDefault()
@@ -190,20 +205,20 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
         accept={accept}
         multiple
         hidden
-        disabled={disabled || needsSave}
+        disabled={disabled}
         onChange={(e) => addFiles(e.target.files)}
       />
 
       <div
-        tabIndex={disabled || needsSave ? -1 : 0}
+        tabIndex={disabled ? -1 : 0}
         onDragOver={(e) => {
-          if (disabled || needsSave || dragIndex.current != null) return
+          if (disabled || dragIndex.current != null) return
           e.preventDefault()
           setDragOver(true)
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
-          if (dragIndex.current != null) return
+          if (disabled || dragIndex.current != null) return
           e.preventDefault()
           setDragOver(false)
           addFiles(e.dataTransfer.files)
@@ -217,12 +232,12 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
           type="button"
           variant="secondary"
           size="sm"
-          disabled={disabled || busy || needsSave}
+          disabled={disabled || busy}
           onClick={() => inputRef.current?.click()}
         >
           <Upload /> {busy ? '…' : t('upload.button')}
         </Button>
-        <div className="mt-2">{needsSave ? t('upload.saveFirst') : t('upload.dropHint')}</div>
+        <div className="mt-2">{deferred ? t('upload.deferredHint') : t('upload.dropHint')}</div>
       </div>
 
       {items.length > 0 && (

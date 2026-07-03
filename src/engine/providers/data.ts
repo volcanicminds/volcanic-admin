@@ -32,9 +32,14 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
 
   async function request(input: string, init: RequestInit = {}): Promise<Response> {
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       ...(getContextHeaders?.() ?? {}),
       ...((init.headers as Record<string, string>) ?? {})
+    }
+    // Only declare a JSON body when one is actually sent. A bodyless request
+    // (e.g. DELETE /resource/:id) with Content-Type: application/json trips
+    // Fastify's FST_ERR_CTP_EMPTY_JSON_BODY.
+    if (init.body != null && !Object.keys(headers).some((h) => h.toLowerCase() === 'content-type')) {
+      headers['Content-Type'] = 'application/json'
     }
     if (authMode === 'bearer') {
       const token = getToken?.()
