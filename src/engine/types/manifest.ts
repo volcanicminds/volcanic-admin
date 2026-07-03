@@ -273,6 +273,10 @@ export interface FormFieldSpec<F extends string = string> {
   /** Widget id; "auto" or a registered widget/componentId. */
   widget?: string
   colSpan?: number
+  /** Force the field to start at this 1-based grid column (md+). Leaves the cells
+   *  before it on the current row empty and, if that column is already taken, moves
+   *  the field to the next row — used to break rows / align columns deliberately. */
+  colStart?: number
   /** Restrict to one form mode (omitted = both create and edit). */
   visibleOn?: 'create' | 'edit'
   placeholder?: I18nKey
@@ -385,6 +389,8 @@ export interface FieldFormSpec {
   /** Widget id; "auto" or a registered widget/componentId. */
   widget?: string
   colSpan?: number
+  /** 1-based grid column the field is forced to start at (see FormFieldSpec.colStart). */
+  colStart?: number
   placeholder?: I18nKey
   /** Non-binding suggested values for the 'combobox' widget (editable dropdown). */
   suggestions?: Array<string | number>

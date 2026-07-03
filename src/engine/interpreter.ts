@@ -119,6 +119,7 @@ function buildFormSections(spec: ResourceSpec, byName: Map<string, ResolvedField
           form: {
             widget: entry.widget,
             colSpan: entry.colSpan,
+            colStart: entry.colStart,
             visibleOn: entry.visibleOn,
             placeholder: entry.placeholder,
             suggestions: entry.suggestions
