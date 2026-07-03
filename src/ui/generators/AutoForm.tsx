@@ -114,9 +114,12 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
 
   return (
     <form onSubmit={submit} className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Title + Cancel/Save pinned while the form scrolls (flush under the app
+          topbar); mirrors the show view. `-mx-6 px-6` = full-width toolbar,
+          `-top-6` cancels the main's top padding. */}
+      <div className="sticky -top-6 z-20 -mx-6 flex items-center justify-between gap-4 border-b bg-background px-6 py-4">
         <h1 className="text-2xl font-semibold">{title}</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           {/* Cancel: discards the in-progress edit and returns where we came from.
               The read-only show view keeps the ArrowLeft "back" affordance instead. */}
           <Button type="button" variant="outline" disabled={formLoading} onClick={() => back()}>
