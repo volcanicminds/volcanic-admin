@@ -215,6 +215,13 @@ form: {
 > written (allowlist). Absent → a single headerless `default` section with all
 > fields in declaration order.
 
+**Runtime behavior (not configurable).** The create/edit form and the show view
+share a **sticky title + actions toolbar** that stays pinned flush under the app
+topbar while the record scrolls, so Save / Edit / Delete stay reachable on long
+forms. Saving an **edit** redirects to the record's **detail (show)** view (not
+the list), keeping context. `readOnly` fields (including output-only fields the
+BE marks read-only) render disabled and are never submitted.
+
 ### 3.4 Fields & capabilities (patch helpers)
 
 | Key | Type | Notes |
@@ -377,7 +384,7 @@ An unknown `widget` id silently falls back to the type default.
 | `relation` | ReferenceSelect (server-sorted by `titleField`) |
 | `text`, `textarea` | Textarea (plain multi-line) |
 | `richtext` | RichTextWidget (TipTap editor, HTML) — falls back to Textarea if unregistered |
-| `integer`, `number` | Number |
+| `integer`, `number` | Number (text input + numeric `inputMode`, **no spinner** — avoids accidental scroll/drag increments; decimals stay typable) |
 | `boolean` | Switch |
 | `enum` | Select |
 | `date`, `datetime` | Date |
