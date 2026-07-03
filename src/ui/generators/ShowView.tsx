@@ -8,14 +8,7 @@ import { useParams, useNavigate } from 'react-router'
 import { Pencil, ArrowLeft, Trash2, Copy, Check, CopyPlus } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/ui/components/ui/dialog'
+import { ConfirmDialog } from '@/ui/components/ConfirmDialog'
 import { useT } from '@/engine'
 import type { ResourceModel } from '@/engine'
 import { FieldValue } from '@/ui/widgets/display'
@@ -173,32 +166,19 @@ export function ShowView({ model }: { model: ResourceModel }) {
 
       {record && <RecordMeta record={record} t={t} />}
 
-      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('action.delete.confirmTitle')}</DialogTitle>
-            <DialogDescription>{t('action.delete.confirmText')}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-              {t('action.cancel')}
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (id)
-                  deleteOne(
-                    { resource: spec.name, id },
-                    { onSuccess: () => list(spec.name) }
-                  )
-                setConfirmDelete(false)
-              }}
-            >
-              {t('action.delete')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={t('action.delete.confirmTitle')}
+        description={t('action.delete.confirmText')}
+        confirmLabel={t('action.delete')}
+        cancelLabel={t('action.cancel')}
+        destructive
+        onConfirm={() => {
+          if (id) deleteOne({ resource: spec.name, id }, { onSuccess: () => list(spec.name) })
+          setConfirmDelete(false)
+        }}
+      />
 
       {record &&
         sections.map((section) => {

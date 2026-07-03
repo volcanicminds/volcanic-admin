@@ -3,7 +3,7 @@
  * `formSections` and submits only the fields the form actually manages (so the
  * payload matches the body schema, not the whole fetched record).
  */
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useForm } from '@refinedev/react-hook-form'
 import { useBack, useApiUrl, useNavigation } from '@refinedev/core'
 import { useLocation } from 'react-router'
@@ -12,6 +12,7 @@ import { X, Save, AlertCircle } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Label } from '@/ui/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card'
+import { UnsavedChangesGuard } from '@/ui/components/UnsavedChangesGuard'
 import { useT, interpolatePath } from '@/engine'
 import type { ResourceModel, ResolvedField } from '@/engine'
 import { FieldInput, formFieldName } from '@/ui/widgets/inputs'
@@ -70,15 +71,18 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
   const {
     refineCore: { onFinish, formLoading },
     handleSubmit,
-    control
+    control,
+    reset,
+    formState
   } = useForm({
     refineCoreProps: {
       resource: model.spec.name,
       action,
       id,
-      // On create we redirect manually (after uploading any staged images to the
-      // now-existing record), so refine's own redirect is disabled for create.
-      redirect: action === 'create' ? false : redirect,
+      // We navigate manually after a successful save (create uploads staged images
+      // first; both modes must disarm the unsaved-changes guard before leaving), so
+      // refine's own redirect is disabled and driven from onValid instead.
+      redirect: false,
       // Hand the created record (or null on failure) to onValid so it can upload
       // staged images. The payload shape varies by refine version: sometimes
       // `{ data: record }`, sometimes the record directly — accept either.
@@ -103,15 +107,23 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
     (f) => (f.type === 'image' || f.type === 'file') && f.image?.endpoints?.upload
   )
 
-  // Where a create lands once saved, honouring the configured redirect.
-  const redirectAfterCreate = (newId: unknown) => {
-    if (redirect === 'show' && newId != null) show(model.spec.name, String(newId))
+  // Unsaved-changes guard: warn before leaving a dirty form. Only in-app link
+  // clicks and hard navigation are intercepted (see UnsavedChangesGuard); the
+  // programmatic redirects below and the Cancel button navigate freely.
+  const isDirty = formState.isDirty
+  const shouldBlock = useCallback(() => isDirty, [isDirty])
+
+  // Post-save navigation, honouring the configured redirect. With no redirect
+  // target (singletons) it marks the form pristine so the guard disarms and stays.
+  const navigateAfterSave = (savedId: unknown, values: Record<string, unknown>) => {
+    if (redirect === 'show' && savedId != null) show(model.spec.name, String(savedId))
     else if (redirect === 'list') list(model.spec.name)
+    else reset(values)
   }
 
-  // Valid submit: build the payload and save. On a server error the create
-  // resolves without a record (or the promise throws) and refine surfaces the
-  // failure; either way we stay on the form so the work is never lost.
+  // Valid submit: build the payload and save. On failure the mutation resolves
+  // without a record (or the promise throws) and refine surfaces the error; either
+  // way we stay on the form (guard still armed) so the work is never lost.
   const onValid = async (values: Record<string, unknown>) => {
     const payload: Record<string, unknown> = {}
     for (const f of editableFields) {
@@ -124,50 +136,46 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
     }
     setServerError(null)
     // Arm the bridge before submitting; a mutation callback resolves it.
-    let resolveCreated!: (rec: Record<string, unknown> | null) => void
-    const createdPromise = new Promise<Record<string, unknown> | null>((res) => {
-      resolveCreated = res
+    let resolveSaved!: (rec: Record<string, unknown> | null) => void
+    const savedPromise = new Promise<Record<string, unknown> | null>((res) => {
+      resolveSaved = res
       // Safety net: if neither mutation callback fires, don't hang the flow.
       setTimeout(() => res(null), 8000)
     })
-    createdResolverRef.current = resolveCreated
+    createdResolverRef.current = resolveSaved
     try {
       await onFinish(payload)
-      // Edit: refine handled the redirect and the widget already uploaded live.
-      if (action !== 'create') return
-
-      // onFinish resolves before the mutation callbacks fire, so wait for the
+      // onFinish resolves before the mutation callbacks fire, so wait for the saved
       // record they hand back (null on error → stay put, refine showed the error).
-      const created = await createdPromise
-      if (!created) return
+      const saved = await savedPromise
+      if (!saved) return
+      const savedId = saved.id ?? id
 
-      const newId = created.id
-      // On create the upload widgets stage their files (no id existed yet); now
-      // that the record exists, upload them to its dedicated endpoints.
-      const staged = uploadFields
-        .map((f) => ({ f, files: pendingFiles(values[formFieldName(f)]) }))
-        .filter((u) => u.files.length > 0)
-
-      if (newId != null && staged.length > 0) {
-        try {
-          for (const u of staged) {
-            await uploadFiles(apiUrl, interpolatePath(u.f.image!.endpoints!.upload!.path, { id: newId }), u.files)
+      // On create the upload widgets staged their files (no id existed yet); now the
+      // record exists, upload them, then land on the detail view to confirm.
+      if (action === 'create') {
+        const staged = uploadFields
+          .map((f) => ({ f, files: pendingFiles(values[formFieldName(f)]) }))
+          .filter((u) => u.files.length > 0)
+        if (staged.length > 0 && savedId != null) {
+          try {
+            for (const u of staged) {
+              await uploadFiles(apiUrl, interpolatePath(u.f.image!.endpoints!.upload!.path, { id: savedId }), u.files)
+            }
+          } catch {
+            // Record created but some images failed: go to its edit view so the user
+            // can retry the upload instead of re-submitting create (which duplicates).
+            toast.error(t('upload.partialFail'))
+            edit(model.spec.name, String(savedId))
+            return
           }
-        } catch {
-          // The record is created but some images failed. Go to its edit view so
-          // the user can retry the upload there instead of re-submitting create
-          // (which would create a duplicate).
-          toast.error(t('upload.partialFail'))
-          edit(model.spec.name, String(newId))
+          // Everything saved — show the record (its images are visible there).
+          show(model.spec.name, String(savedId))
           return
         }
-        // Everything saved — land on the read-only detail view (the freshly
-        // uploaded images are visible there), as create expects after a save.
-        show(model.spec.name, String(newId))
-        return
       }
 
-      redirectAfterCreate(newId)
+      navigateAfterSave(savedId, values)
     } catch (e) {
       setServerError((e as { message?: string })?.message || t('form.saveError'))
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -191,6 +199,10 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
 
   return (
     <form onSubmit={submit} className="space-y-6">
+      {/* In-app navigation while the form is dirty gets a styled confirm modal
+          instead of the browser's native prompt. */}
+      <UnsavedChangesGuard shouldBlock={shouldBlock} />
+
       {/* Title + Cancel/Save pinned while the form scrolls (flush under the app
           topbar); mirrors the show view. `-mx-6 px-6` = full-width toolbar,
           `-top-6` cancels the main's top padding. */}
@@ -198,7 +210,8 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
         <h1 className="text-2xl font-semibold">{title}</h1>
         <div className="flex flex-wrap justify-end gap-2">
           {/* Cancel: discards the in-progress edit and returns where we came from.
-              The read-only show view keeps the ArrowLeft "back" affordance instead. */}
+              It navigates programmatically, so the unsaved-changes guard (which only
+              intercepts link clicks) lets it through. */}
           <Button type="button" variant="outline" disabled={formLoading} onClick={() => back()}>
             <X /> {t('action.cancel')}
           </Button>

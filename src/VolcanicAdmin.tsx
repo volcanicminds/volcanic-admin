@@ -267,7 +267,9 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
                 resources={toRefineResources(model)}
                 options={{
                   syncWithLocation: true,
-                  warnWhenUnsavedChanges: true,
+                  // Unsaved-changes warnings are handled by AutoForm's
+                  // UnsavedChangesGuard (a styled modal), not refine's native prompt.
+                  warnWhenUnsavedChanges: false,
                   disableTelemetry: true,
                   // Edits/deletes apply instantly and roll back on error.
                   mutationMode: 'optimistic'

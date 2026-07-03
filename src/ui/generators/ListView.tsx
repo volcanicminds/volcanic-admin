@@ -10,14 +10,7 @@ import type { CrudSorting } from '@refinedev/core'
 import { Plus, Search, LayoutGrid, Table as TableIcon, ArrowUp, ArrowDown, ArrowUpDown, X } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/ui/components/ui/dialog'
+import { ConfirmDialog } from '@/ui/components/ConfirmDialog'
 import {
   Select,
   SelectContent,
@@ -296,28 +289,19 @@ export function ListView({ model }: { model: ResourceModel }) {
         </div>
       </div>
 
-      <Dialog open={Boolean(toDelete)} onOpenChange={(o) => !o && setToDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('action.delete.confirmTitle')}</DialogTitle>
-            <DialogDescription>{t('action.delete.confirmText')}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setToDelete(null)}>
-              {t('action.cancel')}
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (toDelete) deleteOne({ resource: spec.name, id: toDelete })
-                setToDelete(null)
-              }}
-            >
-              {t('action.delete')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={Boolean(toDelete)}
+        onOpenChange={(o) => !o && setToDelete(null)}
+        title={t('action.delete.confirmTitle')}
+        description={t('action.delete.confirmText')}
+        confirmLabel={t('action.delete')}
+        cancelLabel={t('action.cancel')}
+        destructive
+        onConfirm={() => {
+          if (toDelete) deleteOne({ resource: spec.name, id: toDelete })
+          setToDelete(null)
+        }}
+      />
     </div>
   )
 }

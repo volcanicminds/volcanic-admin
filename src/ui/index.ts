@@ -27,6 +27,10 @@ export { ImageSingle, GalleryReorder } from './widgets/upload'
 export { defaultWidgets } from './widgets/defaults'
 export { RichTextWidget } from './widgets/richtext'
 
+export { ConfirmDialog } from './components/ConfirmDialog'
+export type { ConfirmDialogProps } from './components/ConfirmDialog'
+export { UnsavedChangesGuard } from './components/UnsavedChangesGuard'
+
 export { notificationProvider } from './notification'
 export { Toaster } from './components/ui/sonner'
 
