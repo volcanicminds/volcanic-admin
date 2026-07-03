@@ -37,7 +37,8 @@ function EditPage({ model }: { model: ResourceModel }) {
   const { id } = useParams()
   const Override = useOverride(model, 'edit')
   if (Override) return <Override model={model} id={id} />
-  return <AutoForm model={model} action="edit" id={id} title={t(model.spec.label.singular)} />
+  // After saving an edit, stay on the record (its detail view) instead of the list.
+  return <AutoForm model={model} action="edit" id={id} redirect="show" title={t(model.spec.label.singular)} />
 }
 
 function ShowPage({ model }: { model: ResourceModel }) {

@@ -142,9 +142,12 @@ export function ShowView({ model }: { model: ResourceModel }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Title + actions stay pinned while the record scrolls. `-mx-6 px-6` spans
+          the main content padding so it reads as a full-width toolbar; sticks just
+          under the app topbar (main is the scroll container). */}
+      <div className="sticky top-0 z-20 -mx-6 flex items-center justify-between gap-4 border-b bg-background px-6 py-4">
         <h1 className="text-2xl font-semibold">{isLoading ? '…' : title}</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <Button variant="outline" onClick={() => list(spec.name)}>
             <ArrowLeft /> {t('action.back')}
           </Button>
