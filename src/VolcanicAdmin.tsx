@@ -35,7 +35,8 @@ import {
   tenantStore,
   rolesStore,
   toRefineResources,
-  defaultDictionaries
+  defaultDictionaries,
+  useT
 } from './engine'
 import type {
   AdminModel,
@@ -49,6 +50,7 @@ import type {
 import {
   AdminLayout,
   AdminConfigProvider,
+  useAdminConfig,
   LoginView,
   ForgotPasswordView,
   ResetPasswordView,
@@ -309,7 +311,7 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
                   </Route>
                 </Routes>
                 <UnsavedChangesNotifier />
-                <DocumentTitleHandler />
+                <VolcanicDocumentTitle />
                 <Toaster richColors closeButton position={props.toastPosition ?? 'bottom-right'} />
               </Refine>
             </AdminConfigProvider>
@@ -317,6 +319,48 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
         </AuthClientProvider>
       </RegistryProvider>
     </I18nProvider>
+  )
+}
+
+/**
+ * Sets `document.title` for every route. Replaces refine's default handler,
+ * which leaks the raw i18n label key (e.g. "res.vehicle.plural") and a hard
+ * "| Refine" suffix. We translate the resource label through the engine's own
+ * dictionaries and suffix with the project's app name.
+ *
+ * This handler only knows the resource + action (no record), so it produces the
+ * collection/create titles and a plain single-item fallback. Detail pages
+ * (show/edit/singleton) refine `document.title` to include record fields via
+ * `useRecordDocumentTitle` once the record loads — e.g. "Veicolo BMW 320".
+ *
+ * Format: `[<action prefix>] <label> · <appName>` — e.g. "Veicoli · Dionisi",
+ * "Nuovo Veicolo · Dionisi", "Veicolo · Dionisi" (before the record loads).
+ */
+function VolcanicDocumentTitle() {
+  const t = useT()
+  const { branding } = useAdminConfig()
+  const appName = branding?.appName ?? 'Volcanic Admin'
+  return (
+    <DocumentTitleHandler
+      handler={({ resource, action }) => {
+        const meta = resource?.meta as { label?: string; labelSingular?: string } | undefined
+        // Single-item views use the singular label; the collection uses the plural.
+        const perItem = action === 'create' || action === 'edit' || action === 'clone' || action === 'show'
+        const rawLabel =
+          (perItem ? meta?.labelSingular : undefined) ??
+          meta?.label ??
+          (resource?.label as string | undefined)
+        const label = rawLabel ? t(rawLabel) : ''
+        if (!label) return appName
+
+        // Only create/clone carry an action prefix here. edit/show get their final
+        // title (with record fields) from the view, so a prefix would flash then
+        // vanish — we leave them as the plain singular label as a pre-load fallback.
+        const prefix = action === 'create' || action === 'clone' ? t('docTitle.create') : ''
+        const head = [prefix, label].filter(Boolean).join(' ')
+        return `${head} · ${appName}`
+      }}
+    />
   )
 }
 

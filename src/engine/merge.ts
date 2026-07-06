@@ -60,12 +60,17 @@ export type CapabilityOverride = Partial<CapabilitySpec>
 
 export interface ResourceOverride<F extends string = string>
   extends Partial<
-    Omit<ResourceSpec, 'name' | 'fields' | 'capabilities' | 'list' | 'form' | 'titleField' | 'subtitleField'>
+    Omit<
+      ResourceSpec,
+      'name' | 'fields' | 'capabilities' | 'list' | 'form' | 'titleField' | 'subtitleField' | 'documentTitle'
+    >
   > {
   /** Display field(s) for titles/references. */
   titleField?: F | F[]
   /** Secondary display field(s). */
   subtitleField?: F | F[]
+  /** Field(s) for the browser tab title on detail pages (defaults to titleField). */
+  documentTitle?: F | F[]
   /** Patch fields by name (deep-merge; intrinsic only). */
   fields?: Partial<Record<F, FieldOverride>>
   /** Add fields absent from the generated manifest. */

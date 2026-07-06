@@ -233,6 +233,7 @@ export function toRefineResources(model: AdminModel): IResourceItem[] {
         edit: `/${spec.path}`,
         meta: {
           label: spec.label.plural,
+          labelSingular: spec.label.singular,
           icon: spec.icon,
           parent: spec.group,
           singleton: true,
@@ -248,6 +249,7 @@ export function toRefineResources(model: AdminModel): IResourceItem[] {
       show: `/${spec.path}/show/:id`,
       meta: {
         label: spec.label.plural,
+        labelSingular: spec.label.singular,
         icon: spec.icon,
         parent: spec.group,
         canDelete: r.hasAction('delete')

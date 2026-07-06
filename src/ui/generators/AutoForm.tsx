@@ -19,6 +19,7 @@ import { FieldInput, formFieldName } from '@/ui/widgets/inputs'
 import { uploadFiles, pendingFiles } from '@/ui/widgets/upload/rest'
 import { CLONE_STATE_KEY } from './cloneSeed'
 import { detailColumns, sectionGridClass, fieldSpanClass } from './layout'
+import { useRecordDocumentTitle } from './documentTitle'
 
 interface AutoFormProps {
   model: ResourceModel
@@ -69,7 +70,7 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
       : undefined
 
   const {
-    refineCore: { onFinish, formLoading },
+    refineCore: { onFinish, formLoading, query },
     handleSubmit,
     control,
     reset,
@@ -100,6 +101,10 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
         ? { ...defaultsFor(editableFields), ...((cloneSeed as Record<string, unknown>) ?? {}) }
         : undefined
   })
+
+  // Browser tab title on edit: "<singular label> <record title>" once the record
+  // loads. Create keeps the route-level handler's "New <label>" title (no record).
+  useRecordDocumentTitle(model, query?.data?.data, action === 'edit')
 
   // Image/file fields that upload out-of-band to their own endpoints: excluded
   // from the body, and (on create) the source of files staged in the widget.

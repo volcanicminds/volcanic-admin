@@ -16,6 +16,7 @@ import { formFieldName } from '@/ui/widgets/inputs'
 import { RowActions } from '@/ui/actions/ActionButtons'
 import { CLONE_STATE_KEY } from './cloneSeed'
 import { detailColumns, sectionGridClass, fieldSpanClass } from './layout'
+import { useRecordDocumentTitle } from './documentTitle'
 
 /** Writable form values to carry into a pre-filled create form. Mirrors the
  * AutoForm payload rules: skip read-only fields and image/file fields handled
@@ -102,6 +103,9 @@ export function ShowView({ model }: { model: ResourceModel }) {
 
   const { data, isLoading } = useOne({ resource: spec.name, id })
   const record = data?.data
+
+  // Browser tab title: "<singular label> <record title>", e.g. "Veicolo BMW 320".
+  useRecordDocumentTitle(model, record)
 
   const canDelete = model.hasAction('delete')
   const canClone = model.hasAction('create') && spec.clonable !== false

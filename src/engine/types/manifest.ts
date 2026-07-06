@@ -317,6 +317,12 @@ export interface ResourceSpec {
   titleField?: string | string[]
   /** Secondary display field(s); an array is joined with spaces. */
   subtitleField?: string | string[]
+  /** Field(s) that build the browser tab title on detail pages (show/edit),
+   *  joined with spaces and prefixed by the singular label — e.g. `['brand','name']`
+   *  → "Vehicle BMW 320". Relation fields resolve to their `titleField`. Falls
+   *  back to `titleField` when unset; a record with no usable value shows just the
+   *  singular label. */
+  documentTitle?: string | string[]
   tenantScoped?: boolean
   softDelete?: boolean
   singleton?: boolean
