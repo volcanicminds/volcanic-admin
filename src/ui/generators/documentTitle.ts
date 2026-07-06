@@ -34,18 +34,28 @@ function resolvePart(model: ResourceModel, record: Record<string, any>, name: st
   return raw == null ? '' : String(raw)
 }
 
-/** Build the record-derived part of a detail title from `documentTitle` (falls
- *  back to `titleField`, then `name`), joined with spaces. '' when the record
- *  yields nothing usable. */
-export function buildRecordTitle(model: ResourceModel, record: Record<string, any> | undefined): string {
-  if (!record) return ''
-  const spec = model.spec
-  const cfg = spec.documentTitle ?? spec.titleField ?? 'name'
+/** Resolve one or more configured fields against a record and join with spaces,
+ *  following relations (→ their `titleField`) and dotted paths. This is the single
+ *  relation-aware resolver behind every record-derived label — detail H1, card
+ *  title/subtitle, and the browser tab title — so a relation never renders as
+ *  "[object Object]" or a raw foreign key. */
+export function resolveFields(
+  model: ResourceModel,
+  record: Record<string, any>,
+  cfg: string | string[]
+): string {
   const parts = Array.isArray(cfg) ? cfg : [cfg]
   return parts
     .map((f) => resolvePart(model, record, f))
     .filter((v) => v !== '')
     .join(' ')
+}
+
+/** Build the record-derived part of a detail title from `documentTitle` (falls
+ *  back to `titleField`, then `name`). '' when the record yields nothing usable. */
+export function buildRecordTitle(model: ResourceModel, record: Record<string, any> | undefined): string {
+  if (!record) return ''
+  return resolveFields(model, record, model.spec.documentTitle ?? model.spec.titleField ?? 'name')
 }
 
 /** Set `document.title` to "<singular label> <record title> · <appName>". Before

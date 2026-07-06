@@ -16,7 +16,7 @@ import { formFieldName } from '@/ui/widgets/inputs'
 import { RowActions } from '@/ui/actions/ActionButtons'
 import { CLONE_STATE_KEY } from './cloneSeed'
 import { detailColumns, sectionGridClass, fieldSpanClass } from './layout'
-import { useRecordDocumentTitle } from './documentTitle'
+import { useRecordDocumentTitle, resolveFields } from './documentTitle'
 
 /** Writable form values to carry into a pre-filled create form. Mirrors the
  * AutoForm payload rules: skip read-only fields and image/file fields handled
@@ -126,16 +126,10 @@ export function ShowView({ model }: { model: ResourceModel }) {
       ? model.formSections
       : [{ group: 'default', fields: model.fields }]
 
-  const titleParts = Array.isArray(spec.titleField)
-    ? spec.titleField
-    : [spec.titleField ?? 'name']
+  // Relation-aware: a relation in titleField resolves to its titleField (e.g.
+  // brand → "BMW"), never "[object Object]" or the raw foreign key.
   const title =
-    (record &&
-      titleParts
-        .map((f) => record[f])
-        .filter((v) => v != null && v !== '')
-        .join(' ')) ||
-    t(spec.label.singular)
+    (record && resolveFields(model, record, spec.titleField ?? 'name')) || t(spec.label.singular)
 
   return (
     <div className="space-y-6">

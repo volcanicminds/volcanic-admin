@@ -11,8 +11,10 @@ import { cn, absoluteUrl } from '@/lib/utils'
 import { Button } from '@/ui/components/ui/button'
 import { Card } from '@/ui/components/ui/card'
 import { FieldCell } from '@/ui/widgets/display'
+import type { ResourceModel } from '@/engine'
 import type { ListPresentationProps } from './listShared'
 import { RowActions } from '../actions/ActionButtons'
+import { resolveFields } from './documentTitle'
 
 // Literal class strings (kept whole so Tailwind includes them in the built CSS).
 const GRID_BY_COLS: Record<number, string> = {
@@ -34,13 +36,12 @@ function FeaturedBadge({ t }: { t: (k?: string, v?: Record<string, string | numb
   )
 }
 
-/** Resolve a display string from one or more fields (joined with spaces). */
-function display(record: any, field?: string | string[]): string {
+/** Resolve a display string from one or more fields (joined with spaces).
+ *  Relation-aware via the shared resolver, so a relation renders its title field
+ *  (e.g. brand → "BMW"), not "[object Object]" or the raw foreign key. */
+function display(model: ResourceModel, record: any, field?: string | string[]): string {
   if (!field) return ''
-  return (Array.isArray(field) ? field : [field])
-    .map((f) => record[f])
-    .filter((v) => v != null && v !== '')
-    .join(' ')
+  return resolveFields(model, record, field)
 }
 
 /** All displayable image URLs for a record, cover first. */
@@ -202,10 +203,10 @@ export function ListCards({
               )}
               <div className={cn('flex items-start gap-2', centered ? 'justify-center' : 'justify-between')}>
                 <div className="min-w-0">
-                  <div className="truncate font-medium">{display(record, titleField) || '—'}</div>
-                  {display(record, subtitleField) && (
+                  <div className="truncate font-medium">{display(model, record, titleField) || '—'}</div>
+                  {display(model, record, subtitleField) && (
                     <div className="truncate text-sm text-muted-foreground">
-                      {display(record, subtitleField)}
+                      {display(model, record, subtitleField)}
                     </div>
                   )}
                 </div>
