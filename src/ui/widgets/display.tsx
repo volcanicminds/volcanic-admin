@@ -3,10 +3,12 @@
  * enums → colored badge, booleans → check/dash, relations → titleField, dates →
  * locale string, images → thumbnail.
  */
+import { useState } from 'react'
 import { useApiUrl } from '@refinedev/core'
 import { Check, X, Minus } from 'lucide-react'
 import { Badge } from '@/ui/components/ui/badge'
 import { absoluteUrl, cn } from '@/lib/utils'
+import { ImagePreviewDialog } from '@/ui/components/ImagePreviewDialog'
 import type { ResolvedField } from '@/engine'
 import type { WidgetProps } from './types'
 
@@ -121,24 +123,37 @@ function imageUrls(record: Record<string, any>, field: ResolvedField): string[] 
 
 export function FieldValue({ record, field, t }: CellProps) {
   const apiUrl = useApiUrl()
+  const [preview, setPreview] = useState<string | null>(null)
   // Image/gallery fields render as a thumbnail grid (read-only mirror of the edit widget).
   if (field.type === 'image' || field.type === 'file') {
     const urls = imageUrls(record, field)
     if (!urls.length) return <span className="text-muted-foreground">—</span>
     return (
-      <div className="flex flex-wrap gap-2">
-        {urls.map((url, i) => (
-          <img
-            key={i}
-            src={absoluteUrl(apiUrl, url)}
-            alt=""
-            className={cn(
-              'h-24 w-32 rounded-md border',
-              field.image?.fit === 'contain' ? 'bg-white object-contain p-2' : 'object-cover'
-            )}
-          />
-        ))}
-      </div>
+      <>
+        <div className="flex flex-wrap gap-2">
+          {urls.map((url, i) => {
+            const src = absoluteUrl(apiUrl, url)
+            return (
+              <img
+                key={i}
+                src={src}
+                alt=""
+                title={t('upload.preview')}
+                onClick={() => setPreview(src)}
+                className={cn(
+                  'h-28 w-40 cursor-zoom-in rounded-md border',
+                  field.image?.fit === 'contain' ? 'bg-white object-contain p-2' : 'object-cover'
+                )}
+              />
+            )
+          })}
+        </div>
+        <ImagePreviewDialog
+          open={preview != null}
+          onOpenChange={(o) => !o && setPreview(null)}
+          src={preview}
+        />
+      </>
     )
   }
 
