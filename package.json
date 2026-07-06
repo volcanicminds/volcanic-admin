@@ -1,7 +1,7 @@
 {
   "name": "@volcanicminds/admin",
   "version": "0.0.1",
-  "description": "Volcanic (minds) Admin — manifest-driven backoffice engine on Refine + shadcn/ui",
+  "description": "Volcanic (minds) Admin - manifest-driven backoffice engine on Refine + shadcn/ui",
   "keywords": [
     "volcanic",
     "volcanic admin",
