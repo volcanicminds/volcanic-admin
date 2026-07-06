@@ -103,14 +103,47 @@ export function Sidebar() {
         )}
       >
         {branding?.logo && !collapsed ? (
-          <img
-            src={branding.logo}
-            alt={appName}
-            className="w-auto object-contain"
-            style={{ height: branding.logoHeight ?? 28, maxWidth: branding.logoMaxWidth ?? 170 }}
-          />
+          branding.logoDark ? (
+            // Two variants swapped by the .dark class (CSS-only, no JS).
+            <>
+              <img
+                src={branding.logo}
+                alt={appName}
+                className="block w-auto object-contain dark:hidden"
+                style={{ height: branding.logoHeight ?? 28, maxWidth: branding.logoMaxWidth ?? 170 }}
+              />
+              <img
+                src={branding.logoDark}
+                alt={appName}
+                className="hidden w-auto object-contain dark:block"
+                style={{ height: branding.logoHeight ?? 28, maxWidth: branding.logoMaxWidth ?? 170 }}
+              />
+            </>
+          ) : (
+            <img
+              src={branding.logo}
+              alt={appName}
+              className="w-auto object-contain"
+              style={{ height: branding.logoHeight ?? 28, maxWidth: branding.logoMaxWidth ?? 170 }}
+            />
+          )
         ) : branding?.logoCollapsed && collapsed ? (
-          <img src={branding.logoCollapsed} alt={appName} className="h-7 w-7 object-contain" />
+          branding.logoCollapsedDark ? (
+            <>
+              <img
+                src={branding.logoCollapsed}
+                alt={appName}
+                className="block h-7 w-7 object-contain dark:hidden"
+              />
+              <img
+                src={branding.logoCollapsedDark}
+                alt={appName}
+                className="hidden h-7 w-7 object-contain dark:block"
+              />
+            </>
+          ) : (
+            <img src={branding.logoCollapsed} alt={appName} className="h-7 w-7 object-contain" />
+          )
         ) : (
           <>
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">

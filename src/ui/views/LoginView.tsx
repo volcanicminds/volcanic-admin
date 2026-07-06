@@ -32,7 +32,7 @@ export function LoginView() {
   // Login shows a bigger, centered "hero" logo — its own richer mark if provided,
   // otherwise the sidebar logo, at login-specific (larger) sizes.
   const loginLogo = branding?.loginLogo ?? branding?.logo
-  const loginLogoDark = branding?.loginLogoDark
+  const loginLogoDark = branding?.loginLogoDark ?? branding?.logoDark
   const loginLogoHeight = branding?.loginLogoHeight ?? 56
   const loginLogoMaxWidth = branding?.loginLogoMaxWidth ?? 260
   // "powered by Volcanic Minds" signature (theme-aware). On by default; hide via

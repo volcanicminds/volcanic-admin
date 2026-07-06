@@ -20,8 +20,14 @@ export interface AdminBranding {
   appName?: string
   /** Logo image src for the expanded sidebar + login. Replaces the default badge + wordmark. */
   logo?: string
+  /** Dark-theme variant of the expanded-sidebar logo (CSS-swapped by the `.dark` class).
+   *  Use when `logo` is unreadable on a dark background. Also the default fallback for
+   *  `loginLogoDark`. */
+  logoDark?: string
   /** Smaller logo/mark for the collapsed sidebar. Falls back to the appName initial badge. */
   logoCollapsed?: string
+  /** Dark-theme variant of the collapsed-sidebar logo (CSS-swapped by the `.dark` class). */
+  logoCollapsedDark?: string
   /** Height (px) of the expanded-sidebar logo. Width stays auto. Default 28. */
   logoHeight?: number
   /** Max width (px) of the expanded-sidebar logo. Default 170. */
