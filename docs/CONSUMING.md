@@ -339,10 +339,13 @@ override the CSS variables in a stylesheet if you prefer; both work.
 **Logo & app name.** The sidebar header shows your brand via the `branding` prop (or
 `plugin.branding`): `logo` (image src for the expanded sidebar), `logoCollapsed` (small
 mark for the collapsed rail), and `appName` (label + the fallback badge initial). Without
-it the engine shows a neutral badge + "Volcanic Admin".
+it the engine shows a neutral badge + "Volcanic Admin". For a logo that is unreadable on a
+dark background, add the `*Dark` variants — they swap by the `.dark` class (CSS-only, no
+JS); set only the light one and it is used in both themes. See `CONFIGURATION.md` §11 for
+the full field list (`loginLogo*`, `logoHeight`, `poweredBy`, …).
 
 ```tsx
-<VolcanicAdmin branding={{ appName: 'Acme', logo: '/logo.svg' }} … />
+<VolcanicAdmin branding={{ appName: 'Acme', logo: '/logo.svg', logoDark: '/logo-dark.svg' }} … />
 ```
 
 If you build your **own** components with Tailwind and want the same tokens/utilities, extend
@@ -437,7 +440,7 @@ Now dropping a new `*.plugin.ts(x)` under `src/plugins/` registers it automatica
 | `overrides` | Component registry: `{ widget, view, action }` keyed by manifest componentId. |
 | `routes` | Custom pages: `{ path, element, index?, nav? }`. |
 | `theme` | Theme tokens injected as CSS variables (`{ primary, ring, radius, …, dark }`). |
-| `branding` | Sidebar brand: `{ appName, logo, logoCollapsed }`. |
+| `branding` | Sidebar + login brand: `{ appName, logo, logoDark, logoCollapsed, logoCollapsedDark, loginLogo, … }` (full list in `CONFIGURATION.md` §11). `*Dark` variants swap by the `.dark` class. |
 | `plugins` | Composable bundles: `{ widgets, views, actions, routes, dictionaries, theme, branding }` (use `defineAdminPlugin`). |
 | `fetchTenants` | Tenant list loader (multi-tenant); default `GET /tenants`. |
 

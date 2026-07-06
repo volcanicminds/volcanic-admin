@@ -5,7 +5,7 @@
  * the backend (`GET /admin/manifest`) and interpreted by the engine. Every
  * human-facing label is an i18n KEY, never literal text.
  *
- * Contract: MANIFEST_DESIGN.md §2 + manifest.v2.schema.json. v2 unifies the v1
+ * Contract: docs/ARCHITECTURE.md §2 + manifest.v2.schema.json. v2 unifies the v1
  * `permissions` + `capabilities`(boolean) + `actions` into a single
  * `capabilities: CapabilitySpec[]` (roles in one place).
  */

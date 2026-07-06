@@ -20,8 +20,12 @@
 4. The overrides model (`ManifestOverrides<GeneratedFieldMap>`)
 5. Widgets (built-in, type defaults, custom)
 6. Runtime behaviors
-7. Typed field names & the pull CLI
-8. Ecosystem note
+7. Filters, sort & search (UI mapping)
+8. i18n (keys, dictionaries, reserved defaults)
+9. Theming, branding & icons
+10. Gotchas & constraints
+11. Typed field names & the pull CLI
+12. Ecosystem note
 
 ---
 
@@ -112,8 +116,8 @@ createRoot(document.getElementById('root')!).render(
 | `dictionaries` | `Dictionaries` | i18n label maps, keyed by locale then i18n key. |
 | `defaultLocale` / `locales` | `string` / `string[]` | Default from `manifest.i18n`. |
 | `overrides` | `{ widget?, view?, action? }` | Components keyed by registry id (see §5, §4). |
-| `theme` | `AdminTheme` | Theme tokens injected as CSS variables (HSL channels, e.g. `"221 83% 53%"`), with a `dark` sub-block. No Tailwind needed. |
-| `branding` | `AdminBranding` | Logo + app name in the sidebar header. |
+| `theme` | `AdminTheme` | Theme tokens injected as CSS variables (HSL channels, e.g. `"221 83% 53%"`), with a `dark` sub-block. No Tailwind needed. Full token list §9. |
+| `branding` | `AdminBranding` | Sidebar + login brand: `appName`, `logo`/`logoDark`, `logoCollapsed`/`logoCollapsedDark`, `loginLogo`/`loginLogoDark`, sizes, `poweredBy`. Light/dark pairs swap by `.dark`. Full list §9. |
 | `plugins` | `AdminPlugin[]` | Composable bundles of `widgets`/`views`/`actions`/`routes`/`dictionaries`/`theme`/`branding`. Direct props win on key collisions. `defineAdminPlugin()` is the typed authoring helper. |
 | `fetchTenants` | `() => Promise<TenantOption[]>` | Multi-tenant list loader. Default `GET ${apiUrl}${tenancy.listEndpoint ?? '/tenants'}`. |
 | `routes` | `AdminCustomRoute[]` | Extra screens (dashboards, custom pages). `{ path, element, index?, nav? }` — `index:true` sets the home route; `nav` adds a sidebar entry. |
@@ -372,7 +376,104 @@ entry's `widget`. The registry has three kinds: `widget`, `view`, `action`.
 
 ---
 
-## 7. Typed field names & the pull CLI
+## 7. Filters, sort & search (UI mapping)
+
+Source: `src/ui/generators/FilterBar.tsx`, `ListView.tsx`. A field opts into filtering with
+`filterable`, into sorting with `sortable` (default true for non-relation/json). The Filters
+dialog **AND-combines** every active condition and maps the field type to a control + Magic
+Query operator:
+
+| Field type | Control | Operator |
+|---|---|---|
+| `enum` | multi-select chips | `in` |
+| `relation` | multi-select (on the `foreignKey`) | `in` |
+| `boolean` | any / yes / no | `eq` |
+| `integer` / `number` / `date` / `datetime` | min–max range | `gte` / `lte` |
+
+Restrict the offered operators per field with `field.operators` (a subset of `FilterOperator`,
+§3). **Sort**: `list.sort` (field names, in order) drives a "sort by" select + an asc/desc
+toggle; absent → the sortable fields. **Search**: `resource.search.fields` enables a global OR
+box, sent as the synthetic `q=` param that the backend expands across the listed fields.
+
+---
+
+## 8. i18n (keys, dictionaries, reserved defaults)
+
+Source: `src/engine/i18n.tsx`. The manifest carries **keys only**; the project supplies
+`dictionaries` (`Record<locale, Record<i18nKey, string>>`). A **missing key is humanized** (last
+segment, `snake`/`kebab`/`camelCase` → spaced, title-cased) so the UI never shows a raw key.
+Interpolation is single-brace `{var}` (`t(key, vars)`); an unresolved var stays literal `{var}`.
+
+**Key conventions emitted by the backend:**
+`res.<name>.{singular,plural}` · `field.<resource>.<field>` · `enum.<EnumName>.<value>` ·
+`action.<resource>.<action>` · `op.<name>` (top-level operation sections) · `group.<name>` ·
+`meta.*`.
+
+**Reserved default keys** shipped in `defaultDictionaries` (en + it) — override as needed:
+- `error.*`: `unique`, `reference`, `required`, `forbidden`, `notFound`, `conflict`, `generic`
+  (used by `classifyBackendError` → `providers/errors.ts` to humanize backend errors).
+- `meta.*`: `id`, `createdAt`, `updatedAt`.
+- `action.*`: `copy`, `clone`, `remove`, `delete`, `cancel`, `confirm`, `delete.confirmTitle`,
+  `delete.confirmText` (+ view-level `back` / `edit` / `save`).
+- `badge.featured`; `upload.*` (`button`, `hint`, `dropHint`, `tooLarge`, `failed`, `cover`,
+  `alt`, `preview`, …); `sort.*` (`by`, `asc`, `desc`, `clear`); `filter.*` (`title`, `clear`,
+  `any`, `yes`, `no`, `min`, `max`).
+
+---
+
+## 9. Theming, branding & icons
+
+**Theme** (`AdminTheme`, `src/VolcanicAdmin.tsx`) — tokens injected as CSS variables at the
+root; values are **HSL channels** (e.g. `"221 83% 53%"`), `radius` is any CSS length. A nested
+`dark` object overrides tokens under the `.dark` class. Tokens: `background`, `foreground`,
+`card`, `cardForeground`, `popover`, `popoverForeground`, `primary`, `primaryForeground`,
+`secondary`, `secondaryForeground`, `muted`, `mutedForeground`, `accent`, `accentForeground`,
+`destructive`, `destructiveForeground`, `border`, `input`, `ring`, `radius`.
+
+**Branding** (`AdminBranding`, `src/ui/config.tsx`) — sidebar + login brand. All optional:
+`appName` (default `'Volcanic Admin'`, also the fallback badge initial), `logo` (expanded
+sidebar + login), `logoDark`, `logoCollapsed` (collapsed rail), `logoCollapsedDark`,
+`logoHeight` (28), `logoMaxWidth` (170), `loginLogo` (login hero, falls back to `logo`),
+`loginLogoDark` (falls back to `logoDark`), `loginLogoHeight` (56), `loginLogoMaxWidth` (260),
+`poweredBy` (default true → theme-aware "powered by Volcanic Minds" login signature; `false`
+to white-label). Every light/dark pair (`logo`/`logoDark`, `logoCollapsed`/`logoCollapsedDark`,
+`loginLogo`/`loginLogoDark`) and the signature swap via the `.dark` class (CSS-only, no JS);
+set only the light one and it serves both themes.
+
+**Enum badge colors** (`EnumOption.color`, `src/ui/widgets/display.tsx`) — a **named** color
+renders a soft colored chip; any other value → neutral chip + a color dot. Named palette:
+`slate`, `gray`, `red`, `orange`, `amber`, `yellow`, `green`, `emerald`, `teal`, `blue`,
+`indigo`, `violet`, `purple`, `pink`, `rose`.
+
+**Icons** — two independent **mapped** sets (NOT arbitrary lucide names; unknown → fallback):
+- Sidebar / resource / group (`src/ui/layout/icons.tsx`): `car`, `layers`, `users`, `mail`,
+  `cog`, `building`, `tag`, `boxes`, `file`, `image`, `cart`. Unknown → first-letter badge.
+- Action (`src/ui/actions/ActionButtons.tsx`): `check`, `archive`, `download`, `refresh`,
+  `send`, `star`, `star-off`. Unknown → `Zap`. Add a name by extending the map in code.
+
+---
+
+## 10. Gotchas & constraints
+
+- **Rich text stores HTML** (`type: 'richtext'`, TipTap): the read view renders it inside
+  `.prose` (Tailwind Typography, shipped via the preset); the editor chunk is **lazy-loaded**
+  (ProseMirror only ships to apps that use it). Content is produced from a constrained schema
+  (no `<script>`); against an untrusted backend still sanitize server-side or wrap the display
+  in DOMPurify.
+- **`mutationMode: 'optimistic'`** globally (`VolcanicAdmin.tsx`) — edits/deletes apply
+  instantly and roll back on error; capability actions invalidate → refetch.
+- **Do NOT pull `useQueryClient` from `@tanstack/react-query` inside the engine** — Refine v4
+  owns its QueryClient; a second instance throws "No QueryClient set". Invalidate through Refine.
+- **Relative storage URLs** (`/media/...`) are resolved against the API origin via
+  `absoluteUrl(apiUrl, url)` (`@/lib/utils`) before rendering images.
+- **Numeric fields are plain text inputs** (not `type="number"`) — no spinner, so scroll/drag
+  can't corrupt a value while keeping decimals typable.
+- **Engine dev loop**: after rebuilding the engine's `dist`, a consuming app must clear Vite's
+  cache to pick it up — `rm -rf node_modules/.vite && npm run dev`.
+
+---
+
+## 11. Typed field names & the pull CLI
 
 `volcanic-admin-pull` (bin → `scripts/pull-manifest.mjs`) snapshots the manifest into a project:
 
@@ -398,7 +499,7 @@ fetch the manifest live and pass only `manifestOverrides`).
 
 ---
 
-## 8. Ecosystem note
+## 12. Ecosystem note
 
 `@volcanicminds/admin` pairs with **`@volcanicminds/backend`** (codename `rome`), whose core
 HTTP/Fastify layer plus data layer (subpath `@volcanicminds/backend/typeorm`, Magic Query +

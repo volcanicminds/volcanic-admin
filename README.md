@@ -7,7 +7,15 @@
 
 The admin is **auto-generated** from a manifest (`GET /admin/manifest`) yet
 **customizable** via targeted overrides. It is single- and multi-tenant ready.
-See `MANIFEST_DESIGN.md` for the full design (manifest v2 contract + engine architecture).
+
+**The concept in one line:** your project *declares* data + endpoints → the backend
+*describes* them as a manifest → the admin *builds* the panel → you *refine* it with
+overrides. The panel keeps two files: the machine-written `manifest.generated.ts`
+(rewritten on every refresh, never hand-edited) and your `manifest.overrides.ts`
+(presentation only, never regenerated) — so a backend change flows in without clobbering
+your UI choices.
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design (manifest v2 contract + engine architecture).
 
 ## Use it in a client project
 

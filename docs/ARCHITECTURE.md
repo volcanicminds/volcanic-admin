@@ -1,13 +1,13 @@
-# Manifest & Engine — Design (v2)
+# Architecture — Manifest & Engine (v2)
 
-> **Single** design document for the manifest-driven backoffice of the Volcanic Minds ecosystem. It defines the
+> **Single** architecture document for the manifest-driven backoffice of the Volcanic Minds ecosystem. It defines the
 > **contract** (Manifest v2), the **lifecycle** (how it is born, where it lives, how it is consumed), the
-> **engine/ui architecture** (Refine + shadcn), the **override model** and **multi-tenancy**. It merges and replaces
-> the previous `VOLCANIC_ADMIN_BLUEPRINT.md` (retired), realigned to the v2 decisions.
-> Operational twin document: `MANIFEST_PLAN.md` (task plan). In case of conflict with the code, **the code wins**.
+> **engine/ui architecture** (Refine + shadcn), the **override model** and **multi-tenancy**.
+> In case of conflict with the code, **the code wins**.
 >
-> **Status**: design. The admin engine today implements **v1** (`src/engine/types/manifest.ts`); this document
-> describes the target **v2**. The v1→v2 migration of the engine is task ADM-1 of the plan.
+> **Status**: implemented. The admin engine ships **Manifest v2** (`src/engine/types/manifest.ts`, `version: 2`); this
+> document describes the contract as built. It is the reference for `manifest.v2.schema.json` (the BE↔admin boundary
+> schema) and the companion of [`CONFIGURATION.md`](./CONFIGURATION.md) (the exhaustive knob-by-knob reference).
 
 ---
 
@@ -16,16 +16,16 @@
 - **Frontend base**: **Refine** (MIT, headless) + **shadcn/ui**. Our own identity, ownable.
 - **Schema source**: **Volcanic Manifest** emitted by the backend, derived **only from route + JSON Schema** (see §3).
 - **Contract = Manifest v2**: unified array **`capabilities`** (`CapabilitySpec[]`) that collapses the v1
-  `permissions` + `capabilities`(boolean) + `actions`; `roles` in a single place (decision D1).
-- **Scope**: `resources[]` (CRUD) **+** top-level `capabilities[]` (standalone *operation* sections) (D2).
+  `permissions` + `capabilities`(boolean) + `actions`; `roles` in a single place.
+- **Scope**: `resources[]` (CRUD) **+** top-level `capabilities[]` (standalone *operation* sections).
 - **Schema-only generation**: the generator does **not** read the data layer (no entity-metadata). Consequence:
-  lean `relation` (no `kind`/`foreignKey`), enums only if in the schema; anything beyond goes into the overrides (D3).
-- **Graduated sensitivity**: `password` write-only; `token`/`mfaSecret`/`externalId` always excluded (D4).
+  lean `relation` (no `kind`/`foreignKey`), enums only if in the schema; anything beyond goes into the overrides.
+- **Graduated sensitivity**: `password` write-only; `token`/`mfaSecret`/`externalId` always excluded.
 - **Override**: structural hints on the BE side in `config` of `routes.ts` + **generated/overrides** split on the admin side
-  (no `defineAdminResource`) (D5).
+  (no `defineAdminResource`).
 - **No autoCrud**: the manifest describes **real hand-written endpoints** (`/vehicles`, …), not `/admin/<resource>`
-  auto-mounted ones. AutoCrud remains a separate future capability (D6).
-- **Build-time consumption + snapshot**, **full** manifest with declared `roles[]` (not runtime per-role) (D7).
+  auto-mounted ones. AutoCrud remains a separate future capability.
+- **Build-time consumption + snapshot**, **full** manifest with declared `roles[]` (not runtime per-role).
 - **Packaging**: a single frontend package `@volcanicminds/admin` (internal headless `engine` + shadcn `ui`); manifest
   generation is an **optional capability of `@volcanicminds/backend`**, not a second package.
 - **Code language**: everything in English (entities, fields, enums, paths, manifest keys). UI labels via i18n.
@@ -259,22 +259,22 @@ type→recommended-operators map is a presentation choice (admin); the BE can on
 
 ## 3. Backend-side generation (optional capability, schema-only)
 
-Enabled via `start({ admin: { manifest: true } })`. **One** responsibility: generate the manifest over the
-**existing hand-written endpoints**. **No** generic-CRUD auto-mount (D6): the manifest links the real endpoints;
+Enabled via `config.options.manifest.enabled` on the backend. **One** responsibility: generate the manifest over the
+**existing hand-written endpoints**. **No** generic-CRUD auto-mount: the manifest links the real endpoints;
 the custom routes (images, status, export) stay in their modules.
 
 ### 3.1 The sources (only route + schema)
 
 The generator **derives**, it does not invent, combining in increasing order of authority:
 
-1. **`global.routes`** (exposed by the core, task BE-1): method, **real** path, `roles`, and the file-level +
+1. **`global.routes`** (exposed by the core): method, **real** path, `roles`, and the file-level +
    per-route `config` with the **structural hints** (§3.4).
 2. **Registered JSON Schemas** (`server.getSchemas()`): for each route, it resolves the `$ref`s of `doc.body`/`doc.response`
    → fields, types, `required`, `validation` (`min/max/minLength/maxLength/pattern/format`), inline `enum`.
 3. **`config` hints** of `routes.ts` (§3.4): `resource.name` (schema→resource mapping, no fragile heuristics),
    `group`, `titleField`, `subtitleField`, `globalSearch`.
 
-> **No entity-metadata** (D3). So `relation.kind`, `foreignKey`, `image`, and enums not declared in the
+> **No entity-metadata**. So `relation.kind`, `foreignKey`, `image`, and enums not declared in the
 > schema are **not** generated: they are filled in the admin `overrides`. It is a deliberate downgrade of fidelity in exchange for
 > total decoupling from the data layer (the core neither imports nor queries `/typeorm`).
 
@@ -344,7 +344,7 @@ eliminating duplications such as `omniSearch.ts`).
 
 ```
 ┌─ BE (volcanic-backend) ───────────────────────────────────────────────┐
-│ start({ admin:{manifest:true} })                                       │
+│ config.options.manifest.enabled = true                                 │
 │   global.routes  +  server.getSchemas()   ── generator (schema-only) ──▶ Manifest JSON (full, declared roles)
 │   GET /admin/manifest        and/or       dump → manifest.json (CI snapshot)                                   │
 └────────────────────────────────────────────────────────────────────────┘
@@ -453,30 +453,12 @@ Principle: **80% OOTB from the manifest, 20% targeted overrides**. No project re
 - The build-time manifest is **full**: it lists all resources/capabilities with the **declared** `roles`.
 - **Double gating**: the admin hides at runtime what the role cannot use; the **BE remains the authority** and rejects
   unauthorized calls on the endpoints anyway.
-- **Graduated sensitive policy** (D4): `password` excluded from read/list, allowed **write-only** in create/update;
+- **Graduated sensitive policy**: `password` excluded from read/list, allowed **write-only** in create/update;
   `token`/`mfaSecret`/`externalId` **always** excluded. Blacklist extensible via BE config.
 
 ---
 
-## 10. Diff v1 → v2 (migration impact)
-
-| v1 (today, `src/engine/types/manifest.ts`) | v2 (target) |
-|---|---|
-| `version: 1` | `version: 2` |
-| `resource.permissions: Partial<Record<CrudAction,string[]>>` | merged into `capabilities[].roles` |
-| `resource.capabilities: { create?:bool, … }` | merged into `capabilities[]` (presence/`enabled`) |
-| `resource.actions: ActionSpec[]` | merged into `capabilities[]` with `kind:'action'` |
-| — | new top-level `Manifest.capabilities[]` (operation sections) |
-| `bulkDelete?: boolean` | `delete` with `target` incl. `'bulk'` |
-| `search` (boolean capability) | derived from the presence of `resource.search` |
-
-**Files to migrate (task ADM-1):** `src/engine/types/manifest.ts`, `src/engine/interpreter.ts` (`:59-62`),
-`src/engine/providers/accessControl.ts` (`:41`), `src/ui/generators/ListView.tsx` (`:98-100`,`:150`),
-`src/ui/generators/ShowView.tsx`, `src/mock/manifest.ts`, `src/mock/manifestUnchanged.ts`.
-
----
-
-## 11. Example (resource `vehicle`, v2)
+## 10. Example (resource `vehicle`, v2)
 
 ```ts
 {
@@ -538,10 +520,11 @@ capabilities: [
 
 ---
 
-## 12. Dionisi as the first instance (contract validation)
+## 11. Contract stress test — representative overrides
 
-The 5 Dionisi overrides are the v2 completeness test (they must be expressible without contortions):
+A compact way to check the contract is complete: a handful of non-trivial overrides that must all be expressible
+without forking the engine. The ones that exercise it end to end:
 `company` **singleton** (edit only) · **gallery-reorder** with cover + `altView` dropdown · **status workflow**
-(`publish`/`archive` as `capabilities` `kind:'action'`) · **CSV export** newsletter (capability `kind:'action'`,
-`target:['collection']`, `download`) · **image-single** (brand logo). Domain detail in
-`dionisi-group/BACKOFFICE_BLUEPRINT.md`; admin wiring in `BO_ADMIN_IMPLEMENTATION_TODO.md`.
+(`publish`/`archive` as `capabilities` `kind:'action'`) · **CSV export** (capability `kind:'action'`,
+`target:['collection']`, `download`) · **image-single** (a logo field). All five are expressible with the overrides
+described above — no engine fork.

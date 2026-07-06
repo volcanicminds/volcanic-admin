@@ -469,7 +469,9 @@ author with `defineAdminPlugin()`. See CONSUMING.md §3.5.
 |---|---|---|---|
 | `appName` | `string` | `'Volcanic Admin'` | Sidebar header, login title, fallback badge initial. |
 | `logo` | `string` | — | Expanded-sidebar + login logo (replaces badge + wordmark). |
+| `logoDark` | `string` | — | Dark-theme variant of the expanded-sidebar logo (CSS-swapped by `.dark`). Also the default fallback for `loginLogoDark`. |
 | `logoCollapsed` | `string` | — | Mark for the collapsed sidebar (falls back to initial badge). |
+| `logoCollapsedDark` | `string` | — | Dark-theme variant of the collapsed-sidebar mark (CSS-swapped by `.dark`). |
 | `logoHeight` | `number` | `28` | Expanded logo height px. |
 | `logoMaxWidth` | `number` | `170` | Expanded logo max width px. |
 | `loginLogo` | `string` | `logo` | Login hero logo (usually bigger/richer than the sidebar mark). |
@@ -479,8 +481,10 @@ author with `defineAdminPlugin()`. See CONSUMING.md §3.5.
 | `poweredBy` | `boolean` | `true` | Show the theme-aware "powered by Volcanic Minds" signature on the login (bottom-right). Set `false` to hide (white-label). |
 
 The login page is inside the `ThemeProvider` and uses theme tokens, so it renders
-in **both light and dark** (follows the OS unless the user picks a mode). The VM
-signature and `loginLogoDark` swap variants via the `.dark` class (CSS-only).
+in **both light and dark** (follows the OS unless the user picks a mode). Every
+light/dark logo pair (`logo`/`logoDark`, `logoCollapsed`/`logoCollapsedDark`,
+`loginLogo`/`loginLogoDark`) and the VM signature swap variants via the `.dark`
+class (CSS-only, no JS). Set only the light variant and it is used in both themes.
 
 **`AdminTheme`** — CSS-variable tokens injected at the root (no Tailwind config
 needed). Colors are **HSL channels** (e.g. `"221 83% 53%"`). Tokens: `background`,
@@ -567,4 +571,4 @@ of these, update the matching section here in the **same PR**:
 | Filters / sort / search behavior | `src/ui/generators/{FilterBar,ListView}.tsx` |
 
 See also: [`CONSUMING.md`](./CONSUMING.md) (setup, plugins, dev workflow),
-`MANIFEST_DESIGN.md` (manifest v2 contract).
+[`ARCHITECTURE.md`](./ARCHITECTURE.md) (manifest v2 contract + engine design).

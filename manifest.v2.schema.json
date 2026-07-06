@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://volcanicminds.com/schemas/manifest.v2.schema.json",
   "title": "Volcanic Manifest v2",
-  "description": "Contratto di confine BE↔admin per il backoffice manifest-driven. Sorgente: MANIFEST_DESIGN.md §2. Il BE produce JSON validato contro questo schema; l'engine admin lo interpreta.",
+  "description": "BE↔admin boundary contract for the manifest-driven backoffice. Source: docs/ARCHITECTURE.md §2. The backend emits JSON validated against this schema; the admin engine interprets it.",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "generatedAt", "i18n", "auth", "tenancy", "groups", "enums", "resources"],
