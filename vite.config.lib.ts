@@ -13,7 +13,7 @@ export default defineConfig({
     react(),
     dts({
       entryRoot: 'src',
-      include: ['src/index.ts', 'src/VolcanicAdmin.tsx', 'src/engine', 'src/ui', 'src/lib'],
+      include: ['src/index.ts', 'src/VolcanicAdmin.tsx', 'src/assets.d.ts', 'src/engine', 'src/ui', 'src/lib'],
       exclude: ['src/mock/**', 'src/App.tsx', 'src/main.tsx', 'src/vite-env.d.ts'],
       insertTypesEntry: true
     })
