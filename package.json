@@ -1,10 +1,7 @@
 {
   "name": "@volcanicminds/admin",
   "version": "0.0.1",
-  "codename": "phoenix",
-  "license": "MIT",
   "description": "Volcanic (minds) Admin — manifest-driven backoffice engine on Refine + shadcn/ui",
-  "type": "module",
   "keywords": [
     "volcanic",
     "volcanic admin",
@@ -18,12 +15,17 @@
     "react",
     "typescript"
   ],
-  "engines": {
-    "node": ">=24"
+  "homepage": "https://volcanicminds.com",
+  "bugs": {
+    "url": "https://github.com/volcanicminds/volcanic-admin/issues"
   },
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/volcanicminds/volcanic-admin.git"
+  },
+  "license": "MIT",
+  "author": "Volcanic Minds <developers@volcanicminds.com> (https://volcanicminds.com)",
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -32,15 +34,21 @@
     "./styles.css": "./dist/style.css",
     "./tailwind-preset": "./tailwind-preset.js"
   },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "volcanic-admin-pull": "scripts/pull-manifest.mjs"
+  },
+  "directories": {
+    "doc": "docs",
+    "example": "examples"
+  },
   "files": [
     "dist",
     "tailwind-preset.js",
     "README.md",
     "scripts",
     "manifest.v2.schema.json"
-  ],
-  "sideEffects": [
-    "**/*.css"
   ],
   "scripts": {
     "dev": "vite",
@@ -53,15 +61,6 @@
     "prepublishOnly": "npm run build",
     "validate:manifest": "node scripts/validate-manifest.mjs",
     "pull:manifest": "node scripts/pull-manifest.mjs"
-  },
-  "peerDependencies": {
-    "@refinedev/core": "^4.57.0",
-    "@refinedev/react-hook-form": "^4.10.0",
-    "@refinedev/react-router": "^1.0.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-hook-form": "^7.54.2",
-    "react-router": "^7.1.1"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.1.3",
@@ -111,13 +110,21 @@
     "vite": "^6.0.7",
     "vite-plugin-dts": "^4.4.0"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/volcanicminds/volcanic-admin.git"
+  "peerDependencies": {
+    "@refinedev/core": "^4.57.0",
+    "@refinedev/react-hook-form": "^4.10.0",
+    "@refinedev/react-router": "^1.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.54.2",
+    "react-router": "^7.1.1"
   },
-  "homepage": "https://volcanicminds.com",
-  "author": "Volcanic Minds <developers@volcanicminds.com> (https://volcanicminds.com)",
-  "bin": {
-    "volcanic-admin-pull": "scripts/pull-manifest.mjs"
-  }
+  "engines": {
+    "node": ">=24"
+  },
+  "codename": "phoenix",
+  "module": "./dist/index.js",
+  "sideEffects": [
+    "**/*.css"
+  ]
 }
