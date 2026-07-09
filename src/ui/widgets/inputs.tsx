@@ -156,7 +156,7 @@ function ComboboxWidget({ field, value, onChange, disabled, t }: WidgetProps) {
         // Open on focus/click like a select — the field itself is the trigger.
         onFocus={() => {
           setFocused(true)
-          hasList && setOpen(true)
+          if (hasList) setOpen(true)
         }}
         onBlur={() => setFocused(false)}
         onClick={() => hasList && setOpen(true)}
