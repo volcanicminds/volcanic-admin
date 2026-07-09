@@ -44,6 +44,18 @@ function TextWidget({ field, value, onChange, disabled, t }: WidgetProps) {
   )
 }
 
+// Parse an integer from free-form text, preserving an optional leading minus
+// sign. A naive `/\D/g` strip drops the '-', so negative values (e.g. an
+// ordering `importance` below zero) could never be typed. Keeps the digits
+// before any decimal separator; returns null for empty input or a lone '-'
+// (an intermediate state while the user is still typing).
+function parseIntInput(raw: string): number | null {
+  const head = raw.split(/[.,]/)[0].trim()
+  const sign = head.startsWith('-') ? '-' : ''
+  const digits = head.replace(/\D/g, '')
+  return digits === '' ? null : parseInt(sign + digits, 10)
+}
+
 // A numeric field rendered as a plain text input (inputMode drives the mobile
 // keypad) — NOT `type="number"`. The native number input adds up/down spinners
 // that increment on scroll-wheel or a tiny mouse drag inside the field, silently
@@ -64,9 +76,9 @@ function NumberWidget({ field, value, onChange, disabled, t }: WidgetProps) {
     setText(raw)
     if (raw === '') return onChange(null)
     if (isInt) {
-      const intPart = raw.split(/[.,]/)[0].replace(/\D/g, '')
-      return onChange(intPart === '' ? null : parseInt(intPart, 10))
+      return onChange(parseIntInput(raw))
     }
+    // Float path: parseFloat already keeps a leading '-', so negatives work.
     const n = parseFloat(raw.replace(',', '.'))
     if (!Number.isNaN(n)) onChange(n)
   }
@@ -95,13 +107,10 @@ function ComboboxWidget({ field, value, onChange, disabled, t }: WidgetProps) {
 
   const parse = (raw: string) => {
     if (raw === '') return null
-    if (isInt) {
-      // Integers only: keep the part before any decimal separator, drop non-digits.
-      const intPart = raw.split(/[.,]/)[0].replace(/\D/g, '')
-      return intPart === '' ? null : parseInt(intPart, 10)
-    }
+    // Integers only: keep the part before any decimal separator (sign preserved).
+    if (isInt) return parseIntInput(raw)
     if (isNum) {
-      const n = parseFloat(raw)
+      const n = parseFloat(raw) // parseFloat keeps a leading '-', so negatives work
       return Number.isNaN(n) ? null : n
     }
     return raw
@@ -110,6 +119,15 @@ function ComboboxWidget({ field, value, onChange, disabled, t }: WidgetProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const hasList = suggestions.length > 0
+
+  // Local string mirror so the user can type intermediate states — a leading '-'
+  // or an empty field — without the external value snapping the input back. The
+  // parsed number is what flows out via onChange; resync to the value while idle.
+  const [text, setText] = useState<string>(value == null ? '' : String(value))
+  const [focused, setFocused] = useState(false)
+  useEffect(() => {
+    if (!focused) setText(value == null ? '' : String(value))
+  }, [value, focused])
 
   // Close on any click outside the widget (the options panel lives inside `ref`,
   // so picking an option doesn't count as "outside").
@@ -128,12 +146,19 @@ function ComboboxWidget({ field, value, onChange, disabled, t }: WidgetProps) {
         type="text"
         inputMode={isNum ? 'numeric' : undefined}
         className={hasList ? 'pr-9' : undefined}
-        value={value ?? ''}
+        value={text}
         disabled={disabled}
         placeholder={field.form?.placeholder ? t(field.form.placeholder) : undefined}
-        onChange={(e) => onChange(parse(e.target.value))}
+        onChange={(e) => {
+          setText(e.target.value)
+          onChange(parse(e.target.value))
+        }}
         // Open on focus/click like a select — the field itself is the trigger.
-        onFocus={() => hasList && setOpen(true)}
+        onFocus={() => {
+          setFocused(true)
+          hasList && setOpen(true)
+        }}
+        onBlur={() => setFocused(false)}
         onClick={() => hasList && setOpen(true)}
         onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
       />
@@ -157,6 +182,7 @@ function ComboboxWidget({ field, value, onChange, disabled, t }: WidgetProps) {
                   type="button"
                   className="block w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
                   onClick={() => {
+                    setText(String(s))
                     onChange(parse(String(s)))
                     setOpen(false)
                   }}
