@@ -1,11 +1,10 @@
 /**
- * Volcanic access-control provider — crosses each capability's declared `roles`
- * (v2) with the current user's roles. The manifest is already role-filtered
- * server-side; this gates the UI (hide/disable) as defense-in-depth. The backend
- * still enforces.
+ * Volcanic access-control — crosses each capability's declared `roles` with the current
+ * user's roles. The manifest is NOT per-user (it carries every capability's roles); this
+ * filters the UI (navigation, buttons) client-side. Every API route still enforces.
  */
 import type { AccessControlProvider } from '@refinedev/core'
-import type { AdminModel } from '../types/model.js'
+import type { AdminModel, ResourceModel } from '../types/model.js'
 import type { CrudAction } from '../types/manifest.js'
 
 /** Lightweight, app-populated cache of the logged-in user's roles. */
@@ -28,6 +27,31 @@ const ACTION_MAP: Record<string, CrudAction> = {
   delete: 'delete'
 }
 
+/**
+ * Whether `roles` may perform `action` on a resource: a capability with declared roles
+ * needs an overlap; one with no declared roles falls back to whether the action exists.
+ */
+export function canAccessResource(res: ResourceModel, action: CrudAction, roles: string[]): boolean {
+  const allowed = res.roles(action)
+  if (!allowed) return res.hasAction(action)
+  return allowed.some((r) => roles.includes(r))
+}
+
+/**
+ * Whether a resource's landing view is reachable for `roles` — used to decide navigation
+ * visibility. A collection is reachable via `list`; a singleton via read/update/list.
+ */
+export function canReachResource(res: ResourceModel, roles: string[]): boolean {
+  if (res.spec.singleton) {
+    return (
+      canAccessResource(res, 'read', roles) ||
+      canAccessResource(res, 'update', roles) ||
+      canAccessResource(res, 'list', roles)
+    )
+  }
+  return canAccessResource(res, 'list', roles)
+}
+
 export function createVolcanicAccessControlProvider(
   model: AdminModel,
   getRoles: () => string[] = () => rolesStore.get()
@@ -39,13 +63,7 @@ export function createVolcanicAccessControlProvider(
       if (!res) return { can: true }
 
       const crudAction = ACTION_MAP[action] ?? (action as CrudAction)
-      const allowed = res.roles(crudAction)
-
-      // No roles declared for this capability → fall back to availability.
-      if (!allowed) return { can: res.hasAction(crudAction) }
-
-      const roles = getRoles()
-      const can = allowed.some((r) => roles.includes(r))
+      const can = canAccessResource(res, crudAction, getRoles())
       return {
         can,
         reason: can ? undefined : `Role not permitted for ${action} on ${resource}`

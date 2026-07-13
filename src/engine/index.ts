@@ -34,7 +34,12 @@ export type {
 } from './auth/client.js'
 export { AuthClientProvider, useAuthClient } from './auth/context.js'
 
-export { createVolcanicAccessControlProvider, rolesStore } from './providers/accessControl.js'
+export {
+  createVolcanicAccessControlProvider,
+  rolesStore,
+  canAccessResource,
+  canReachResource
+} from './providers/accessControl.js'
 
 export { TenantProvider, useTenant, tenantStore } from './providers/tenant.js'
 export type { TenantOption } from './providers/tenant.js'

@@ -6,9 +6,10 @@
  */
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router'
+import { usePermissions } from '@refinedev/core'
 import { PanelLeftClose, PanelLeft, UserCog } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useModel, useT } from '@/engine'
+import { useModel, useT, canReachResource } from '@/engine'
 import { Icon } from './icons'
 import { useAdminConfig } from '@/ui/config'
 
@@ -28,11 +29,17 @@ export function Sidebar() {
     localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0')
   }, [collapsed])
 
+  // Hide resources the current user cannot reach (defense-in-depth; the API also enforces).
+  // Until permissions resolve, show everything to avoid a flash of an empty menu.
+  const { data: perms } = usePermissions<string[]>()
+  const visibleResources =
+    perms === undefined ? model.resources : model.resources.filter((res) => canReachResource(res, perms ?? []))
+
   const groups = [...model.manifest.groups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
   const grouped = new Map<string, typeof model.resources>()
   const ungrouped: typeof model.resources = []
 
-  for (const res of model.resources) {
+  for (const res of visibleResources) {
     const g = res.spec.group
     if (g && groups.some((gr) => gr.name === g)) {
       if (!grouped.has(g)) grouped.set(g, [])
