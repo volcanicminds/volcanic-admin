@@ -41,7 +41,8 @@ export interface AuthClient {
     newPassword2: string
   ): Promise<unknown>
   forgotPassword(email: string): Promise<unknown>
-  resetPassword(token: string, password: string): Promise<unknown>
+  /** `code` is the reset token from the email link; the backend re-checks that the two passwords match. */
+  resetPassword(code: string, newPassword1: string, newPassword2: string): Promise<unknown>
   me(): Promise<any>
   logout(): Promise<unknown>
 }
@@ -107,7 +108,8 @@ export function createVolcanicAuthClient(opts: VolcanicAuthClientOptions): AuthC
     changePassword: (email, oldPassword, newPassword1, newPassword2) =>
       call(ep.changePassword, { body: { email, oldPassword, newPassword1, newPassword2 } }),
     forgotPassword: (email) => call(ep.forgotPassword, { body: { email } }),
-    resetPassword: (token, password) => call(ep.resetPassword, { body: { token, password } }),
+    resetPassword: (code, newPassword1, newPassword2) =>
+      call(ep.resetPassword, { body: { code, newPassword1, newPassword2 } }),
     me: () => call(ep.me, { method: 'GET' }),
     logout: () => call(ep.logout, { body: {} }).catch(() => undefined)
   }

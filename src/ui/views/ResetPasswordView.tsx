@@ -28,7 +28,7 @@ export function ResetPasswordView() {
     }
     setLoading(true)
     try {
-      await client.resetPassword(token, password)
+      await client.resetPassword(token, password, confirm)
       toast.success('Password updated. Please sign in.')
       navigate('/login')
     } catch (err: any) {
