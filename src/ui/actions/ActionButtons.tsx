@@ -9,6 +9,7 @@ import { useState, type ComponentType } from 'react'
 import { Check, Archive, Download, RefreshCw, Send, Star, StarOff, Zap } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
+import { PasswordInput } from '@/ui/components/ui/password-input'
 import { Label } from '@/ui/components/ui/label'
 import {
   Dialog,
@@ -54,20 +55,22 @@ function ActionInputDialog({
           <DialogTitle>{label}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          {fields.map((f) => (
-            <div key={f.name} className="space-y-1.5">
-              <Label>
-                {t(f.label ?? `field.${f.name}`)}
-                {f.required && <span className="ml-0.5 text-destructive">*</span>}
-              </Label>
-              <Input
-                type={f.widget === 'password' ? 'password' : 'text'}
-                placeholder={f.placeholder ? t(f.placeholder) : undefined}
-                value={values[f.name] ?? ''}
-                onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
-              />
-            </div>
-          ))}
+          {fields.map((f) => {
+            const Control = f.widget === 'password' ? PasswordInput : Input
+            return (
+              <div key={f.name} className="space-y-1.5">
+                <Label>
+                  {t(f.label ?? `field.${f.name}`)}
+                  {f.required && <span className="ml-0.5 text-destructive">*</span>}
+                </Label>
+                <Control
+                  placeholder={f.placeholder ? t(f.placeholder) : undefined}
+                  value={values[f.name] ?? ''}
+                  onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
+                />
+              </div>
+            )
+          })}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

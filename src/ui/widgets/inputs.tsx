@@ -5,11 +5,12 @@
  *   3. built-in widget for field.type
  * Each widget is a controlled component (value + onChange).
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Controller, type Control } from 'react-hook-form'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Input } from '@/ui/components/ui/input'
+import { PasswordInput } from '@/ui/components/ui/password-input'
 import { Textarea } from '@/ui/components/ui/textarea'
 import { Switch } from '@/ui/components/ui/switch'
 import {
@@ -25,23 +26,15 @@ import { ReferenceSelect } from './ReferenceSelect'
 import type { WidgetProps } from './types'
 
 function TextWidget({ field, value, onChange, disabled, t }: WidgetProps) {
-  const type =
-    field.form?.widget === 'password'
-      ? 'password'
-      : field.type === 'email'
-        ? 'email'
-        : field.type === 'url'
-          ? 'url'
-          : 'text'
-  return (
-    <Input
-      type={type}
-      value={value ?? ''}
-      disabled={disabled}
-      placeholder={field.form?.placeholder ? t(field.form.placeholder) : undefined}
-      onChange={(e) => onChange(e.target.value)}
-    />
-  )
+  const common = {
+    value: value ?? '',
+    disabled,
+    placeholder: field.form?.placeholder ? t(field.form.placeholder) : undefined,
+    onChange: (e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)
+  }
+  if (field.form?.widget === 'password') return <PasswordInput {...common} />
+  const type = field.type === 'email' ? 'email' : field.type === 'url' ? 'url' : 'text'
+  return <Input type={type} {...common} />
 }
 
 // Parse an integer from free-form text, preserving an optional leading minus
