@@ -198,7 +198,7 @@ function TextareaWidget({ field, value, onChange, disabled, t }: WidgetProps) {
       disabled={disabled}
       placeholder={field.form?.placeholder ? t(field.form.placeholder) : undefined}
       onChange={(e) => onChange(e.target.value)}
-      rows={field.type === 'richtext' ? 8 : 4}
+      rows={field.form?.rows ?? (field.type === 'richtext' ? 8 : 4)}
     />
   )
 }

@@ -45,6 +45,18 @@ function visibleForAction(field: ResolvedField, action: 'create' | 'edit'): bool
   return !field.form?.visibleOn || field.form.visibleOn === action
 }
 
+/**
+ * An untouched/cleared select or date input holds `''`, which is a valid value for
+ * a text field ('' IS how you clear one) but not for these types: no enum admits
+ * '' and no date parses it, so the server rejects the whole save. Send `null` —
+ * "no value" — instead. Text/number widgets are untouched (a number widget already
+ * emits null when emptied).
+ */
+function emptyToNull(field: ResolvedField, value: unknown): unknown {
+  if (value !== '') return value
+  return field.type === 'enum' || field.type === 'date' || field.type === 'datetime' ? null : value
+}
+
 export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFormProps) {
   const t = useT()
   const back = useBack()
@@ -137,7 +149,7 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
       // upload widget hits dedicated routes), so they never go in the body.
       if ((f.type === 'image' || f.type === 'file') && f.image?.endpoints?.upload) continue
       const key = formFieldName(f)
-      if (key in values) payload[key] = values[key]
+      if (key in values) payload[key] = emptyToNull(f, values[key])
     }
     setServerError(null)
     // Arm the bridge before submitting; a mutation callback resolves it.

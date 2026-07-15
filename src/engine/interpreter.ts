@@ -123,7 +123,9 @@ function buildFormSections(spec: ResourceSpec, byName: Map<string, ResolvedField
             rowSpan: entry.rowSpan,
             visibleOn: entry.visibleOn,
             placeholder: entry.placeholder,
-            suggestions: entry.suggestions
+            suggestions: entry.suggestions,
+            rows: entry.rows,
+            toolbar: entry.toolbar
           }
         }
       })

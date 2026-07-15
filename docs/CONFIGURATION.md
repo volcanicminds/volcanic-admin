@@ -210,6 +210,8 @@ form: {
 | `visibleOn` | `'create' \| 'edit'` | Restrict to one mode (omitted = both). |
 | `placeholder` | i18n key | |
 | `suggestions` | `(string \| number)[]` | Non-binding suggestions for the `combobox` widget (editable dropdown). |
+| `rows` | `number` | Visible text rows for the `textarea`/`richtext` widgets — the editing height of the field, unrelated to `rowSpan` (grid cells). Default: 8 rows for `richtext`, 4 for a textarea. |
+| `toolbar` | `RichTextAction[]` | Toolbar actions of the `richtext` widget. Unset = all. Ids: `bold`, `italic`, `underline`, `strike`, `h2`, `h3`, `bulletList`, `orderedList`, `blockquote`, `link`, `clearFormat`, `undo`, `redo`. Order/grouping follow the widget, not the array; dividers adapt to the subset. **Every enabled action must survive the server's HTML sanitizer** — one whose markup the server strips silently discards the author's work on save. |
 
 > `groups` present → **only** the listed fields show, grouped and ordered as
 > written (allowlist). Absent → a single headerless `default` section with all
@@ -404,7 +406,7 @@ lucide names).
 
 - **Sidebar / resource / group icons** (`src/ui/layout/icons.tsx`):
   `car`, `layers`, `users`, `mail`, `cog`, `building`, `tag`, `boxes`, `file`,
-  `image`, `cart`. Unknown → first-letter badge / neutral dot.
+  `newspaper`, `help-circle`, `image`, `cart`. Unknown → first-letter badge / neutral dot.
 - **Action icons** (`src/ui/actions/ActionButtons.tsx`):
   `check`, `archive`, `download`, `refresh`, `send`, `star`, `star-off`. Unknown →
   `Zap` fallback.

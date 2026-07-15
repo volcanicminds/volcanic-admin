@@ -9,6 +9,9 @@ import {
   Tag,
   Boxes,
   FileText,
+  Newspaper,
+  HelpCircle,
+  Inbox,
   Image,
   ShoppingCart,
   CircleDot,
@@ -26,6 +29,9 @@ const ICONS: Record<string, LucideIcon> = {
   tag: Tag,
   boxes: Boxes,
   file: FileText,
+  newspaper: Newspaper,
+  'help-circle': HelpCircle,
+  inbox: Inbox,
   image: Image,
   cart: ShoppingCart
 }

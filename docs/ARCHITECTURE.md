@@ -243,6 +243,10 @@ interface FormFieldSpec {
   visibleOn?: 'create' | 'edit'          // limits to one mode (omitted = both)
   placeholder?: I18nKey
   suggestions?: (string | number)[]      // non-binding suggestions for the 'combobox' widget
+  rows?: number                          // visible text rows for 'textarea'/'richtext' (editing
+                                         //   height; unrelated to rowSpan, which is grid cells)
+  toolbar?: RichTextAction[]             // 'richtext' toolbar actions (unset = all); every action
+                                         //   must survive the server-side HTML sanitizer
 }
 ```
 

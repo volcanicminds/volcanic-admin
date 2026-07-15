@@ -266,6 +266,27 @@ export interface ListViewSpec<F extends string = string> {
   card?: CardViewSpec<F>
 }
 
+/**
+ * Toolbar actions of the built-in rich-text widget (see FormFieldSpec.toolbar).
+ * Each one is implemented by the widget and, crucially, must survive the server's
+ * HTML sanitizer — offering an action whose markup the server strips loses the
+ * author's work silently.
+ */
+export type RichTextAction =
+  | 'bold'
+  | 'italic'
+  | 'underline'
+  | 'strike'
+  | 'h2'
+  | 'h3'
+  | 'bulletList'
+  | 'orderedList'
+  | 'blockquote'
+  | 'link'
+  | 'clearFormat'
+  | 'undo'
+  | 'redo'
+
 /** A field placed in a form group: references a field + form-only presentation. */
 export interface FormFieldSpec<F extends string = string> {
   field: F
@@ -285,6 +306,14 @@ export interface FormFieldSpec<F extends string = string> {
   placeholder?: I18nKey
   /** Non-binding suggestions for the 'combobox' widget (editable dropdown). */
   suggestions?: Array<string | number>
+  /** Visible text rows for the 'textarea'/'richtext' widgets — the editing height
+   *  of the field, independent of `rowSpan` (which is grid cells). Raise it where
+   *  the text IS the record (an article body), lower it for an incidental note. */
+  rows?: number
+  /** Toolbar actions for the 'richtext' widget, e.g. `['bold', 'italic', 'link']`.
+   *  Unset = all of them; unknown ids are ignored. Rendering follows the widget's
+   *  own group order, not this array's. See RichTextAction. */
+  toolbar?: RichTextAction[]
 }
 
 export interface FormGroupSpec<F extends string = string> {
@@ -405,6 +434,10 @@ export interface FieldFormSpec {
   placeholder?: I18nKey
   /** Non-binding suggested values for the 'combobox' widget (editable dropdown). */
   suggestions?: Array<string | number>
+  /** Visible text rows for the 'textarea'/'richtext' widgets (see FormFieldSpec.rows). */
+  rows?: number
+  /** Toolbar actions for the 'richtext' widget (see FormFieldSpec.toolbar). */
+  toolbar?: RichTextAction[]
 }
 
 /**

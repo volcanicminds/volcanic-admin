@@ -8,14 +8,21 @@ import type { WidgetProps } from '../types'
 
 const RichTextEditor = lazy(() => import('./RichTextEditor'))
 
-/** Matches the editor's collapsed height so the layout doesn't jump while loading. */
-function EditorFallback() {
-  return <div className="h-[calc(8rem+2.5rem)] animate-pulse rounded-md border bg-muted/30" />
+/** Matches the editor's collapsed height (body + 2.5rem toolbar) so the layout
+ *  doesn't jump while loading — including when `form.rows` makes it taller. */
+function EditorFallback({ rows }: { rows?: number }) {
+  const body = rows ? `${rows * 1.5}rem` : '8rem'
+  return (
+    <div
+      className="animate-pulse rounded-md border bg-muted/30"
+      style={{ height: `calc(${body} + 2.5rem)` }}
+    />
+  )
 }
 
 export function RichTextWidget(props: WidgetProps) {
   return (
-    <Suspense fallback={<EditorFallback />}>
+    <Suspense fallback={<EditorFallback rows={props.field.form?.rows} />}>
       <RichTextEditor {...props} />
     </Suspense>
   )
