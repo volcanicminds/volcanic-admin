@@ -23,6 +23,13 @@ export interface VolcanicDataProviderOptions {
   basePath?: string // defaults to "/admin"
 }
 
+/** Page size requested when walking every page (`pagination.mode: 'off'`). The
+ *  backend caps it (VOLCANIC_MAX_PAGE_SIZE, 100 by default) and reports what it
+ *  actually applied in `v-pageSize`. */
+const FETCH_ALL_CHUNK = 100
+/** Safety net for the walk: never loop forever on a missing/wrong `v-total`. */
+const FETCH_ALL_MAX_PAGES = 500
+
 export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): DataProvider {
   const { apiUrl, resolvePath, authMode = 'cookie', getToken, getContextHeaders } = opts
   const basePath = opts.basePath ?? '/admin'
@@ -76,10 +83,51 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
     return (await res.json()) as T
   }
 
+  /**
+   * Every record matching the filters (Refine's `pagination.mode: 'off'`).
+   *
+   * The API always paginates — omitting page/pageSize just yields its default
+   * first page — so "no pagination" has to be walked page by page. The requested
+   * size is capped server-side, and `skip` is computed from the size the client
+   * asked for: keep asking for exactly the size the server reports applying
+   * (`v-pageSize`), otherwise skip/take drift apart and rows fall between pages.
+   */
+  async function getAllPages(
+    resource: string,
+    sorters: Parameters<NonNullable<DataProvider['getList']>>[0]['sorters'],
+    filters: Parameters<NonNullable<DataProvider['getList']>>[0]['filters'],
+    headers?: Record<string, string>
+  ) {
+    const all: any[] = []
+    let pageSize = FETCH_ALL_CHUNK
+    let total = 0
+
+    for (let page = 1; page <= FETCH_ALL_MAX_PAGES; page++) {
+      const qs = buildMagicQuery({
+        pagination: { current: page, pageSize, mode: 'server' },
+        sorters,
+        filters
+      })
+      const res = await request(`${url(resource)}?${qs}`, { method: 'GET', headers })
+      const chunk = await res.json()
+      all.push(...chunk)
+      total = readTotal(res.headers, all.length)
+
+      const applied = Number(res.headers.get('v-pageSize'))
+      if (Number.isFinite(applied) && applied > 0) pageSize = applied
+
+      if (!Array.isArray(chunk) || chunk.length === 0 || all.length >= total) break
+    }
+    return { data: all, total: total || all.length }
+  }
+
   return {
     getApiUrl: () => apiUrl,
 
     getList: async ({ resource, pagination, sorters, filters, meta }) => {
+      if (pagination?.mode === 'off') {
+        return getAllPages(resource, sorters, filters, meta?.headers)
+      }
       const qs = buildMagicQuery({ pagination, sorters, filters })
       const target = `${url(resource)}${qs ? `?${qs}` : ''}`
       const res = await request(target, { method: 'GET', headers: meta?.headers })

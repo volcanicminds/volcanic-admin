@@ -1,9 +1,10 @@
 /**
  * List import/export toolbar — available on every list (table or card).
  *
- * Export: downloads the current result set (honoring active filters/sort) as an
- * .xlsx. Import: bulk edit — each row with an `id` updates that record, rows
- * without an `id` create new ones.
+ * Export: downloads the current result set as an .xlsx — every record matching
+ * the active filters/sort, not just the page on screen (the provider walks all
+ * pages for `pagination.mode: 'off'`). Import: bulk edit — each row with an `id`
+ * updates that record, rows without an `id` create new ones.
  *
  * Image/file fields are intentionally excluded from both directions: binary
  * assets are managed through dedicated upload endpoints, not bulk-editable.
@@ -26,8 +27,21 @@ function columnKey(field: ResolvedField): string {
   return field.name
 }
 
+/** Multi-valued fields travel as a comma-separated cell: XLSX drops array values
+ *  outright (json_to_sheet skips those keys), so the column would vanish. */
+function toCell(value: unknown): unknown {
+  return Array.isArray(value) ? value.join(',') : value
+}
+
 function coerce(field: ResolvedField, value: unknown): unknown {
   if (value === '' || value === undefined || value === null) return undefined
+  if (field.multiple) {
+    if (Array.isArray(value)) return value
+    return String(value)
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean)
+  }
   if (field.type === 'integer') return parseInt(String(value), 10)
   if (field.type === 'number') return Number(value)
   if (field.type === 'boolean') {
@@ -68,7 +82,7 @@ export function ListIO({ model, filters, sorters, canWrite }: ListIOProps) {
         const row: Record<string, unknown> = { id: record.id }
         for (const f of editable) {
           const key = columnKey(f)
-          row[key] = record[key] ?? (f.type === 'relation' ? record[f.name]?.id : undefined)
+          row[key] = toCell(record[key] ?? (f.type === 'relation' ? record[f.name]?.id : undefined))
         }
         return row
       })
