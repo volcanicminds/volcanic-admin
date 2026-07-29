@@ -19,6 +19,10 @@ const OPERATOR_MAP: Record<string, string> = {
   gte: 'ge',
   in: 'in',
   nin: 'nin',
+  // Array columns (Postgres `text[]`) — not Refine operators, emitted by the
+  // filter bar for `multiple` enum fields: `&&` any-of, `@>` all-of.
+  overlap: 'overlap',
+  arrayContains: 'arrayContains',
   contains: 'containsi',
   containss: 'contains',
   ncontains: 'ncontainsi',

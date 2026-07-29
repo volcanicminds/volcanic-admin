@@ -44,6 +44,36 @@ const ENUM_BADGE: Record<string, string> = {
   rose: 'border-rose-200 bg-rose-100 text-rose-700'
 }
 
+/** One enum value as a chip: named palette → colored chip, custom color → neutral
+ *  chip + dot, unknown option → the raw value. */
+function EnumBadge({
+  value,
+  field,
+  t
+}: {
+  value: unknown
+  field: ResolvedField
+  t: WidgetProps['t']
+}) {
+  const opt = field.options?.find((o) => o.value === value)
+  const palette = opt?.color ? ENUM_BADGE[opt.color] : undefined
+  if (palette) {
+    return (
+      <Badge variant="outline" className={cn('font-medium', palette)}>
+        {opt ? t(opt.label) : String(value)}
+      </Badge>
+    )
+  }
+  return (
+    <Badge variant="secondary" className="gap-1.5">
+      {opt?.color && (
+        <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: opt.color }} />
+      )}
+      {opt ? t(opt.label) : String(value)}
+    </Badge>
+  )
+}
+
 export interface CellProps {
   record: Record<string, any>
   field: ResolvedField
@@ -65,27 +95,19 @@ export function FieldCell({ record, field, t }: CellProps) {
 
   switch (field.type) {
     case 'enum': {
-      const opt = field.options?.find((o) => o.value === value)
-      const palette = opt?.color ? ENUM_BADGE[opt.color] : undefined
-      // Named palette → fully colored chip; unknown color → neutral chip + dot.
-      if (palette) {
+      // A multi-valued enum (array column) is one badge per value; an empty array
+      // reads as "no value", like an empty scalar.
+      if (Array.isArray(value)) {
+        if (value.length === 0) return <span className="text-muted-foreground">—</span>
         return (
-          <Badge variant="outline" className={cn('font-medium', palette)}>
-            {opt ? t(opt.label) : String(value)}
-          </Badge>
+          <span className="inline-flex flex-wrap items-center gap-1">
+            {value.map((v) => (
+              <EnumBadge key={String(v)} value={v} field={field} t={t} />
+            ))}
+          </span>
         )
       }
-      return (
-        <Badge variant="secondary" className="gap-1.5">
-          {opt?.color && (
-            <span
-              className="inline-block h-2 w-2 rounded-full"
-              style={{ backgroundColor: opt.color }}
-            />
-          )}
-          {opt ? t(opt.label) : String(value)}
-        </Badge>
-      )
+      return <EnumBadge value={value} field={field} t={t} />
     }
     case 'date':
       return <>{new Date(value).toLocaleDateString()}</>

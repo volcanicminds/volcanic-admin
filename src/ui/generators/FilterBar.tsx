@@ -7,7 +7,7 @@
  * Changes apply live; a badge shows the active filter count.
  */
 import { useList } from '@refinedev/core'
-import type { CrudFilter, CrudFilters } from '@refinedev/core'
+import type { CrudFilter, CrudFilters, LogicalFilter } from '@refinedev/core'
 import { Filter } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Badge } from '@/ui/components/ui/badge'
@@ -44,7 +44,11 @@ export function toCrudFilters(model: ResourceModel, draft: FilterDraft): CrudFil
     if (kind === 'relation') {
       if (Array.isArray(v) && v.length) out.push({ field: f.relation?.foreignKey ?? name, operator: 'in', value: v })
     } else if (kind === 'multi') {
-      if (Array.isArray(v) && v.length) out.push({ field: name, operator: 'in', value: v })
+      // An array column can't be compared with `in` (that matches the whole
+      // column against a value list): ask for an overlap — rows tagged with any
+      // of the picked values. Not a Refine operator, hence the cast.
+      const operator = (f.multiple ? 'overlap' : 'in') as LogicalFilter['operator']
+      if (Array.isArray(v) && v.length) out.push({ field: name, operator, value: v })
     } else if (kind === 'bool') {
       if (v === 'true' || v === 'false') out.push({ field: name, operator: 'eq', value: v === 'true' })
     } else if (kind === 'range') {

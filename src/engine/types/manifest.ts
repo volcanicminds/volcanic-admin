@@ -59,6 +59,9 @@ export type FilterOperator =
   | 'nin'
   | 'null'
   | 'notNull'
+  // Array columns (Postgres `text[]`): overlap = "any of", arrayContains = "all of".
+  | 'overlap'
+  | 'arrayContains'
 
 export type SortOrder = 'asc' | 'desc'
 
@@ -463,6 +466,11 @@ export interface FieldSpec {
   enum?: EnumOption[]
   /** Reference to a shared enum in Manifest.enums. */
   enumRef?: string
+  /** The value holds several enum values, not one — a native array column (e.g.
+   *  Postgres `text[]`). Renders one badge per value and filters with `overlap`
+   *  ("tagged with ANY of") instead of `in`. Pair with the `multiselect` form
+   *  widget to edit it. */
+  multiple?: boolean
   relation?: RelationSpec
   image?: ImageSpec
   validation?: ValidationSpec
