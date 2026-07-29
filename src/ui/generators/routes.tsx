@@ -3,6 +3,11 @@
  * Each screen resolves a view override from the registry (manifest
  * `views.{list,create,edit,show}`); absent an override, the default generator
  * renders. Returns an array of <Route> for use inside <Routes>.
+ *
+ * Every page element carries a per-resource `key`: sibling routes render the
+ * same component type in the same slot, so without it React reconciles them as
+ * one instance and the previous resource's state (filters, sort, search) is
+ * carried over to the next list.
  */
 import { Route, useParams } from 'react-router'
 import type { ReactNode } from 'react'
@@ -59,23 +64,39 @@ export function resourceRouteElements(model: AdminModel): ReactNode[] {
     const base = spec.path
 
     if (spec.singleton) {
-      routes.push(<Route key={spec.name} path={base} element={<SingletonPage model={res} />} />)
+      routes.push(
+        <Route key={spec.name} path={base} element={<SingletonPage key={spec.name} model={res} />} />
+      )
       continue
     }
 
-    routes.push(<Route key={`${spec.name}-list`} path={base} element={<ListPage model={res} />} />)
+    routes.push(
+      <Route key={`${spec.name}-list`} path={base} element={<ListPage key={spec.name} model={res} />} />
+    )
     if (res.hasAction('create')) {
       routes.push(
-        <Route key={`${spec.name}-create`} path={`${base}/create`} element={<CreatePage model={res} />} />
+        <Route
+          key={`${spec.name}-create`}
+          path={`${base}/create`}
+          element={<CreatePage key={spec.name} model={res} />}
+        />
       )
     }
     if (res.hasAction('update')) {
       routes.push(
-        <Route key={`${spec.name}-edit`} path={`${base}/edit/:id`} element={<EditPage model={res} />} />
+        <Route
+          key={`${spec.name}-edit`}
+          path={`${base}/edit/:id`}
+          element={<EditPage key={spec.name} model={res} />}
+        />
       )
     }
     routes.push(
-      <Route key={`${spec.name}-show`} path={`${base}/show/:id`} element={<ShowPage model={res} />} />
+      <Route
+        key={`${spec.name}-show`}
+        path={`${base}/show/:id`}
+        element={<ShowPage key={spec.name} model={res} />}
+      />
     )
   }
 

@@ -3,8 +3,11 @@
  * delete) and swaps the presentation layer between table and card layouts. The
  * available layouts and default come from the manifest; the chosen layout is
  * persisted per resource in localStorage.
+ *
+ * Search / sort / filters / page live in `useListState`: per resource, restored
+ * on return from a record (see listState.ts).
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useList, useDelete, useNavigation } from '@refinedev/core'
 import type { CrudSorting } from '@refinedev/core'
 import { Plus, Search, LayoutGrid, Table as TableIcon, ArrowUp, ArrowDown, ArrowUpDown, X } from 'lucide-react'
@@ -24,7 +27,8 @@ import type { ResourceModel, ListLayout } from '@/engine'
 import { ListTable } from './ListTable'
 import { ListCards } from './ListCards'
 import { ListIO } from './ListIO'
-import { FilterBar, toCrudFilters, type FilterDraft } from './FilterBar'
+import { FilterBar, toCrudFilters } from './FilterBar'
+import { useListState } from './listState'
 import { CollectionActions } from '../actions/ActionButtons'
 
 const layoutKey = (name: string) => `volcanic.admin.list.${name}.layout`
@@ -48,29 +52,27 @@ export function ListView({ model }: { model: ResourceModel }) {
     localStorage.setItem(layoutKey(spec.name), l)
   }
 
-  const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState<number>(() => {
     const stored = Number(localStorage.getItem(pageSizeKey(spec.name)))
     return PAGE_SIZES.includes(stored) ? stored : 20
   })
+
+  const list = useListState(model)
+  const { page, search: appliedSearch, sorters, filters: filterDraft } = list.state
+  const { setPage, setSorters, setFilters: setFilterDraft } = list
+
   const choosePageSize = (n: number) => {
     setPageSize(n)
     setPage(1)
     localStorage.setItem(pageSizeKey(spec.name), String(n))
   }
-  const [search, setSearch] = useState('')
-  const [appliedSearch, setAppliedSearch] = useState('')
-  const [sorters, setSorters] = useState<CrudSorting>(
-    (spec.defaultSort ?? []).map((s) => ({ field: s.field, order: s.order }))
-  )
-  const [filterDraft, setFilterDraftState] = useState<FilterDraft>({})
+
+  // Search input draft — only committed to the query (and persisted) on submit.
+  const [search, setSearch] = useState(appliedSearch)
+  useEffect(() => setSearch(appliedSearch), [appliedSearch])
   const [toDelete, setToDelete] = useState<string | null>(null)
 
   const fieldFilters = useMemo(() => toCrudFilters(model, filterDraft), [model, filterDraft])
-  const setFilterDraft = (d: FilterDraft) => {
-    setPage(1)
-    setFilterDraftState(d)
-  }
 
   const filters = useMemo(
     () => [
@@ -91,13 +93,17 @@ export function ListView({ model }: { model: ResourceModel }) {
   const total = data?.total ?? 0
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
 
+  // A restored page can outrun a shrunken result set (records deleted, or a
+  // narrower filter): fall back to the last page that exists.
+  useEffect(() => {
+    if (!isLoading && page > pageCount) setPage(pageCount)
+  }, [isLoading, page, pageCount])
+
   const toggleSort = (field: string) => {
-    setSorters((prev) => {
-      const cur = prev.find((s) => s.field === field)
-      if (!cur) return [{ field, order: 'asc' }]
-      if (cur.order === 'asc') return [{ field, order: 'desc' }]
-      return []
-    })
+    const cur = sorters.find((s) => s.field === field)
+    if (!cur) return setSorters([{ field, order: 'asc' }])
+    if (cur.order === 'asc') return setSorters([{ field, order: 'desc' }])
+    setSorters([])
   }
 
   // "Sort by" control: a select of orderable fields + a direction toggle.
@@ -118,7 +124,6 @@ export function ListView({ model }: { model: ResourceModel }) {
   const activeSortField = sortFields.find((f) => f.name === activeSortBase)?.name ?? ''
   const activeSortOrder: 'asc' | 'desc' = sorters[0]?.order === 'desc' ? 'desc' : 'asc'
   const applySort = (name: string, order: 'asc' | 'desc') => {
-    setPage(1)
     setSorters(name ? buildSorters(name, order) : [])
   }
 
@@ -186,8 +191,7 @@ export function ListView({ model }: { model: ResourceModel }) {
               className="flex w-full max-w-sm items-center gap-2"
               onSubmit={(e) => {
                 e.preventDefault()
-                setPage(1)
-                setAppliedSearch(search)
+                list.setSearch(search)
               }}
             >
               <Input
@@ -275,14 +279,14 @@ export function ListView({ model }: { model: ResourceModel }) {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
             {t('list.prev')}
           </Button>
           <Button
             variant="outline"
             size="sm"
             disabled={page >= pageCount}
-            onClick={() => setPage((p) => p + 1)}
+            onClick={() => setPage(page + 1)}
           >
             {t('list.next')}
           </Button>
