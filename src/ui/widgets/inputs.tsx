@@ -23,6 +23,7 @@ import {
 import { useRegistry } from '@/engine'
 import type { ResolvedField, ValidationSpec } from '@/engine'
 import { ReferenceSelect } from './ReferenceSelect'
+import { TagsWidget } from './tags'
 import type { WidgetProps } from './types'
 
 function TextWidget({ field, value, onChange, disabled, t }: WidgetProps) {
@@ -304,7 +305,8 @@ function ImageWidget({ field }: WidgetProps) {
 /** Built-in widgets selectable by name via `field.form.widget` (not just by type). */
 const BUILTIN_WIDGETS: Record<string, (props: WidgetProps) => JSX.Element> = {
   multiselect: MultiSelectWidget,
-  combobox: ComboboxWidget
+  combobox: ComboboxWidget,
+  tags: TagsWidget
 }
 
 function pickWidget(field: ResolvedField): (props: WidgetProps) => JSX.Element {

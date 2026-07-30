@@ -81,28 +81,68 @@ function fieldLabel(model: ResourceModel, f: ResolvedField, t: Translate) {
   return t(f.label ?? `field.${model.spec.name}.${f.name}`)
 }
 
+interface CheckOption {
+  value: string
+  label: string
+  /** Already-translated section heading (from EnumOption.group), when the option set
+   *  is a grouped taxonomy. */
+  group?: string
+}
+
+/**
+ * Checkbox grid for a multi-valued facet. When the options carry groups, they are
+ * rendered under their section heading (ungrouped ones last) — a grouped taxonomy of
+ * a few dozen values is unreadable as one flat wall, which is exactly the shape the
+ * `tags` widget introduces. Sections are ordered by their translated heading, the
+ * same rule the widget's own menu uses.
+ */
 function CheckList({
   options,
   selected,
   onToggle,
   label
 }: {
-  options: { value: string; label: string }[]
+  options: CheckOption[]
   selected: string[]
   onToggle: (v: string) => void
   label: string
 }) {
+  const box = (opt: CheckOption) => (
+    <label key={opt.value} className="flex min-w-[8rem] items-center gap-2 text-sm">
+      <Checkbox checked={selected.includes(opt.value)} onCheckedChange={() => onToggle(opt.value)} />
+      <span>{opt.label}</span>
+    </label>
+  )
+
+  const groups = new Map<string, CheckOption[]>()
+  const loose: CheckOption[] = []
+  for (const opt of options) {
+    if (!opt.group) {
+      loose.push(opt)
+      continue
+    }
+    const bucket = groups.get(opt.group)
+    if (bucket) bucket.push(opt)
+    else groups.set(opt.group, [opt])
+  }
+  const sections = [...groups.entries()].sort((a, b) =>
+    a[0].localeCompare(b[0], undefined, { sensitivity: 'base' })
+  )
+
   return (
     <div className="space-y-1.5">
       <div className="text-sm font-medium">{label}</div>
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-        {options.map((opt) => (
-          <label key={opt.value} className="flex min-w-[8rem] items-center gap-2 text-sm">
-            <Checkbox checked={selected.includes(opt.value)} onCheckedChange={() => onToggle(opt.value)} />
-            <span>{opt.label}</span>
-          </label>
-        ))}
-      </div>
+      {sections.map(([group, opts]) => (
+        <div key={group} className="space-y-1 pl-1">
+          <div className="text-xs text-muted-foreground">{group}</div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">{opts.map(box)}</div>
+        </div>
+      ))}
+      {loose.length > 0 && (
+        <div className={sections.length > 0 ? 'pl-1 pt-1' : undefined}>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">{loose.map(box)}</div>
+        </div>
+      )}
     </div>
   )
 }
@@ -177,7 +217,11 @@ export function FilterBar({
               )
             }
             if (kind === 'multi') {
-              const options = (f.options ?? []).map((o) => ({ value: o.value, label: t(o.label) }))
+              const options = (f.options ?? []).map((o) => ({
+                value: o.value,
+                label: t(o.label),
+                group: o.group ? t(o.group) : undefined
+              }))
               return (
                 <CheckList key={f.name} options={options} selected={sel} onToggle={(v) => toggleMulti(f.name, v)} label={label} />
               )

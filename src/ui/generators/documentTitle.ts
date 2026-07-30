@@ -6,9 +6,22 @@
  * (falling back to `titleField`).
  */
 import { useEffect } from 'react'
-import { useT } from '@/engine'
-import type { ResourceModel } from '@/engine'
+import { useT, translate } from '@/engine'
+import type { ResourceModel, ResolvedField } from '@/engine'
 import { useAdminConfig } from '@/ui/config'
+
+/** An enum value is a machine code (`long_rent`); what belongs in a title is its
+ *  label. `translate` is the non-hook mirror of `t` — this resolver is also called
+ *  from plain functions, outside any component. An unknown value degrades to itself,
+ *  and a multi-valued field joins its labels. */
+function enumLabel(field: ResolvedField, raw: unknown): string {
+  const one = (v: unknown) => {
+    const opt = field.options?.find((o) => o.value === v)
+    return opt ? translate(opt.label) : String(v)
+  }
+  if (Array.isArray(raw)) return raw.map(one).join(', ')
+  return one(raw)
+}
 
 /** Resolve one configured field against a record, following relations (to their
  *  `titleField`) and dotted paths (`brand.name`). Returns '' when absent. */
@@ -31,7 +44,9 @@ function resolvePart(model: ResourceModel, record: Record<string, any>, name: st
   const raw = name.includes('.')
     ? name.split('.').reduce<any>((o, k) => (o == null ? o : o[k]), record)
     : record[name]
-  return raw == null ? '' : String(raw)
+  if (raw == null) return ''
+  if (field?.type === 'enum') return enumLabel(field, raw)
+  return String(raw)
 }
 
 /** Resolve one or more configured fields against a record and join with spaces,

@@ -35,6 +35,8 @@ export const mockOverrides: ManifestOverrides = {
         importance: { sortable: true, filterable: true, operators: ['ge', 'le'] },
         brand: { filterable: true, operators: ['eq', 'in'] },
         name: { sortable: true },
+        topic: { filterable: true },
+        tags: { filterable: true },
         monthlyVatExcl: { sortable: true, filterable: true, operators: ['ge', 'le', 'between'] }
       },
       list: {
@@ -50,7 +52,9 @@ export const mockOverrides: ManifestOverrides = {
             { field: 'brand' },
             { field: 'name' },
             { field: 'trimLevel' },
-            { field: 'monthlyVatExcl', align: 'right' }
+            { field: 'monthlyVatExcl', align: 'right' },
+            // Multi-valued enum: one badge per value, so it goes last (a wide cell).
+            { field: 'tags' }
           ]
         },
         card: {
@@ -60,7 +64,9 @@ export const mockOverrides: ManifestOverrides = {
           image: 'images',
           title: 'name',
           subtitle: 'trimLevel',
-          badges: ['status'],
+          // `topic` as a badge, not as the subtitle: an enum belongs where it gets
+          // translated (see resolvePart / EnumBadge).
+          badges: ['status', 'topic'],
           body: [{ field: 'monthlyVatExcl' }, { field: 'months' }, { field: 'km' }]
         }
       },
@@ -78,6 +84,10 @@ export const mockOverrides: ManifestOverrides = {
               { field: 'name', colSpan: 2 },
               { field: 'trimLevel' },
               { field: 'tag' },
+              // The tags widget sits right after the field driving its featured
+              // group, so the relationship is visible while authoring.
+              { field: 'topic', widget: 'select' },
+              { field: 'tags', widget: 'tags', colSpan: 2, featureFrom: 'topic', freeText: 'verbatim' },
               { field: 'description', widget: 'rich-text', colSpan: 2 }
             ]
           },

@@ -107,7 +107,15 @@
       "properties": {
         "value": { "type": "string" },
         "label": { "$ref": "#/$defs/I18nKey" },
-        "color": { "type": "string", "description": "Hint UI per badge/tag." }
+        "color": { "type": "string", "description": "Hint UI per badge/tag." },
+        "group": {
+          "$ref": "#/$defs/I18nKey",
+          "description": "Sezione dell'opzione, per widget con opzioni raggruppate (es. 'tags'). Il valore È la chiave i18n del gruppo: nessuna convenzione di naming, nessuna mappa di etichette. Solo presentazione, mai salvato."
+        },
+        "linkedGroup": {
+          "$ref": "#/$defs/I18nKey",
+          "description": "Chiave `group` di un ALTRO campo che questa opzione richiama: un widget la usa per mostrare per prima la sezione pertinente. Solo un suggerimento, non filtra mai."
+        }
       }
     },
     "SearchSpec": {

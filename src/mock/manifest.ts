@@ -54,6 +54,42 @@ export const mockManifest: Manifest = {
       { value: 'admin', label: 'enum.userRole.admin', color: '#6366f1' },
       { value: 'editor', label: 'enum.userRole.editor', color: '#22c55e' },
       { value: 'viewer', label: 'enum.userRole.viewer', color: '#9ca3af' }
+    ],
+    // Grouped option set for the `tags` widget: `group` IS the section's i18n key,
+    // so no naming convention and no separate label map. Options without a group are
+    // selectable leaves shown at the top level.
+    vehicleTag: [
+      { value: 'long_rent', label: 'enum.vehicleTag.long_rent', group: 'enum.vehicleTagGroup.rental' },
+      { value: 'short_rent', label: 'enum.vehicleTag.short_rent', group: 'enum.vehicleTagGroup.rental' },
+      { value: 'new_driver', label: 'enum.vehicleTag.new_driver', group: 'enum.vehicleTagGroup.rental' },
+      { value: 'mechanics', label: 'enum.vehicleTag.mechanics', group: 'enum.vehicleTagGroup.workshop' },
+      { value: 'mot_inspection', label: 'enum.vehicleTag.mot_inspection', group: 'enum.vehicleTagGroup.workshop' },
+      { value: 'courtesy_car', label: 'enum.vehicleTag.courtesy_car', group: 'enum.vehicleTagGroup.workshop' },
+      { value: 'tire_storage', label: 'enum.vehicleTag.tire_storage', group: 'enum.vehicleTagGroup.tires' },
+      { value: 'seasonal_change', label: 'enum.vehicleTag.seasonal_change', group: 'enum.vehicleTagGroup.tires' },
+      { value: 'news', label: 'enum.vehicleTag.news' },
+      { value: 'advice', label: 'enum.vehicleTag.advice' }
+    ],
+    // `linkedGroup` names a group of the enum ABOVE: the tags widget surfaces that
+    // group first when this topic is the selected one. An option without it features
+    // nothing — which is also what happens with no topic selected at all.
+    vehicleTopic: [
+      {
+        value: 'long_term_rental',
+        label: 'enum.vehicleTopic.long_term_rental',
+        linkedGroup: 'enum.vehicleTagGroup.rental'
+      },
+      {
+        value: 'short_term_rental',
+        label: 'enum.vehicleTopic.short_term_rental',
+        linkedGroup: 'enum.vehicleTagGroup.rental'
+      },
+      {
+        value: 'maintenance',
+        label: 'enum.vehicleTopic.maintenance',
+        linkedGroup: 'enum.vehicleTagGroup.workshop'
+      },
+      { value: 'events', label: 'enum.vehicleTopic.events' }
     ]
   },
   resources: [
@@ -143,6 +179,8 @@ export const mockManifest: Manifest = {
         { name: 'name', type: 'string', required: true },
         { name: 'trimLevel', type: 'string' },
         { name: 'tag', type: 'string' },
+        { name: 'topic', type: 'enum', enumRef: 'vehicleTopic' },
+        { name: 'tags', type: 'enum', enumRef: 'vehicleTag', multiple: true, default: [] },
         { name: 'description', type: 'richtext' },
         { name: 'engine', type: 'enum', enumRef: 'engineType' },
         { name: 'category', type: 'enum', enumRef: 'vehicleCategory' },

@@ -113,6 +113,22 @@ export interface EnumOption {
   label: I18nKey
   /** UI hint for badges/tags (e.g. "green", "amber"). */
   color?: string
+  /**
+   * Section this option belongs to, for widgets that present a grouped option set
+   * (see the `tags` widget). The value IS the group's i18n key, so the group needs
+   * no naming convention and no separate label map: grouping is string equality on
+   * the key, and the header is `t(group)`.
+   *
+   * Presentation only — the group is never part of the stored value.
+   */
+  group?: I18nKey
+  /**
+   * A `group` key belonging to ANOTHER field's option set, which this option
+   * relates to. A widget pairing two enum fields uses it to surface the relevant
+   * section first (e.g. picking a blog topic features that topic's tag group).
+   * Purely a hint: it must never filter what the user can reach.
+   */
+  linkedGroup?: I18nKey
 }
 
 // ─── Capability (unified CRUD + actions) ─────────────────────────────────────
@@ -290,6 +306,19 @@ export type RichTextAction =
   | 'undo'
   | 'redo'
 
+/**
+ * What the 'tags' widget does with text typed by hand instead of picked from the
+ * option set (see FormFieldSpec.freeText).
+ *
+ * - 'verbatim' (default): stored as typed, trimmed. Right when the taxonomy values
+ *   are codes the frontend maps to labels — a free tag has no mapping to lose, so
+ *   the text IS its label and the chip reads back what the author wrote.
+ * - 'slug': lowercased/ASCII-folded, so every stored value stays uniform and safe
+ *   in a URL. Costs the author's exact wording.
+ * - 'off': only option-set values are accepted; typing something new does nothing.
+ */
+export type FreeTextMode = 'off' | 'verbatim' | 'slug'
+
 /** A field placed in a form group: references a field + form-only presentation. */
 export interface FormFieldSpec<F extends string = string> {
   field: F
@@ -320,6 +349,12 @@ export interface FormFieldSpec<F extends string = string> {
    *  Unset = all of them; unknown ids are ignored. Rendering follows the widget's
    *  own group order, not this array's. See RichTextAction. */
   toolbar?: RichTextAction[]
+  /** Name of a sibling field in the same form whose selected option decides which
+   *  option group the 'tags' widget surfaces first (see FieldFormSpec.featureFrom).
+   *  Omitted = nothing is ever featured. */
+  featureFrom?: F
+  /** How the 'tags' widget stores text typed by hand (see FieldFormSpec.freeText). */
+  freeText?: FreeTextMode
 }
 
 export interface FormGroupSpec<F extends string = string> {
@@ -495,6 +530,26 @@ export interface FieldFormSpec {
   maxRows?: number
   /** Toolbar actions for the 'richtext' widget (see FormFieldSpec.toolbar). */
   toolbar?: RichTextAction[]
+  /**
+   * Name of a sibling field whose current value decides which option group the
+   * 'tags' widget surfaces first: the sibling's selected option declares it via
+   * `EnumOption.linkedGroup`.
+   *
+   * Every degenerate case collapses to the same harmless behaviour — no sibling
+   * declared, sibling empty, sibling filled AFTER the tags, value outside its own
+   * option set, or the very first render before the sibling registers: nothing is
+   * featured and the groups list alphabetically. Featuring reorders and marks; it
+   * MUST NOT filter, so no option is ever out of reach.
+   */
+  featureFrom?: string
+  /**
+   * Resolved options of the `featureFrom` sibling. NOT authored — the interpreter
+   * fills it from the same resource's resolved fields, because a widget receives
+   * only its own field and `linkedGroup` lives on the sibling's options.
+   */
+  featureOptions?: EnumOption[]
+  /** How the 'tags' widget stores hand-typed text. Default 'verbatim'. */
+  freeText?: FreeTextMode
 }
 
 /**

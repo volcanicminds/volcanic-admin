@@ -19,6 +19,10 @@ export const seed: Record<string, Row[]> = {
     {
       id: 'v1', status: 'published', visible: true, featured: true, importance: 99, brandId: 'b3',
       name: 'BMW X3', trimLevel: 'xDrive 20d Msport', tag: 'USATO COME NUOVO',
+      topic: 'long_term_rental',
+      // Mixed on purpose: two taxonomy codes plus a hand-typed tag, so the chips
+      // exercise the translated and the verbatim path at once.
+      tags: ['long_rent', 'courtesy_car', 'Promo primavera'],
       description: '<p>SUV premium, pronta consegna.</p>',
       engine: 'diesel', category: 'suv_crossover', gearbox: 'automatic', doors: 5, seats: 5,
       optional: 'Navigatore, Cerchi 19"', svcKasko: true, svcMaintenance: true, svcRca: true, svcRoadside: true,

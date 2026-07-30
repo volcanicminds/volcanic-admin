@@ -51,8 +51,19 @@ function visibleForAction(field: ResolvedField, action: 'create' | 'edit'): bool
  * '' and no date parses it, so the server rejects the whole save. Send `null` —
  * "no value" — instead. Text/number widgets are untouched (a number widget already
  * emits null when emptied).
+ *
+ * A MULTI-VALUED field is the exception to the exception: "no value" there is the
+ * empty ARRAY, never null. The Controller seeds every non-boolean field with `''`
+ * (see FieldInput), so a form saved without touching such a field used to submit
+ * `''` → `null`, and a server that coerces types turns that into `['']` — a phantom
+ * empty entry silently persisted — or rejects the whole save when the column is a
+ * constrained enum array. Normalizing to `[]` here fixes both for every consumer.
  */
 function emptyToNull(field: ResolvedField, value: unknown): unknown {
+  if (field.multiple) {
+    if (Array.isArray(value)) return value
+    return value === '' || value == null ? [] : [value]
+  }
   if (value !== '') return value
   return field.type === 'enum' || field.type === 'date' || field.type === 'datetime' ? null : value
 }

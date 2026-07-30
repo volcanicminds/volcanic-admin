@@ -13,6 +13,20 @@
       { "value": "draft", "label": "enum.vehicleStatus.draft", "color": "#9ca3af" },
       { "value": "published", "label": "enum.vehicleStatus.published", "color": "#22c55e" },
       { "value": "archived", "label": "enum.vehicleStatus.archived", "color": "#f59e0b" }
+    ],
+    "vehicleTag": [
+      { "value": "long_rent", "label": "enum.vehicleTag.long_rent", "group": "enum.vehicleTagGroup.rental" },
+      { "value": "short_rent", "label": "enum.vehicleTag.short_rent", "group": "enum.vehicleTagGroup.rental" },
+      { "value": "mechanics", "label": "enum.vehicleTag.mechanics", "group": "enum.vehicleTagGroup.workshop" },
+      { "value": "news", "label": "enum.vehicleTag.news" }
+    ],
+    "vehicleTopic": [
+      {
+        "value": "long_term_rental",
+        "label": "enum.vehicleTopic.long_term_rental",
+        "linkedGroup": "enum.vehicleTagGroup.rental"
+      },
+      { "value": "events", "label": "enum.vehicleTopic.events" }
     ]
   },
   "resources": [

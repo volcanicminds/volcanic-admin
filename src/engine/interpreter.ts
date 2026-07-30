@@ -126,7 +126,13 @@ function buildFormSections(spec: ResourceSpec, byName: Map<string, ResolvedField
             suggestions: entry.suggestions,
             rows: entry.rows,
             maxRows: entry.maxRows,
-            toolbar: entry.toolbar
+            toolbar: entry.toolbar,
+            featureFrom: entry.featureFrom,
+            // A widget only ever receives its own field, but `linkedGroup` lives on
+            // the SIBLING's options — so resolve them here, where every field of the
+            // resource is already at hand and fully resolved.
+            featureOptions: entry.featureFrom ? byName.get(entry.featureFrom)?.options : undefined,
+            freeText: entry.freeText
           }
         }
       })

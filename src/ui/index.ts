@@ -26,6 +26,8 @@ export type { WidgetProps } from './widgets/types'
 export { ImageSingle, GalleryReorder } from './widgets/upload'
 export { defaultWidgets } from './widgets/defaults'
 export { RichTextWidget } from './widgets/richtext'
+export { TagsWidget, TagsMenu } from './widgets/tags'
+export type { OptionGroup, Taxonomy, TagSuggestion } from './widgets/tags'
 
 export { ConfirmDialog } from './components/ConfirmDialog'
 export type { ConfirmDialogProps } from './components/ConfirmDialog'
