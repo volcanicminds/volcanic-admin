@@ -389,6 +389,43 @@ export interface RelationSpec {
   inverse?: string
 }
 
+/**
+ * Optional client-side downscale + format conversion applied to a picked file
+ * BEFORE it is uploaded (see ui/widgets/upload/resize.ts). Off unless `enabled`.
+ *
+ * It trades a little CPU in the browser for smaller uploads and smaller stored
+ * files. It is a convenience, NOT an enforcement: a direct API call still uploads
+ * whatever it wants, so any hard limit belongs on the server.
+ *
+ * A typical storefront gallery: `{ enabled: true, format: 'webp', height: 500,
+ * quality: 0.95 }` — one bounded dimension, the other derived from the aspect ratio.
+ */
+export interface ImageResizeSpec {
+  /** Opt-in switch: with this falsy the picked file is uploaded untouched. */
+  enabled?: boolean
+  /** Output encoding (default 'webp'). */
+  format?: 'webp' | 'jpg' | 'png'
+  /** Max width in px. With both set, width drives and height follows the ratio. */
+  width?: number
+  /** Max height in px. */
+  height?: number
+  /** Encoder quality 0–1 (default 0.95). Ignored by the lossless png path. */
+  quality?: number
+  /** Resampling passes, 0–4 (default 2): higher = smoother edges, slower. */
+  reSample?: number
+  /** Sharpening strength (default 0 = off). */
+  sharpen?: number
+  /** Canvas background, e.g. '#ffffff' to flatten transparency (default transparent). */
+  bgColor?: string
+  /** Allow enlarging a source smaller than the target box. Default false: a small
+   *  image is only ever re-encoded, never blown up. */
+  upscale?: boolean
+  /** Keep the original when the converted file is not actually smaller. Default true. */
+  keepIfLarger?: boolean
+  /** Leave files at or below this many bytes untouched (already small enough). */
+  skipUnder?: number
+}
+
 export interface ImageSpec {
   multiple?: boolean
   ordered?: boolean
@@ -397,9 +434,16 @@ export interface ImageSpec {
   fit?: 'cover' | 'contain'
   /** "first" → first image is the cover (→ coverUrl); "flag" → per-image isCover. */
   cover?: 'first' | 'flag'
+  /** Field holding the image's alt text: a sibling column of the record for a single
+   *  image, a property of each item for a gallery. Shown as a caption in the
+   *  read-only detail and editable in the upload widget. Defaults to 'altView'. */
   altField?: string
   accept?: string[]
+  /** Upload size ceiling in bytes, checked AFTER `resize` (what gets sent is what
+   *  counts — otherwise a heavy source would be rejected before being shrunk). */
   maxSize?: number
+  /** Client-side downscale/convert before upload. Off unless `resize.enabled`. */
+  resize?: ImageResizeSpec
   endpoints?: {
     upload?: EndpointSpec
     reorder?: EndpointSpec

@@ -1,6 +1,6 @@
 {
   "name": "@volcanicminds/admin",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Volcanic (minds) Admin - manifest-driven backoffice engine on Refine + shadcn/ui",
   "keywords": [
     "volcanic",
@@ -79,6 +79,7 @@
     "ajv-formats": "^3.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "image-resize": "^1.4.1",
     "lucide-react": "^0.469.0",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.6.0",

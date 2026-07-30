@@ -10,18 +10,21 @@
  * CRUD body without a backend.
  */
 import { useRef, useState } from 'react'
+import { Controller } from 'react-hook-form'
 import { useApiUrl, useInvalidate, useResource } from '@refinedev/core'
 import { useParams } from 'react-router'
 import { toast } from 'sonner'
 import { Upload, X } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
+import { Input } from '@/ui/components/ui/input'
 import { cn } from '@/lib/utils'
 import { interpolatePath } from '@/engine'
 import { ImagePreviewDialog } from '@/ui/components/ImagePreviewDialog'
 import type { WidgetProps } from '../types'
 import { uploadFiles, sendJson, absoluteUrl, imagesFromClipboard } from './rest'
+import { prepareUploads } from './resize'
 
-export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps) {
+export function ImageSingle({ field, value, onChange, disabled, t, control }: WidgetProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const apiUrl = useApiUrl()
   const { id } = useParams()
@@ -34,6 +37,10 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
   const accept = field.image?.accept?.join(',')
   const maxSize = field.image?.maxSize
   const endpoints = field.image?.endpoints
+  // Alt text of a single image is a plain column of the same record (the gallery
+  // instead keeps it per row): edited here so it sits with the image, but bound to
+  // its own form field — AutoForm sends it in the body with everything else.
+  const altField = field.image?.altField
   const realMode = Boolean(endpoints?.upload && id)
   // Create: no id yet — stage the file locally and let AutoForm upload it on save.
   const deferred = Boolean(endpoints?.upload && !id)
@@ -42,8 +49,17 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
     if (identifier) invalidate({ resource: identifier, invalidates: ['list', 'detail'] })
   }
 
-  const handleFile = async (file?: File | null) => {
-    if (!file || disabled || busy) return
+  const handleFile = async (picked?: File | null) => {
+    if (!picked || disabled || busy) return
+    // Resize FIRST, then check the size ceiling: what matters is the weight of what
+    // we actually send, so a heavy source that shrinks under the limit is fine.
+    setBusy(true)
+    let file = picked
+    try {
+      file = (await prepareUploads([picked], field.image?.resize))[0] ?? picked
+    } finally {
+      setBusy(false)
+    }
     if (maxSize && file.size > maxSize) {
       toast.error(t('upload.tooLarge'))
       return
@@ -159,6 +175,25 @@ export function ImageSingle({ field, value, onChange, disabled, t }: WidgetProps
           </Button>
         )}
       </div>
+
+      {/* Always mounted (not gated on the preview): the field stays registered, so
+          what is on screen is exactly what gets saved. Hiding it after a Remove would
+          leave its last value in the form, silently submitting an alt with no image. */}
+      {altField && control && (
+        <Controller
+          name={altField}
+          control={control}
+          defaultValue=""
+          render={({ field: alt }) => (
+            <Input
+              value={alt.value ?? ''}
+              placeholder={t('upload.alt')}
+              disabled={disabled}
+              onChange={(e) => alt.onChange(e.target.value)}
+            />
+          )}
+        />
+      )}
 
       <ImagePreviewDialog open={previewOpen} onOpenChange={setPreviewOpen} src={src} alt="" />
     </div>

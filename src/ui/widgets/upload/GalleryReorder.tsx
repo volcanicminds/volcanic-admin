@@ -23,6 +23,7 @@ import { interpolatePath } from '@/engine'
 import { ImagePreviewDialog } from '@/ui/components/ImagePreviewDialog'
 import type { WidgetProps } from '../types'
 import { uploadFiles, sendJson, absoluteUrl, imagesFromClipboard } from './rest'
+import { prepareUploads } from './resize'
 
 interface GalleryItem {
   id: string
@@ -87,7 +88,16 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
 
   const addFiles = async (fileList: FileList | File[] | null) => {
     if (!fileList?.length || disabled || busy) return
-    const files = Array.from(fileList).filter((f) => !maxSize || f.size <= maxSize)
+    // Resize FIRST, then check the size ceiling: what matters is the weight of what
+    // we actually send, so a heavy source that shrinks under the limit is fine.
+    setBusy(true)
+    let prepared: File[]
+    try {
+      prepared = await prepareUploads(Array.from(fileList), field.image?.resize)
+    } finally {
+      setBusy(false)
+    }
+    const files = prepared.filter((f) => !maxSize || f.size <= maxSize)
     if (!files.length) {
       toast.error(t('upload.tooLarge'))
       return

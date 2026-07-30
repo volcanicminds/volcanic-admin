@@ -151,6 +151,15 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
       const key = formFieldName(f)
       if (key in values) payload[key] = emptyToNull(f, values[key])
     }
+    // Alt text of a single image (ImageSpec.altField) is a plain column of the record,
+    // edited inside the upload widget rather than declared as its own form field — so
+    // the loop above never sees it. A gallery is excluded: its per-image alt is saved
+    // through the image `update` endpoint, not the body.
+    for (const f of uploadFields) {
+      const altKey = f.image?.altField
+      if (!altKey || f.image?.multiple) continue
+      if (altKey in values) payload[altKey] = values[altKey] === '' ? null : values[altKey]
+    }
     setServerError(null)
     // Arm the bridge before submitting; a mutation callback resolves it.
     let resolveSaved!: (rec: Record<string, unknown> | null) => void

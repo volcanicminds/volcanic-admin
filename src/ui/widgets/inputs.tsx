@@ -397,6 +397,7 @@ export function FieldInput({ field, control, t }: FieldInputProps) {
               onChange={rhf.onChange}
               disabled={disabled}
               t={t}
+              control={control}
             />
             {field.help && <p className="text-xs text-muted-foreground">{t(field.help)}</p>}
             {fieldState.error && (

@@ -5,7 +5,7 @@
  */
 import { useState } from 'react'
 import { useApiUrl } from '@refinedev/core'
-import { Check, X, Minus } from 'lucide-react'
+import { Check, X, Minus, Star } from 'lucide-react'
 import { Badge } from '@/ui/components/ui/badge'
 import { absoluteUrl, cn } from '@/lib/utils'
 import { ImagePreviewDialog } from '@/ui/components/ImagePreviewDialog'
@@ -135,45 +135,92 @@ export function FieldCell({ record, field, t }: CellProps) {
   }
 }
 
-/** All image URLs for an image field (cover first), used by the show gallery. */
-function imageUrls(record: Record<string, any>, field: ResolvedField): string[] {
+interface ImageItem {
+  url: string
+  /** Alt text stored alongside the image (see ImageSpec.altField). */
+  alt: string
+}
+
+/**
+ * Images of an image field, in display order, each with its alt text.
+ *
+ * Two shapes are supported: a gallery (array of items, e.g. VehicleImage rows) and
+ * a single image (a URL string on the record, its alt in a sibling column named by
+ * `image.altField`). Items are sorted by `position` — the SAME rule the edit widget
+ * applies: a backend that eager-loads the relation without an ORDER BY hands them
+ * back in arbitrary order, so sorting here is what keeps show and edit in agreement
+ * (cover first).
+ */
+function imageItems(record: Record<string, any>, field: ResolvedField): ImageItem[] {
+  const altField = field.image?.altField ?? 'altView'
   const v = record[field.name]
-  if (Array.isArray(v) && v.length) return v.map((it) => it?.url ?? it).filter(Boolean)
-  if (record.coverUrl) return [record.coverUrl]
-  return typeof v === 'string' && v ? [v] : []
+  if (Array.isArray(v) && v.length) {
+    return v
+      .map((it, i) => ({
+        url: it?.url ?? it,
+        alt: String(it?.[altField] ?? ''),
+        position: it?.position ?? i
+      }))
+      .filter((it) => Boolean(it.url))
+      .sort((a, b) => a.position - b.position)
+      .map(({ url, alt }) => ({ url, alt }))
+  }
+  const alt = String(record[altField] ?? '')
+  if (typeof v === 'string' && v) return [{ url: v, alt }]
+  if (record.coverUrl) return [{ url: record.coverUrl, alt }]
+  return []
 }
 
 export function FieldValue({ record, field, t }: CellProps) {
   const apiUrl = useApiUrl()
-  const [preview, setPreview] = useState<string | null>(null)
-  // Image/gallery fields render as a thumbnail grid (read-only mirror of the edit widget).
+  const [preview, setPreview] = useState<ImageItem | null>(null)
+  // Image/gallery fields render as a thumbnail grid (read-only mirror of the edit
+  // widget): same order, same cover badge, plus the alt text as a caption — a
+  // reader-visible value, not just an attribute nobody can check without devtools.
   if (field.type === 'image' || field.type === 'file') {
-    const urls = imageUrls(record, field)
-    if (!urls.length) return <span className="text-muted-foreground">—</span>
+    const items = imageItems(record, field)
+    if (!items.length) return <span className="text-muted-foreground">—</span>
+    // The first item is the cover only where ordering means that (`cover: 'first'`,
+    // the gallery case); a lone single image is not labelled.
+    const marksCover = items.length > 1 && field.image?.cover !== 'flag'
     return (
       <>
         <div className="flex flex-wrap gap-2">
-          {urls.map((url, i) => {
-            const src = absoluteUrl(apiUrl, url)
+          {items.map((it, i) => {
+            const src = absoluteUrl(apiUrl, it.url)
             return (
-              <img
-                key={i}
-                src={src}
-                alt=""
-                title={t('upload.preview')}
-                onClick={() => setPreview(src)}
-                className={cn(
-                  'h-28 w-40 cursor-zoom-in rounded-md border',
-                  field.image?.fit === 'contain' ? 'bg-white object-contain p-2' : 'object-cover'
+              <figure key={i} className="w-40 space-y-1">
+                <div className="relative">
+                  <img
+                    src={src}
+                    alt={it.alt}
+                    title={t('upload.preview')}
+                    onClick={() => setPreview(it)}
+                    className={cn(
+                      'h-28 w-40 cursor-zoom-in rounded-md border',
+                      field.image?.fit === 'contain' ? 'bg-white object-contain p-2' : 'object-cover'
+                    )}
+                  />
+                  {marksCover && i === 0 && (
+                    <Badge className="absolute left-1 top-1 gap-1">
+                      <Star className="h-3 w-3" /> {t('upload.cover')}
+                    </Badge>
+                  )}
+                </div>
+                {it.alt && (
+                  <figcaption className="text-xs text-muted-foreground" title={t('upload.alt')}>
+                    {it.alt}
+                  </figcaption>
                 )}
-              />
+              </figure>
             )
           })}
         </div>
         <ImagePreviewDialog
           open={preview != null}
           onOpenChange={(o) => !o && setPreview(null)}
-          src={preview}
+          src={preview ? absoluteUrl(apiUrl, preview.url) : undefined}
+          alt={preview?.alt}
         />
       </>
     )
