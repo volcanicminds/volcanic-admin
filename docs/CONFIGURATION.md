@@ -211,7 +211,10 @@ form: {
 | `placeholder` | i18n key | |
 | `suggestions` | `(string \| number)[]` | Non-binding suggestions for the `combobox` widget (editable dropdown). |
 | `rows` | `number` | Visible text rows for the `textarea`/`richtext` widgets — the editing height of the field, unrelated to `rowSpan` (grid cells). Default: 8 rows for `richtext`, 4 for a textarea. |
+| `maxRows` | `number` | Height ceiling of the `richtext` editor, in text rows: past it the editor scrolls its own content instead of growing, which is what keeps its toolbar on screen while writing a long text. Defaults to `rows`, so a declared height behaves like a textarea's (that height, then scroll); with neither, 20 rows. Also hard-capped at 70vh so the editor always fits the window. |
 | `toolbar` | `RichTextAction[]` | Toolbar actions of the `richtext` widget. Unset = all. Ids: `bold`, `italic`, `underline`, `strike`, `h2`, `h3`, `bulletList`, `orderedList`, `blockquote`, `link`, `clearFormat`, `undo`, `redo`. Order/grouping follow the widget, not the array; dividers adapt to the subset. **Every enabled action must survive the server's HTML sanitizer** — one whose markup the server strips silently discards the author's work on save. |
+| `featureFrom` | field name | For the `tags` widget: a **sibling field** whose selected option decides which option group the menu surfaces first (the sibling's option declares the target via `EnumOption.linkedGroup`). Every degenerate case — no sibling, sibling empty, sibling filled *after* the tags, value outside its option set — behaves identically: nothing is featured and the groups list alphabetically. Featuring reorders and marks; it never filters, so no option is ever out of reach. |
+| `freeText` | `'off' \| 'verbatim' \| 'slug'` | For the `tags` widget: what Enter does with text that is not in the option set. `verbatim` (default) stores it as typed — right when the option values are codes the frontend maps to labels, since a free tag has no mapping to lose. `slug` folds it to `snake_case`. `off` accepts option values only. Typing a label that **does** exist always stores that option's value, never the text. |
 
 > `groups` present → **only** the listed fields show, grouped and ordered as
 > written (allowlist). Absent → a single headerless `default` section with all
@@ -375,6 +378,7 @@ An unknown `widget` id silently falls back to the type default.
 |---|---|---|
 | `multiselect` | MultiSelectWidget | `inputs.tsx` (`BUILTIN_WIDGETS`) |
 | `combobox` | ComboboxWidget (editable select + `suggestions`) | `inputs.tsx` |
+| `tags` | TagsWidget — grouped two-level menu + "contains" typeahead + removable chips, for a multi-valued enum. See §7.1. | `widgets/tags` |
 | `image-single` | ImageSingle (upload) | `widgets/upload` (`defaultWidgets`) |
 | `gallery-reorder` | GalleryReorder (upload + DnD) | `widgets/upload` |
 | `rich-text` | RichTextWidget (TipTap editor, HTML output, **lazy-loaded**) | `widgets/richtext` |
@@ -396,6 +400,62 @@ An unknown `widget` id silently falls back to the type default.
 
 > Register your own widgets via `overrides.widget` or a plugin (CONSUMING.md §3.1),
 > then reference them by id in a form entry's `widget`.
+
+### 7.1 The `tags` widget
+
+A tag picker for a **multi-valued enum** (`type: 'enum'` + `multiple: true`, backed by
+an array column such as Postgres `text[]`). Three parts: a button opening a two-level
+menu of the option set, an input that filters by "contains" and can also accept
+hand-typed text, and the chosen values as removable chips.
+
+The taxonomy comes from the field's own options — no separate structure to keep in
+sync. `EnumOption.group` names the section an option belongs to, **and the value IS
+the section's i18n key**, so there is no naming convention and no label map:
+
+```ts
+tags: {
+  type: 'enum',
+  multiple: true,
+  default: [],                       // see the note below — this matters
+  enum: [
+    { value: 'long_rent', label: 'enum.blogTag.long_rent', group: 'enum.blogTagGroup.rental' },
+    { value: 'mechanics', label: 'enum.blogTag.mechanics', group: 'enum.blogTagGroup.workshop' },
+    { value: 'news',      label: 'enum.blogTag.news' }   // no group → top-level leaf
+  ]
+}
+```
+
+Grouping rules: an option **with** a group is nested under it; an option **without**
+one is a selectable leaf at the top level, listed last. Sections are ordered by their
+*translated* heading (accent-aware), while options keep their declaration order inside
+a section — the author's ordering of a group is meaningful in a way alphabetical is not.
+
+**Featuring a group from another field.** A sibling field's option can declare
+`linkedGroup: '<group key>'`; point the widget at it with `featureFrom` and that group
+leads the menu, starred and already expanded, while the rest stay collapsed submenus:
+
+```ts
+// form entry
+{ field: 'topic', widget: 'select' },
+{ field: 'tags', widget: 'tags', featureFrom: 'topic', colSpan: 2 }
+```
+
+Featuring **reorders and marks — it never filters.** No sibling declared, sibling
+empty, sibling filled *after* the tags, a value outside its option set: all behave the
+same, with nothing featured and the groups alphabetical. Changing the sibling only
+re-renders the menu; the selected values are never touched.
+
+**Free text.** With `freeText` at its default (`verbatim`), Enter (or a comma) commits
+whatever was typed. Typing a label that exists in the taxonomy always stores that
+option's **value**, never the text — otherwise one concept ends up with two stored
+spellings. Duplicates are rejected case-insensitively, commas are stripped (a stored
+comma would split in two on the XLSX export/import round-trip), and a value outside the
+taxonomy renders as an `outline` chip so it is visible at a glance.
+
+**Value contract.** Always a `string[]`, in selection order. Reading tolerates `''`,
+`null`, a bare string and an array with empty entries; writing always emits an array,
+never `''` or `null`. Declare `default: []` on the field: without it the form seeds `''`,
+and a server that coerces types can turn that into a phantom `['']` entry.
 
 ---
 

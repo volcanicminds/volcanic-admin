@@ -200,6 +200,12 @@ current user may perform it, so the UI gates purely on presence.
 - `type` (`FieldType`): `string | text | textarea | richtext | integer | number | boolean |
   date | datetime | enum | relation | email | url | uuid | json | image | file`.
 - `enum` + `color` on `EnumOption` is a UI hint for badges/chips (e.g. `"green"`, `"amber"`).
+- `EnumOption.group?` puts the option in a section for widgets with a grouped option set
+  (the `tags` widget). Its value IS the section's i18n key, so there is no naming convention
+  and no separate label map; an option with no `group` is a top-level selectable leaf.
+  Presentation only — never part of the stored value. `EnumOption.linkedGroup?` names a
+  `group` of ANOTHER field's option set, letting a widget surface the pertinent section first
+  (a hint: it must never filter what the user can reach).
 - `RelationSpec`: `{ resource, kind?, titleField?, foreignKey?, inverse? }`. The BE emits it
   schema-only (bare `resource`/`titleField`); `kind`/`foreignKey` typically come via overrides.
   The relation object is **output-only**; the form binds to its `foreignKey` (e.g. `brandId`).
@@ -282,10 +288,17 @@ sensible default from the resource fields (schema order; heavy/writeOnly types e
   earlier cells empty, wraps to next row if taken; used to break rows / align columns),
   **`rowSpan?`** (grid rows the field spans, e.g. a tall textarea beside stacked fields),
   `visibleOn?: 'create'|'edit'` (restrict to one form mode; omitted = both), `placeholder?`,
-  `suggestions?: (string|number)[]` (non-binding options for the `combobox` widget).
+  `suggestions?: (string|number)[]` (non-binding options for the `combobox` widget),
+  `rows?` / **`maxRows?`** (visible text rows / height ceiling of `textarea`|`richtext`: past
+  `maxRows` the editor scrolls internally instead of growing, keeping its toolbar on screen;
+  defaults to `rows`, else 20, and is hard-capped at 70vh), `toolbar?: RichTextAction[]`,
+  **`featureFrom?: F`** + **`freeText?: 'off'|'verbatim'|'slug'`** (the `tags` widget — see the
+  widget table).
 
 The interpreter overlays each `FormFieldSpec` onto a clone of the resolved field as
-`field.form?.*`, so widgets read `field.form?.widget`, `field.form?.colSpan`, etc.
+`field.form?.*`, so widgets read `field.form?.widget`, `field.form?.colSpan`, etc. It also
+RESOLVES `form.featureOptions` from the `featureFrom` sibling's own options, because a widget
+only ever receives its own field while `EnumOption.linkedGroup` lives on the sibling's.
 
 `FieldOverride` patches **intrinsics only** (`Partial<FieldSpec>` minus name; `relation`/`image`
 are `Partial`, `validation` is full). Presentation is never patched on the field — it goes in
@@ -302,7 +315,7 @@ Source: `src/ui/widgets/inputs.tsx` (`FieldInput`, `pickWidget`), `defaults.ts`,
 ### Selection order (in `FieldInput`)
 
 1. **Override registry** by id — `field.form?.widget` resolved as a registered `'widget'` component.
-2. **Built-in widget by name** — for `field.form?.widget` in `{ multiselect, combobox }`.
+2. **Built-in widget by name** — for `field.form?.widget` in `{ multiselect, combobox, tags }`.
 3. **Type default** — richtext with no explicit widget resolves the registered `rich-text`
    editor; otherwise `pickWidget(field.type)`.
 
@@ -312,6 +325,7 @@ Source: `src/ui/widgets/inputs.tsx` (`FieldInput`, `pickWidget`), `defaults.ts`,
 |---|---|
 | `multiselect` | Checkbox list for an array-valued `enum` field (value is `string[]`). |
 | `combobox` | Editable select — free-text input + dropdown of `suggestions` (pick or type). Integer/number-aware. |
+| `tags` | Tag picker for a multi-valued `enum` (`multiple: true`): two-level menu built from `EnumOption.group`, "contains" typeahead, removable chips. `featureFrom` surfaces the group linked to a sibling field first (starred + expanded) — it reorders, never filters, so every degenerate case (no sibling / empty / filled later / unknown value) just lists the groups alphabetically. `freeText` (default `verbatim`) accepts hand-typed tags on Enter or comma; typing an existing label always stores that option's VALUE, not the text. Value is `string[]` in selection order — declare `default: []`. |
 | `image-single` | Single-image upload (from `upload/`). |
 | `gallery-reorder` | Multi-image gallery with drag reorder (from `upload/`). |
 | `rich-text` | TipTap editor, lazy-loaded (kept out of the main bundle). |
