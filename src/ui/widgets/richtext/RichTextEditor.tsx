@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/ui/components/ui/button'
 import type { RichTextAction } from '@/engine'
 import type { WidgetProps } from '../types'
+import { editorMaxHeight, editorMinHeight } from './height'
 
 /** TipTap emits this for an empty document; store it as '' so "empty" is falsy. */
 const EMPTY_HTML = '<p></p>'
@@ -200,7 +201,10 @@ function Toolbar({ editor, actions }: { editor: Editor; actions: RichTextAction[
     (g) => g.length > 0
   )
   return (
-    <div className="flex flex-wrap items-center gap-0.5 border-b bg-muted/30 p-1">
+    // Sticky against the editor box (the scroll container): with a long text the
+    // body scrolls under the toolbar instead of carrying it away. The background
+    // must be OPAQUE — a translucent one would let the scrolling text show through.
+    <div className="sticky top-0 z-10 flex flex-wrap items-center gap-0.5 border-b bg-muted p-1">
       {groups.map((group, i) => (
         <Fragment key={i}>
           {i > 0 && <span className="mx-1 h-5 w-px bg-border" />}
@@ -227,6 +231,10 @@ export default function RichTextEditor({ field, value, onChange, disabled, t }: 
   // `form.rows` = visible text rows. One prose-sm row is ~1.5rem, so the inline
   // min-height (which beats the class below) lands on the requested row count.
   const rows = field.form?.rows
+  // …and `form.maxRows` (defaulting to `rows`) is where growth stops and the box
+  // starts scrolling its own content — see ./height.
+  const maxHeight = editorMaxHeight(rows, field.form?.maxRows, !disabled)
+  const minHeight = editorMinHeight(rows, !disabled)
   // `form.toolbar` = the actions to show, in RICHTEXT_ACTIONS order (unset = all).
   const actions = field.form?.toolbar ?? RICHTEXT_ACTIONS
   // Read by onUpdate, whose closure would otherwise see the first render's `value`.
@@ -244,7 +252,7 @@ export default function RichTextEditor({ field, value, onChange, disabled, t }: 
     editorProps: {
       attributes: {
         class: 'prose prose-sm max-w-none min-h-[8rem] px-3 py-2 focus:outline-none',
-        ...(rows ? { style: `min-height: ${rows * 1.5}rem` } : {})
+        ...(minHeight ? { style: `min-height: ${minHeight}` } : {})
       }
     },
     // TipTap also fires onUpdate when WE load content (editor init, and the
@@ -278,9 +286,14 @@ export default function RichTextEditor({ field, value, onChange, disabled, t }: 
   if (!editor) return null
 
   return (
+    // THIS is the scroll container (hence `overflow-y-auto`, not `overflow-hidden`:
+    // the latter would also pin the sticky toolbar in place). Capping it here rather
+    // than on the body means the box never outgrows the viewport, so the toolbar
+    // stays reachable however long the text gets.
     <div
+      style={{ maxHeight }}
       className={cn(
-        'overflow-hidden rounded-md border bg-background focus-within:ring-1 focus-within:ring-ring',
+        'overflow-y-auto rounded-md border bg-background focus-within:ring-1 focus-within:ring-ring',
         disabled && 'opacity-60'
       )}
     >

@@ -125,6 +125,7 @@ function buildFormSections(spec: ResourceSpec, byName: Map<string, ResolvedField
             placeholder: entry.placeholder,
             suggestions: entry.suggestions,
             rows: entry.rows,
+            maxRows: entry.maxRows,
             toolbar: entry.toolbar
           }
         }

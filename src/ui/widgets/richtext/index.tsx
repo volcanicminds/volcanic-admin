@@ -5,24 +5,30 @@
  */
 import { lazy, Suspense, type ComponentType } from 'react'
 import type { WidgetProps } from '../types'
+import { editorMaxHeight, editorMinHeight, TOOLBAR_REM } from './height'
 
 const RichTextEditor = lazy(() => import('./RichTextEditor'))
 
-/** Matches the editor's collapsed height (body + 2.5rem toolbar) so the layout
- *  doesn't jump while loading — including when `form.rows` makes it taller. */
-function EditorFallback({ rows }: { rows?: number }) {
-  const body = rows ? `${rows * 1.5}rem` : '8rem'
+/** Matches the editor's resting height (body + toolbar), capped the same way, so the
+ *  layout doesn't jump when the real editor swaps in — `form.rows` included. */
+function EditorFallback({ rows, maxRows }: { rows?: number; maxRows?: number }) {
+  const body = editorMinHeight(rows) ?? '8rem'
   return (
     <div
       className="animate-pulse rounded-md border bg-muted/30"
-      style={{ height: `calc(${body} + 2.5rem)` }}
+      style={{
+        height: `calc(${body} + ${TOOLBAR_REM}rem)`,
+        maxHeight: editorMaxHeight(rows, maxRows)
+      }}
     />
   )
 }
 
 export function RichTextWidget(props: WidgetProps) {
   return (
-    <Suspense fallback={<EditorFallback rows={props.field.form?.rows} />}>
+    <Suspense
+      fallback={<EditorFallback rows={props.field.form?.rows} maxRows={props.field.form?.maxRows} />}
+    >
       <RichTextEditor {...props} />
     </Suspense>
   )

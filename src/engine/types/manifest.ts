@@ -313,6 +313,9 @@ export interface FormFieldSpec<F extends string = string> {
    *  of the field, independent of `rowSpan` (which is grid cells). Raise it where
    *  the text IS the record (an article body), lower it for an incidental note. */
   rows?: number
+  /** Height ceiling in text rows for the 'richtext' widget: past it the editor
+   *  scrolls internally instead of growing (see FieldFormSpec.maxRows). */
+  maxRows?: number
   /** Toolbar actions for the 'richtext' widget, e.g. `['bold', 'italic', 'link']`.
    *  Unset = all of them; unknown ids are ignored. Rendering follows the widget's
    *  own group order, not this array's. See RichTextAction. */
@@ -483,6 +486,13 @@ export interface FieldFormSpec {
   suggestions?: Array<string | number>
   /** Visible text rows for the 'textarea'/'richtext' widgets (see FormFieldSpec.rows). */
   rows?: number
+  /**
+   * Height ceiling for the 'richtext' widget, in text rows. Past it the editor
+   * scrolls its own content instead of growing the page — which is what keeps the
+   * toolbar on screen while writing a long text. Defaults to `rows`, so a declared
+   * height behaves like a textarea's `rows` (that height, then scroll).
+   */
+  maxRows?: number
   /** Toolbar actions for the 'richtext' widget (see FormFieldSpec.toolbar). */
   toolbar?: RichTextAction[]
 }
