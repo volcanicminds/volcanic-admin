@@ -257,7 +257,15 @@ export function ListView({ model }: { model: ResourceModel }) {
         <ListTable {...presentation} sorters={sorters} onToggleSort={toggleSort} />
       )}
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
+      {/* Pagination bar, mirroring the toolbar above. `sticky bottom` is asymmetric —
+          it only ever shifts a box UP — so it gives both regimes for free: with a
+          short list nothing overflows and the bar stays in flow right under the
+          results; with a long one it rides the bottom edge instead of sitting
+          off-screen, and un-sticks by itself once you reach the end, so no row is
+          permanently covered. `-bottom-6` cancels the main's bottom padding (the
+          `-top-6` above does the same at the other end); the opaque background is
+          load-bearing, not decoration — rows scroll underneath it. */}
+      <div className="sticky -bottom-6 z-20 -mx-6 flex items-center justify-between border-t bg-background px-6 py-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-3">
           <span>
             {t('list.pageInfo', { page, pageCount })} · {total}
