@@ -25,23 +25,31 @@ function getValue(record: Record<string, any>, field: ResolvedField): any {
 
 // Soft colored badge per enum option (EnumOption.color). Named palette → literal
 // Tailwind classes (so they survive the build); any other value falls back to the
-// neutral badge + a color dot.
+// neutral badge + a color dot. Each entry carries its dark variant: the light
+// ramp (100 fill / 700 text) is a bright patch on the dark background, so dark
+// mode flips to a deep fill with a light text ramp.
 const ENUM_BADGE: Record<string, string> = {
-  slate: 'border-slate-200 bg-slate-100 text-slate-700',
-  gray: 'border-slate-200 bg-slate-100 text-slate-700',
-  red: 'border-red-200 bg-red-100 text-red-700',
-  orange: 'border-orange-200 bg-orange-100 text-orange-700',
-  amber: 'border-amber-200 bg-amber-100 text-amber-800',
-  yellow: 'border-yellow-200 bg-yellow-100 text-yellow-800',
-  green: 'border-green-200 bg-green-100 text-green-700',
-  emerald: 'border-emerald-200 bg-emerald-100 text-emerald-700',
-  teal: 'border-teal-200 bg-teal-100 text-teal-700',
-  blue: 'border-blue-200 bg-blue-100 text-blue-700',
-  indigo: 'border-indigo-200 bg-indigo-100 text-indigo-700',
-  violet: 'border-violet-200 bg-violet-100 text-violet-700',
-  purple: 'border-purple-200 bg-purple-100 text-purple-700',
-  pink: 'border-pink-200 bg-pink-100 text-pink-700',
-  rose: 'border-rose-200 bg-rose-100 text-rose-700'
+  slate: 'border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300',
+  gray: 'border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300',
+  red: 'border-red-200 bg-red-100 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300',
+  orange:
+    'border-orange-200 bg-orange-100 text-orange-700 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-300',
+  amber: 'border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300',
+  yellow:
+    'border-yellow-200 bg-yellow-100 text-yellow-800 dark:border-yellow-900 dark:bg-yellow-950 dark:text-yellow-300',
+  green: 'border-green-200 bg-green-100 text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300',
+  emerald:
+    'border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300',
+  teal: 'border-teal-200 bg-teal-100 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-300',
+  blue: 'border-blue-200 bg-blue-100 text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300',
+  indigo:
+    'border-indigo-200 bg-indigo-100 text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-300',
+  violet:
+    'border-violet-200 bg-violet-100 text-violet-700 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-300',
+  purple:
+    'border-purple-200 bg-purple-100 text-purple-700 dark:border-purple-900 dark:bg-purple-950 dark:text-purple-300',
+  pink: 'border-pink-200 bg-pink-100 text-pink-700 dark:border-pink-900 dark:bg-pink-950 dark:text-pink-300',
+  rose: 'border-rose-200 bg-rose-100 text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300'
 }
 
 /** One enum value as a chip: named palette → colored chip, custom color → neutral
@@ -86,7 +94,7 @@ export function FieldCell({ record, field, t }: CellProps) {
 
   // Boolean is tri-state: true → green check, false → red cross, undefined → grey dash.
   if (field.type === 'boolean') {
-    if (value === true) return <Check className="h-4 w-4 text-green-600" />
+    if (value === true) return <Check className="h-4 w-4 text-green-600 dark:text-green-500" />
     if (value === false) return <X className="h-4 w-4 text-destructive" />
     return <Minus className="h-4 w-4 text-muted-foreground" />
   }

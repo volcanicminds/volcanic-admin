@@ -2,6 +2,12 @@
 <html lang="it">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      A backoffice is a private surface behind a login: keep it out of search
+      results, but let crawlers follow the outbound links of any attribution
+      graph below. See docs/CONSUMING.md, "The client index.html".
+    -->
+    <meta name="robots" content="noindex, follow" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dionisi Admin</title>
   </head>

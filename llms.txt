@@ -457,7 +457,14 @@ set only the light one and it serves both themes.
 **Enum badge colors** (`EnumOption.color`, `src/ui/widgets/display.tsx`) — a **named** color
 renders a soft colored chip; any other value → neutral chip + a color dot. Named palette:
 `slate`, `gray`, `red`, `orange`, `amber`, `yellow`, `green`, `emerald`, `teal`, `blue`,
-`indigo`, `violet`, `purple`, `pink`, `rose`.
+`indigo`, `violet`, `purple`, `pink`, `rose`. Each name carries both ramps (light fill +
+dark fill), so a chip stays legible in either theme.
+
+**Rich text** (`.prose`, `tailwind-preset.js`) — the `@tailwindcss/typography` variables are
+rebound to the theme tokens (`--tw-prose-body` → `hsl(var(--foreground))`, links →
+`--primary`, code/pre → `--muted`, rules and borders → `--border`). One `prose` class is
+therefore correct in both themes and follows a consumer's `theme` overrides; `prose-invert`
+is a no-op by design. Do not add `dark:prose-invert` in overrides.
 
 **Icons** — two independent **mapped** sets (NOT arbitrary lucide names; unknown → fallback):
 - Sidebar / resource / group (`src/ui/layout/icons.tsx`): `car`, `layers`, `users`, `mail`,

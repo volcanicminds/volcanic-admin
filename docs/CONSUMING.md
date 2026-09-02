@@ -461,3 +461,62 @@ provider (see this repo's `src/mock/*` and the demo `src/App.tsx`). Pass `manife
 (GitHub Packages / private npm org). Peers (`react`, `react-dom`, `react-router`,
 `@refinedev/*`, `react-hook-form`) are provided by the client app so there is a single
 shared copy — required for Refine's React context to work.
+
+## 7. The client `index.html` (robots + attribution)
+
+The engine never touches the host page, so `index.html` is entirely the client app's
+business. Two things belong there, and both are copy-paste per project.
+
+**Keep the panel out of search results.** A backoffice is a private surface behind a login,
+but its host page is publicly reachable and gets crawled like any other URL:
+
+```html
+<meta name="robots" content="noindex, follow" />
+```
+
+`follow` (rather than `nofollow`) lets a crawler walk the outbound links of the graph
+below, so the attribution still lands on the right entities. Social scrapers ignore the
+directive, so a link shared in a chat still previews normally.
+
+**Attribution graph (optional).** A `schema.org` graph in the page ties the panel to the
+client's organization and to whoever built it. It has to be *static*: the SPA serves the
+same `index.html` on every route (`try_files {path} /index.html`), and a crawler is never
+authenticated, so it only ever sees the login screen. Nothing in the graph may therefore
+claim a route-specific `url`, and nothing may leak record data.
+
+The payoff is the `@id`s: reuse the exact ones the client's public site already emits and
+the two graphs merge onto one entity instead of minting a look-alike. Same for the builder
+identity across projects.
+
+```html
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "@id": "https://admin.acme.example/#app",
+        "name": "Backoffice Acme",
+        "url": "https://admin.acme.example/",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "author": { "@id": "https://volcanicminds.com/#identity" },
+        "publisher": { "@id": "https://www.acme.example/#business" },
+        "isBasedOn": {
+          "@type": "SoftwareApplication",
+          "name": "Volcanic Admin",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web",
+          "author": { "@id": "https://volcanicminds.com/#identity" }
+        }
+      }
+    ]
+  }
+</script>
+```
+
+The graph is incomplete as shown: it also needs the two `Organization` nodes the `@id`s
+point at, copied verbatim from the ones the public site and the other projects already
+publish. Keeping them byte-identical is the whole point.
+
+Rule of thumb: the graph describes *the product and who owns it*, never its content.

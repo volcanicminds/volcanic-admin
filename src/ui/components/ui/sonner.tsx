@@ -1,10 +1,17 @@
 import { Toaster as Sonner } from 'sonner'
+import { useTheme } from '@/ui/theme'
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 export function Toaster(props: ToasterProps) {
+  // Sonner defaults to `theme="light"`, and `richColors` paints its success /
+  // error / warning variants from that theme's palette: pale fills that stay
+  // pale over the dark background. Hand it the resolved theme so it follows the
+  // admin's own light/dark/system switch. An explicit `theme` prop still wins.
+  const { resolved } = useTheme()
   return (
     <Sonner
+      theme={resolved}
       className="toaster group"
       toastOptions={{
         classNames: {

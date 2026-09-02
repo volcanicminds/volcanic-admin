@@ -74,7 +74,7 @@ function RecordMeta({ record, t }: { record: Record<string, any>; t: Translate }
             aria-label={t('action.copy')}
             className="inline-flex transition-colors hover:text-foreground"
           >
-            {copied ? <Check className="size-3.5 text-green-600" /> : <Copy className="size-3.5" />}
+            {copied ? <Check className="size-3.5 text-green-600 dark:text-green-500" /> : <Copy className="size-3.5" />}
           </button>
         </div>
       )}
