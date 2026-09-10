@@ -54,7 +54,20 @@ export function createVolcanicAuthProvider({
         storeAuth(res)
         return { success: true, redirectTo: '/' }
       } catch (e: any) {
-        return { success: false, error: { name: 'LoginError', message: e?.message ?? 'Login failed' } }
+        // The backend answers every pre-verification failure with one code
+        // (`AUTH_INVALID_CREDENTIALS`), on purpose: distinct messages told anyone who asked
+        // whether an address had an account here. The one code worth acting on is
+        // `PASSWORD_TO_BE_CHANGED`, which arrives only after the password verified, so it is
+        // carried through for a login screen that wants to offer the reset directly.
+        return {
+          success: false,
+          error: {
+            name: 'LoginError',
+            message: e?.message ?? 'Login failed',
+            statusCode: e?.statusCode ?? e?.status,
+            code: e?.code
+          }
+        }
       }
     },
 

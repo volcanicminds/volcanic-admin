@@ -143,7 +143,7 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
     },
 
     getMany: async ({ resource, ids, meta }) => {
-      const qs = `id:in=${ids.map(String).join(',')}&pageSize=${ids.length || 1}`
+      const qs = `id:in=${ids.map(String).join(',')}&_pageSize=${ids.length || 1}`
       const data = await json<any>(`${url(resource)}?${qs}`, { method: 'GET', headers: meta?.headers })
       return { data }
     },

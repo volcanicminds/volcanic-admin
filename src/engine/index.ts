@@ -16,7 +16,7 @@ export type {
   CapabilityOverride,
   FieldMap
 } from './merge.js'
-export { buildMagicQuery, readTotal } from './magic-query.js'
+export { buildMagicQuery, searchFilter, readTotal } from './magic-query.js'
 
 export { createVolcanicDataProvider } from './providers/data.js'
 export type { VolcanicDataProviderOptions, AuthMode } from './providers/data.js'

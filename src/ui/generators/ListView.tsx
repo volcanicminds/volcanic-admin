@@ -22,7 +22,7 @@ import {
   SelectValue
 } from '@/ui/components/ui/select'
 import { cn } from '@/lib/utils'
-import { useT } from '@/engine'
+import { useT, searchFilter } from '@/engine'
 import type { ResourceModel, ListLayout } from '@/engine'
 import { ListTable } from './ListTable'
 import { ListCards } from './ListCards'
@@ -74,12 +74,12 @@ export function ListView({ model }: { model: ResourceModel }) {
 
   const fieldFilters = useMemo(() => toCrudFilters(model, filterDraft), [model, filterDraft])
 
+  // The omni-search expands here, where the manifest's searchable fields are in hand: the v5
+  // Magic Query has no `q` parameter and answers 400 for a field it does not know, so the OR
+  // has to be written out rather than handed to the backend as a word.
   const filters = useMemo(
-    () => [
-      ...(appliedSearch ? [{ field: 'q', operator: 'eq' as const, value: appliedSearch }] : []),
-      ...fieldFilters
-    ],
-    [appliedSearch, fieldFilters]
+    () => [...searchFilter(appliedSearch, spec.search?.fields ?? [], spec.search?.operator), ...fieldFilters],
+    [appliedSearch, spec.search?.fields, spec.search?.operator, fieldFilters]
   )
 
   const { data, isLoading } = useList({

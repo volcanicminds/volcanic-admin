@@ -1,7 +1,11 @@
 /**
  * In-memory Refine DataProvider for development without a backend. Honors
- * pagination, sorting and a subset of filters (including the `q` omni-search),
- * and expands the vehicle→brand relation on read.
+ * pagination, sorting and a subset of filters, and expands the vehicle→brand
+ * relation on read.
+ *
+ * Logical groups are evaluated rather than skipped: the omni-search is an `or` group over the
+ * manifest's searchable fields now that the backend has no `q` parameter, so a mock that
+ * ignored groups would answer every search with the unfiltered list and look like it worked.
  */
 import type { CrudFilter, DataProvider } from '@refinedev/core'
 import { seed, type Row } from './data'
@@ -10,13 +14,6 @@ import { seed, type Row } from './data'
 const store: Record<string, Row[]> = Object.fromEntries(
   Object.entries(seed).map(([k, rows]) => [k, rows.map((r) => ({ ...r }))])
 )
-
-const SEARCH_FIELDS: Record<string, string[]> = {
-  vehicle: ['name', 'trimLevel', 'description', 'tag'],
-  brand: ['name'],
-  newsletter: ['email'],
-  user: ['email', 'firstName', 'lastName', 'username']
-}
 
 function expand(resource: string, row: Row): Row {
   if (resource === 'vehicle' && row.brandId) {
@@ -50,24 +47,19 @@ function matchValue(row: Row, field: string, operator: string, value: any): bool
   }
 }
 
-function applyFilter(resource: string, rows: Row[], filter: CrudFilter): Row[] {
-  if (filter.operator === 'and' || filter.operator === 'or') {
-    return rows // logical groups not needed for the mock
-  }
-  const { field, operator, value } = filter as {
-    field: string
-    operator: string
-    value: any
-  }
-  if (value == null || value === '') return rows
+/** Whether one row satisfies one filter, groups included. */
+function matches(row: Row, filter: CrudFilter): boolean {
+  if (filter.operator === 'or') return (filter.value as CrudFilter[]).some((f) => matches(row, f))
+  if (filter.operator === 'and') return (filter.value as CrudFilter[]).every((f) => matches(row, f))
 
-  // Omni-search.
-  if (field === 'q') {
-    const fields = SEARCH_FIELDS[resource] ?? []
-    const needle = String(value).toLowerCase()
-    return rows.filter((r) => fields.some((f) => String(r[f] ?? '').toLowerCase().includes(needle)))
-  }
-  return rows.filter((r) => matchValue(r, field, operator as string, value))
+  const { field, operator, value } = filter as { field: string; operator: string; value: any }
+  // An empty filter constrains nothing, exactly as the query builder that drops it intends.
+  if (value == null || value === '') return true
+  return matchValue(row, field, operator, value)
+}
+
+function applyFilter(rows: Row[], filter: CrudFilter): Row[] {
+  return rows.filter((r) => matches(r, filter))
 }
 
 export const mockDataProvider: DataProvider = {
@@ -76,7 +68,7 @@ export const mockDataProvider: DataProvider = {
   getList: async ({ resource, pagination, sorters, filters }) => {
     let rows = [...(store[resource] ?? [])]
 
-    for (const f of filters ?? []) rows = applyFilter(resource, rows, f)
+    for (const f of filters ?? []) rows = applyFilter(rows, f)
 
     for (const s of [...(sorters ?? [])].reverse()) {
       rows.sort((a, b) => {

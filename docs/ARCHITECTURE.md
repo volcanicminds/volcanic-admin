@@ -256,8 +256,12 @@ side) · `integer`/`number`→numeric · `boolean`→switch · `date`/`datetime`
 `image`/`file`→uploader.
 
 **Filter operators (`FilterOperator`)** = subset of Magic Query exposed to the UI: `eq, neq, contains[i],
-ncontains[i], starts[i], ends[i], gt, ge, lt, le, between, in, nin, null, notNull`. `:raw` is **never** exposed. The
+ncontains[i], starts[i], ends[i], gt, ge, lt, le, between, in, nin, null`. `:raw` is **never** exposed, and
+`:notNull` no longer exists: `null=false` is how one asks for "is not null". The
 type→recommended-operators map is a presentation choice (admin); the BE can only restrict.
+
+The base form is case-**sensitive** and the `i` suffix is what makes it insensitive; in v4 that depended on a
+server environment variable, so the same URL answered differently on two installations of the same product.
 
 ---
 
@@ -378,7 +382,7 @@ shadcn → the UI is replaceable.
 @volcanicminds/admin
   ├─ engine/   (headless)
   │   ├─ manifest interpreter   → manifest → resource model → <Resource> Refine
-  │   ├─ dataProvider           → Refine operations → REST + Magic Query (field:op=value, sort, page/pageSize) + v-* header
+  │   ├─ dataProvider           → Refine operations → REST + Magic Query (field:op=value, _sort, _page/_pageSize) + v-* header
   │   ├─ authProvider           → /auth (login/refresh/logout), AUTH_MODE BEARER|COOKIE
   │   ├─ accessControlProvider  → capabilities[].roles × user roles → hides/disables
   │   ├─ tenantProvider         → tenant switch + context header (active only if tenancy.mode='multi')

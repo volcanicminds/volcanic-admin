@@ -60,7 +60,7 @@ src/
     types/manifest.ts     manifest spec v2 (the contract)
     types/model.ts        interpreted resource model
     interpreter.ts        manifest → model + Refine resources
-    magic-query.ts        Refine filters/sorters → Magic Query + v-* headers
+    magic-query.ts        Refine filters/sorters → Magic Query v5 (_page/_pageSize/_sort, _logic) + v-* headers
     providers/            data · auth · accessControl · tenant
     registry.tsx          override registry (componentId → component)
     i18n.tsx              label-key resolution

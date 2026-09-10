@@ -92,7 +92,16 @@ export function createVolcanicAuthClient(opts: VolcanicAuthClientOptions): AuthC
       /* empty body */
     }
     if (!res.ok) {
-      throw new Error(data?.message ?? res.statusText ?? 'Request failed')
+      // The status and the machine `code` travel with the error, not just the prose. From v5
+      // the prose is the part that can be missing — `HIDE_ERROR_DETAILS` defaults to on in
+      // production — while the code is the contract: `PASSWORD_TO_BE_CHANGED` is what tells a
+      // login screen to ask for a new password instead of repeating "wrong credentials".
+      const message = data?.message || res.statusText || 'Request failed'
+      throw Object.assign(new Error(message), {
+        status: res.status,
+        statusCode: res.status,
+        code: typeof data?.code === 'string' ? data.code : undefined
+      })
     }
     return data
   }
