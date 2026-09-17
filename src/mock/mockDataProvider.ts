@@ -15,6 +15,11 @@ const store: Record<string, Row[]> = Object.fromEntries(
   Object.entries(seed).map(([k, rows]) => [k, rows.map((r) => ({ ...r }))])
 )
 
+// Phase 1 of a destruction mints a permission that phase 2 hands back (T-10.21). It is kept
+// here, by tenant, because the whole point of the flow is that the second call cannot be made
+// without the answer of the first.
+const issuedTokens = new Map<string, string>()
+
 function expand(resource: string, row: Row): Row {
   if (resource === 'vehicle' && row.brandId) {
     const brand = store.brand.find((b) => b.id === row.brandId)
@@ -141,9 +146,73 @@ export const mockDataProvider: DataProvider = {
   },
 
   // Manifest actions (kind:'action') hit their real endpoint via custom().
-  custom: async ({ url, payload }) => {
+  custom: async ({ url, method, payload }) => {
     const segs = String(url).split('?')[0].split('/').filter(Boolean)
     const last = segs[segs.length - 1]
+    const body = (payload ?? {}) as Record<string, any>
+    const stamp = () => new Date().toISOString()
+
+    // ── control plane ────────────────────────────────────────────────────────
+    // Platform operators (T-10.20): two segments of prefix, then the id, then the verb.
+    if (segs[0] === 'system' && segs[1] === 'users' && segs.length >= 4) {
+      const row = (store.systemUser ?? []).find((r) => String(r.id) === String(segs[2]))
+      if (!row) throw new Error('Not found')
+      if (last === 'block') {
+        // The reason travels with the block, which is why the route has a body at all.
+        Object.assign(row, { blocked: true, blockedReason: body.reason ?? null, blockedAt: stamp() })
+      }
+      if (last === 'unblock') Object.assign(row, { blocked: false, blockedReason: null, blockedAt: null })
+      if (last === 'reset') {
+        row.mfaEnabled = false
+        row.updatedAt = stamp()
+        return { data: { ok: true } as any }
+      }
+      row.updatedAt = stamp()
+      return { data: { ...row } as any }
+    }
+
+    // Destroying a container, in two phases (T-10.21).
+    if (segs[0] === 'tenants' && segs.length >= 3) {
+      const tenant = (store.tenant ?? []).find((r) => String(r.id) === String(segs[1]))
+      if (!tenant) throw new Error('Not found')
+
+      if (last === 'destruction-request') {
+        const token = `mock-${Math.random().toString(36).slice(2, 12)}`
+        issuedTokens.set(String(tenant.id), token)
+        return {
+          data: {
+            requestId: `req-${tenant.id}`,
+            token,
+            expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+            preview: { rowCounts: { user: 42, token: 7, vehicle: 128, tracking: 3910 } },
+            warning: 'Destroying a container does not remove it from backups taken before now.'
+          } as any
+        }
+      }
+
+      if (last === 'data' && String(method).toLowerCase() === 'delete') {
+        // The same three refusals the controller makes, in the same order, so the console is
+        // exercised against failure and not only against the happy path.
+        if (!body.token || body.token !== issuedTokens.get(String(tenant.id))) {
+          throw new Error('That destruction token is not usable')
+        }
+        if (String(body.slug) !== String(tenant.slug)) throw new Error('The slug does not match the tenant')
+        if (!String(body.otp ?? '').trim()) throw new Error('That second factor is not valid')
+        issuedTokens.delete(String(tenant.id))
+        store.tenant = (store.tenant ?? []).filter((r) => String(r.id) !== String(tenant.id))
+        return { data: { id: tenant.id, exported: { at: stamp() } } as any }
+      }
+
+      if (last === 'suspend') {
+        Object.assign(tenant, { status: 'suspended', updatedAt: stamp() })
+        return { data: { ...tenant } as any }
+      }
+      if (last === 'restore') {
+        Object.assign(tenant, { status: 'active', updatedAt: stamp() })
+        return { data: { ...tenant } as any }
+      }
+      if (last === 'export') return { data: { id: tenant.id, exportedAt: stamp() } as any }
+    }
 
     // status workflow: /<plural>/:id/status
     if (last === 'status' && segs.length >= 3) {

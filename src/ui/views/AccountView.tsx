@@ -11,6 +11,7 @@ import { useAuthClient } from '@/engine'
 import type { MfaSetup } from '@/engine'
 import { cn } from '@/lib/utils'
 import { useTheme, type ThemeMode } from '@/ui/theme'
+import { useAdminConfig } from '@/ui/config'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
@@ -37,6 +38,10 @@ export function AccountView() {
     confirmPassword: string
   }>()
   const client = useAuthClient()
+  // The control plane has no password change and no MFA disable for the operator themself
+  // (T-10.14): those cards would call routes that do not exist there.
+  const { plane } = useAdminConfig()
+  const selfService = plane !== 'control'
 
   const [oldPassword, setOldPassword] = useState('')
   const [password, setPassword] = useState('')
@@ -164,6 +169,7 @@ export function AccountView() {
         </CardContent>
       </Card>
 
+      {selfService && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Change password</CardTitle>
@@ -205,6 +211,7 @@ export function AccountView() {
           </form>
         </CardContent>
       </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -223,9 +230,13 @@ export function AccountView() {
         </CardHeader>
         <CardContent className="space-y-4">
           {mfaEnabled ? (
-            <Button variant="destructive" disabled={mfaBusy} onClick={disable}>
-              {mfaBusy ? '…' : 'Disable two-factor'}
-            </Button>
+            selfService ? (
+              <Button variant="destructive" disabled={mfaBusy} onClick={disable}>
+                {mfaBusy ? '…' : 'Disable two-factor'}
+              </Button>
+            ) : (
+              <p className="text-sm text-muted-foreground">Another administrator can reset it.</p>
+            )
           ) : setup ? (
             <div className="space-y-4">
               <div className="flex flex-col items-center gap-3 rounded-md border p-4">

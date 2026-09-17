@@ -20,7 +20,7 @@ There are three distribution models; pick per client:
 
 ## 1. The manifest: auto-generated + your overrides
 
-The backend (`@volcanicminds/backend` ≥ 3.2) **generates the manifest automatically** from
+The backend (`@volcanicminds/backend` 5.x, the `5.0.0-alpha` line) **generates the manifest automatically** from
 its routes + JSON Schemas — no hand-authoring of the resource map. The client never edits
 that generated description; it only adds a thin **overrides** layer for presentation
 (labels, groups, widgets, layouts). Two files, two owners:
@@ -48,6 +48,8 @@ build works offline** — no live backend needed to compile.
 npx volcanic-admin-pull --url https://api.acme.example --out src
 # or from a snapshot file instead of a live backend:
 npx volcanic-admin-pull --from ./manifest.snapshot.json --out src
+# the platform console's manifest (/system/manifest) instead of a customer console's:
+npx volcanic-admin-pull --url https://api.acme.example --plane control --token <bearer> --out src
 ```
 
 Add it as a script so refreshing is one command:
@@ -69,8 +71,7 @@ import { dictionaries } from './i18n'
 createRoot(document.getElementById('root')!).render(
   <VolcanicAdmin
     apiUrl={import.meta.env.VITE_API_BASE_URL}
-    apiBasePath="" // '' = real hand-written routes; '/admin' (default) = generic CRUD
-    authMode="bearer"
+    // authMode: omitted, it follows the backend (cookie by default, see §4.1)
     manifest={generatedManifest}
     manifestOverrides={overrides}
     dictionaries={dictionaries}
@@ -430,19 +431,63 @@ Now dropping a new `*.plugin.ts(x)` under `src/plugins/` registers it automatica
 | Prop | Purpose |
 |---|---|
 | `apiUrl` | Backend base URL (manifest + CRUD). |
-| `apiBasePath` | Base path for CRUD calls. Default `'/admin'` (generic CRUD); set `''` for real hand-written routes. |
-| `authMode` | `'cookie'` (default from manifest) or `'bearer'`. |
+| `apiBasePath` | Prefix between `apiUrl` and every resource path. Default `''`: the manifest's paths are relative to the API root, where a v5 backend mounts its routes (`/admin` holds only the manifest). Set it only when a proxy publishes the API under a sub-path that `apiUrl` does not already include. |
+| `authMode` | `'cookie'` or `'bearer'`; default `manifest.auth.mode`, which follows the backend's `AUTH_MODE` (cookie unless set). See §4.1. |
+| `authEndpoints` | Auth routes that win over `manifest.auth.endpoints`, key by key (`login`, `refresh`, `logout`, `me`, `mfaVerify`, …). Unset keys follow the manifest, then the client defaults. |
+| `plane` | `'tenant'` (default) or `'control'`: a customer's console or the platform's. Chooses the auth routes (`/auth/*` or `/system/auth/*`), the manifest (`/admin/manifest` or `/system/manifest`) and whether a tenant header exists. See §4.2. |
+| `tenant` | The tenant of a console that serves one customer: sent in the tenant header, never asked. Unset, a multi-tenant console asks for it on the login screen. |
+| `tenantHeader` | The tenant header before a manifest names it. Default `'x-tenant-id'`. |
 | `basename` | Router base path when mounted under a sub-path. |
 | `manifest` / `loadManifest` | Provide a pulled/static manifest (build-time, §1.1) or a custom loader; default = `GET /admin/manifest` (runtime, §1.2). |
 | `manifestOverrides` | Project overrides merged onto the generated/fetched manifest by `(resource, field)` / capability. |
-| `dataProvider` / `authClient` | Override the providers (e.g. an in-memory mock for dev). |
+| `dataProvider` / `authClient` | Override the providers (e.g. an in-memory mock for dev). A custom `authClient` may implement `renew()` to take part in the renewal of §4.1; without it the first `401` ends the session. |
 | `dictionaries`, `defaultLocale`, `locales` | i18n. |
 | `overrides` | Component registry: `{ widget, view, action }` keyed by manifest componentId. |
 | `routes` | Custom pages: `{ path, element, index?, nav? }`. |
 | `theme` | Theme tokens injected as CSS variables (`{ primary, ring, radius, …, dark }`). |
 | `branding` | Sidebar + login brand: `{ appName, logo, logoDark, logoCollapsed, logoCollapsedDark, loginLogo, … }` (full list in `CONFIGURATION.md` §11). `*Dark` variants swap by the `.dark` class. |
 | `plugins` | Composable bundles: `{ widgets, views, actions, routes, dictionaries, theme, branding }` (use `defineAdminPlugin`). |
-| `fetchTenants` | Tenant list loader (multi-tenant); default `GET /tenants`. |
+| `fetchTenants` | Tenant list for a switcher, only where the manifest declares `tenancy.switchable`. No default: a v5 backend binds the tenant to the token (§4.2). |
+
+### 4.1 The session: cookie or bearer
+
+**Cookie** (the backend default). The session lives in two httpOnly cookies the page cannot read;
+the admin sends `credentials: 'include'` and writes nothing to `localStorage` (leftovers of an
+earlier bearer configuration are removed at startup). **Bearer** keeps the access and refresh
+tokens in `localStorage`, readable by any script of the page: choose it only when the backend
+runs `AUTH_MODE=BEARER` for other clients.
+
+In both modes the access token is short (`1h` by default on the backend) and the admin renews it
+itself: a request answered `401` triggers **one** call to `/auth/refresh-token`, shared by every
+request that failed at the same moment, and is then sent again. Only when the renewal fails does
+the `401` reach Refine, which logs out. The renewal carries the tenant header of the current
+selection, because the access token that named the tenant is gone by then.
+
+Cookie mode puts one constraint on the deployment: the backend's cookies are `SameSite=Strict`,
+so the admin and the API must be on the **same site** (`admin.example.com` and `api.example.com`,
+not two unrelated domains), and the backend's `CORS_ORIGINS` must list the admin's origin so that
+credentials are granted.
+
+### 4.2 Plane and tenant
+
+A backend with tenants has two identity spaces, and a console works in one of them. **A customer's
+console** (`plane` omitted) signs users in on `/auth/login` and reads `/admin/manifest`, which describes
+the tenant routes only. **The platform console** (`plane="control"`) signs operators in on
+`/system/auth/login`, learns who they are from `/system/auth/me`, reads `/system/manifest`, which
+describes the control routes (the tenant registry), and never sends a tenant header. Its login has no
+password reset and its Account page no password change: operators are provisioned. A manifest of the
+other plane is refused with an explicit error instead of drawing screens whose calls would fail.
+
+With the `header` resolver the tenant is needed **before** the session, because the login resolves the
+user inside a container: a customer's console asks for the organization on the login screen and
+remembers it in the browser, or takes it from the `tenant` prop. From the login on the token binds the
+tenant, so there is no switcher: another tenant is a new login. With the `subdomain` resolver the host
+is the tenant and nothing is asked.
+
+The manifest is read with the session. On a first visit, an expired session, a tenant not yet named or a
+session of the other plane, the admin shows its login instead of an error, and loads the manifest once
+the login completes. Before a manifest exists `authMode` defaults to `'cookie'`: a bearer backend read at
+runtime needs `authMode="bearer"`.
 
 > **`manifest` vs `manifestOverrides`.** `manifest` is the generated description (don't edit);
 > `manifestOverrides` is your `ManifestOverrides` layer merged on top. `overrides` is a

@@ -170,4 +170,67 @@ const en: Record<string, string> = {
   'list.next': 'Next'
 }
 
-export const mockDictionaries: Dictionaries = { it, en }
+// The control plane: the platform's own operators and the tenant registry (T-10.20, T-10.21).
+// Kept apart from the Acme keys above because they describe the console of whoever runs the
+// platform, not the console of a customer.
+const controlIt: Record<string, string> = {
+  'group.system': 'Piattaforma',
+  'res.systemUser.singular': 'Operatore di piattaforma',
+  'res.systemUser.plural': 'Operatori di piattaforma',
+  'res.tenant.singular': 'Contenitore',
+  'res.tenant.plural': 'Contenitori',
+  'field.email': 'Email',
+  'field.roles': 'Ruoli',
+  'field.blocked': 'Bloccato',
+  'field.blockedReason': 'Motivo del blocco',
+  'field.mfaEnabled': 'Secondo fattore',
+  'field.name': 'Nome',
+  'field.slug': 'Slug',
+  'field.status': 'Stato',
+  'field.engine': 'Motore',
+  'field.strategy': 'Strategia',
+  'field.locator': 'Locator',
+  'action.systemUser.block': 'Blocca',
+  'action.systemUser.unblock': 'Sblocca',
+  'action.systemUser.reset': 'Azzera il secondo fattore',
+  'action.tenant.suspend': 'Sospendi',
+  'action.tenant.restore': 'Riattiva',
+  'action.tenant.export': 'Esporta',
+  'action.tenant.destruction-request': 'Verifica la distruzione',
+  'action.tenant.data': 'Distruggi il contenitore',
+  'action.tenant.impersonate': 'Entra come utente',
+  'action.tenant.end': 'Chiudi la sessione assunta',
+  'input.reason': 'Motivo'
+}
+
+const controlEn: Record<string, string> = {
+  'group.system': 'Platform',
+  'res.systemUser.singular': 'Platform operator',
+  'res.systemUser.plural': 'Platform operators',
+  'res.tenant.singular': 'Container',
+  'res.tenant.plural': 'Containers',
+  'field.email': 'Email',
+  'field.roles': 'Roles',
+  'field.blocked': 'Blocked',
+  'field.blockedReason': 'Reason for the block',
+  'field.mfaEnabled': 'Second factor',
+  'field.name': 'Name',
+  'field.slug': 'Slug',
+  'field.status': 'Status',
+  'field.engine': 'Engine',
+  'field.strategy': 'Strategy',
+  'field.locator': 'Locator',
+  'action.systemUser.block': 'Block',
+  'action.systemUser.unblock': 'Unblock',
+  'action.systemUser.reset': 'Reset the second factor',
+  'action.tenant.suspend': 'Suspend',
+  'action.tenant.restore': 'Restore',
+  'action.tenant.export': 'Export',
+  'action.tenant.destruction-request': 'Check the destruction',
+  'action.tenant.data': 'Destroy the container',
+  'action.tenant.impersonate': 'Act as a user',
+  'action.tenant.end': 'End the assumed session',
+  'input.reason': 'Reason'
+}
+
+export const mockDictionaries: Dictionaries = { it: { ...it, ...controlIt }, en: { ...en, ...controlEn } }

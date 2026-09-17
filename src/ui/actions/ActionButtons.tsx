@@ -6,10 +6,24 @@
  * the action via its real endpoint.
  */
 import { useState, type ComponentType } from 'react'
-import { Check, Archive, Download, RefreshCw, Send, Star, StarOff, Zap } from 'lucide-react'
+import {
+  Check,
+  Archive,
+  Download,
+  RefreshCw,
+  Send,
+  Star,
+  StarOff,
+  Zap,
+  Ban,
+  Unlock,
+  KeyRound,
+  Trash2
+} from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import { PasswordInput } from '@/ui/components/ui/password-input'
+import { Textarea } from '@/ui/components/ui/textarea'
 import { Label } from '@/ui/components/ui/label'
 import {
   Dialog,
@@ -56,18 +70,26 @@ function ActionInputDialog({
         </DialogHeader>
         <div className="space-y-3">
           {fields.map((f) => {
-            const Control = f.widget === 'password' ? PasswordInput : Input
+            const common = {
+              placeholder: f.placeholder ? t(f.placeholder) : undefined,
+              value: values[f.name] ?? '',
+              onChange: (e: { target: { value: string } }) => setValues((v) => ({ ...v, [f.name]: e.target.value }))
+            }
+            // A reason recorded with the operation is prose, not a one-line value (T-10.16).
+            const multiline = f.widget === 'textarea' || f.type === 'text' || f.type === 'textarea'
             return (
               <div key={f.name} className="space-y-1.5">
                 <Label>
                   {t(f.label ?? `field.${f.name}`)}
                   {f.required && <span className="ml-0.5 text-destructive">*</span>}
                 </Label>
-                <Control
-                  placeholder={f.placeholder ? t(f.placeholder) : undefined}
-                  value={values[f.name] ?? ''}
-                  onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
-                />
+                {f.widget === 'password' ? (
+                  <PasswordInput {...common} />
+                ) : multiline ? (
+                  <Textarea rows={3} {...common} />
+                ) : (
+                  <Input {...common} />
+                )}
               </div>
             )
           })}
@@ -98,7 +120,13 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   refresh: RefreshCw,
   send: Send,
   star: Star,
-  'star-off': StarOff
+  'star-off': StarOff,
+  // Administrative verbs: blocking an identity, letting it back in, and handing back a second
+  // factor. A manifest never names an icon by itself, so these are reachable from an override.
+  ban: Ban,
+  unlock: Unlock,
+  key: KeyRound,
+  trash: Trash2
 }
 const iconFor = (name?: string) => (name && ICONS[name]) || Zap
 
@@ -107,6 +135,7 @@ function ActionButton({
   record,
   run,
   t,
+  model,
   compact,
   variant,
   size,
@@ -116,6 +145,9 @@ function ActionButton({
   record?: Rec
   run: RunFn
   t: TFunc
+  /** The resource the action belongs to, handed to a custom component: without it a component
+   * that calls the API itself cannot name what to invalidate, nor reach its sibling actions. */
+  model?: ResourceModel
   compact?: boolean
   /** Button styling overrides so callers can match sibling buttons (card overlay,
    * show header). Fall back to the per-mode defaults when not provided. */
@@ -131,7 +163,15 @@ function ActionButton({
 
   const Custom = registry.resolve('action', cap.component)
   if (Custom) {
-    return <Custom capability={cap} record={record} run={(r?: Rec) => run(cap, r ?? record, label)} t={t} />
+    return (
+      <Custom
+        capability={cap}
+        record={record}
+        model={model}
+        run={(r?: Rec, body?: Rec) => run(cap, r ?? record, label, body)}
+        t={t}
+      />
+    )
   }
 
   const fire = () => run(cap, record, label)
@@ -232,6 +272,7 @@ export function RowActions({
           record={record}
           run={run}
           t={t}
+          model={model}
           compact={compact}
           variant={variant}
           size={size}
@@ -250,7 +291,7 @@ export function CollectionActions({ model, t }: { model: ResourceModel; t: TFunc
   return (
     <>
       {actions.map((a) => (
-        <ActionButton key={a.name} cap={a} run={run} t={t} />
+        <ActionButton key={a.name} cap={a} run={run} t={t} model={model} />
       ))}
     </>
   )

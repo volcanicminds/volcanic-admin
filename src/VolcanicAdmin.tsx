@@ -5,7 +5,8 @@
  *
  * Data source resolution:
  *   - pass `manifest` for a static manifest (dev/SSR), or `loadManifest`, or
- *     nothing → it fetches `${apiUrl}/admin/manifest`.
+ *     nothing → it fetches `${apiUrl}/admin/manifest` (`/system/manifest` on the
+ *     control plane) with the session, and shows the login when there is none.
  *   - pass `dataProvider`/`authClient` to override (e.g. a mock), otherwise the
  *     real Volcanic providers are built from `apiUrl` + `authMode`.
  */
@@ -31,11 +32,15 @@ import {
   createVolcanicAuthProvider,
   createVolcanicAuthClient,
   AuthClientProvider,
+  createApiRequest,
+  primeTenantStore,
+  MANIFEST_PATH,
   tokenStore,
   tenantStore,
   rolesStore,
   toRefineResources,
   defaultDictionaries,
+  deepMerge,
   useT
 } from './engine'
 import type {
@@ -45,6 +50,7 @@ import type {
   Dictionaries,
   Manifest,
   ManifestOverrides,
+  Plane,
   TenantOption
 } from './engine'
 import {
@@ -59,6 +65,7 @@ import {
   notificationProvider,
   Toaster,
   defaultWidgets,
+  defaultActions,
   ThemeProvider
 } from './ui'
 import type { AdminNavItem, AdminBranding } from './ui'
@@ -134,16 +141,41 @@ export function defineAdminPlugin(plugin: AdminPlugin): AdminPlugin {
 export interface VolcanicAdminProps {
   /** Backend base URL (used to fetch the manifest and mount CRUD). */
   apiUrl?: string
+  /** Default: `manifest.auth.mode`; before a manifest exists, `'cookie'`. */
   authMode?: AuthMode
+  /**
+   * The identity space this console works in (T-10.14). `tenant` (default): a customer's users,
+   * `/auth/*`, the manifest at `/admin/manifest`. `control`: the platform's operators,
+   * `/system/auth/*`, the manifest at `/system/manifest`, and never a tenant header. With tenants
+   * declared a console is one or the other; without, only `tenant` exists.
+   */
+  plane?: Plane
+  /**
+   * The tenant of a console that serves one customer (T-10.15): sent in the tenant header from the
+   * login on, never asked. Unset, a multi-tenant console asks for it on the login screen and
+   * remembers it in this browser.
+   */
+  tenant?: string
+  /** The tenant header before a manifest names it. Default `'x-tenant-id'`. */
+  tenantHeader?: string
   /** Router basename when the admin is mounted under a sub-path. */
   basename?: string
 
   /** Static manifest (skips fetching). */
   manifest?: Manifest
-  /** Custom manifest loader (defaults to GET ${apiUrl}/admin/manifest). */
+  /** Custom manifest loader (defaults to GET ${apiUrl}/admin/manifest, or /system/manifest on the control plane). */
   loadManifest?: () => Promise<Manifest>
-  /** Base path for CRUD calls. Default '/admin' (generic CRUD); set '' for real hand-written routes. */
+  /**
+   * Prefix inserted between `apiUrl` and every resource path. Default `''`: the manifest's paths
+   * are relative to the API root, where a v5 backend mounts its routes. Set it only when a proxy
+   * publishes the API under a sub-path that `apiUrl` does not already include.
+   */
   apiBasePath?: string
+  /**
+   * Auth endpoints that win over `manifest.auth.endpoints`, key by key (`login`, `refresh`,
+   * `logout`, `me`, `mfaVerify`, …). Unset keys follow the manifest, then the client defaults.
+   */
+  authEndpoints?: Partial<Record<string, string>>
   /** Project overrides merged onto the generated/fetched manifest by (resource, field). */
   manifestOverrides?: ManifestOverrides<any>
 
@@ -168,7 +200,10 @@ export interface VolcanicAdminProps {
   /** Composable customization bundles (widgets/views/actions/routes/i18n/theme). */
   plugins?: AdminPlugin[]
 
-  /** Tenant list loader (multi-tenant). Defaults to GET ${apiUrl}/tenants. */
+  /**
+   * Tenant list for a switcher, where a deployment's manifest declares `tenancy.switchable`. No
+   * default: on a v5 backend the token binds the tenant (T-10.15) and the list is a control route.
+   */
   fetchTenants?: () => Promise<TenantOption[]>
 
   /** Extra screens (dashboards, reports, custom pages). */
@@ -194,10 +229,23 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
   const { manifest } = model
   const apiUrl = props.apiUrl ?? API_FALLBACK
   const authMode: AuthMode = props.authMode ?? manifest.auth.mode
+  const plane: Plane = props.plane ?? 'tenant'
 
+  // The backend declares its auth routes in the manifest; a direct prop still wins per key. The
+  // key is a string so that an inline `authEndpoints` object does not rebuild the client, and
+  // with it the shared renewal, on every render.
+  const endpointsKey = JSON.stringify({ ...manifest.auth?.endpoints, ...props.authEndpoints })
   const authClient: AuthClient = useMemo(
-    () => props.authClient ?? createVolcanicAuthClient({ apiUrl, authMode }),
-    [props.authClient, apiUrl, authMode]
+    () =>
+      props.authClient ??
+      createVolcanicAuthClient({
+        apiUrl,
+        authMode,
+        plane,
+        endpoints: JSON.parse(endpointsKey) as Record<string, string>,
+        getContextHeaders: () => tenantStore.headers()
+      }),
+    [props.authClient, apiUrl, authMode, plane, endpointsKey]
   )
 
   const authProvider: AuthProvider = useMemo(
@@ -214,9 +262,10 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
       basePath: props.apiBasePath,
       resolvePath: (name) => pathByName.get(name) ?? name,
       getToken: () => tokenStore.get(),
-      getContextHeaders: () => tenantStore.headers()
+      getContextHeaders: () => tenantStore.headers(),
+      renewSession: () => authClient.renew?.() ?? Promise.resolve(false)
     })
-  }, [props.dataProvider, props.apiBasePath, model, apiUrl, authMode])
+  }, [props.dataProvider, props.apiBasePath, model, apiUrl, authMode, authClient])
 
   const accessControlProvider = useMemo(() => createVolcanicAccessControlProvider(model), [model])
 
@@ -225,24 +274,14 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
       createOverrideRegistry({
         widget: { ...defaultWidgets, ...props.overrides?.widget },
         view: props.overrides?.view,
-        action: props.overrides?.action
+        action: { ...defaultActions, ...props.overrides?.action }
       }),
     [props.overrides]
   )
 
-  const fetchTenants = useMemo<() => Promise<TenantOption[]>>(() => {
-    if (props.fetchTenants) return props.fetchTenants
-    return async () => {
-      const res = await fetch(`${apiUrl}${manifest.tenancy.listEndpoint ?? '/tenants'}`, {
-        credentials: authMode === 'cookie' ? 'include' : 'same-origin'
-      })
-      const data = await res.json()
-      return (Array.isArray(data) ? data : (data?.data ?? [])).map((t: any) => ({
-        id: t.id,
-        name: t.name ?? t.label ?? t.id
-      }))
-    }
-  }, [props.fetchTenants, apiUrl, authMode, manifest.tenancy.listEndpoint])
+  // No default tenant list (T-10.15): the token binds the tenant from the login on, and `/tenants`
+  // is a control route a customer's user can never call. The control plane declares no tenant.
+  const tenancy = useMemo(() => runtimeTenancy(manifest.tenancy, plane), [manifest.tenancy, plane])
 
   const customRoutes = props.routes ?? []
   const navExtras: AdminNavItem[] = customRoutes
@@ -258,8 +297,12 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
     >
       <RegistryProvider registry={registry}>
         <AuthClientProvider client={authClient}>
-          <TenantProvider tenancy={manifest.tenancy} fetchTenants={fetchTenants}>
-            <AdminConfigProvider navExtras={navExtras} branding={props.branding}>
+          <TenantProvider
+            tenancy={tenancy}
+            fixedTenant={plane === 'tenant' ? props.tenant : undefined}
+            fetchTenants={props.fetchTenants}
+          >
+            <AdminConfigProvider navExtras={navExtras} branding={props.branding} plane={plane}>
               <Refine
                 dataProvider={dataProvider}
                 authProvider={authProvider}
@@ -452,9 +495,31 @@ function mergeRecords<T>(list: (Record<string, T> | undefined)[]): Record<string
   return any ? out : undefined
 }
 
+/**
+ * What this console knows about the framework's own control plane and the backend does not say.
+ *
+ * Destroying a container is two calls tied together (backend T-10.21), so its capability needs a
+ * component instead of the generic dialog. The pointer lives here and not in the manifest because
+ * naming a component is presentation, and the backend describes only the calls, their bodies and
+ * the capability that gates them. A project's own overrides are merged on top, so the same
+ * capability can still be pointed somewhere else.
+ */
+const CONTROL_BUILTIN_OVERRIDES: ManifestOverrides = {
+  resources: {
+    tenant: { capabilities: { data: { component: 'tenant-destroy' } } },
+    // An operator's roles are a text array, and a JSON Schema cannot tell that apart from any
+    // other array: the backend types it `json`, json is too heavy to put in a table, and so the
+    // one column that says what an operator is allowed to do was the one missing from the list.
+    // Read as an enum it becomes one badge per code. The codes stay unlabelled on purpose:
+    // `system:admin` is the name of the thing, not a key to translate.
+    systemUser: { fields: { roles: { type: 'enum' } } }
+  }
+}
+
 export function VolcanicAdmin(props: VolcanicAdminProps) {
   const apiUrl = props.apiUrl ?? API_FALLBACK
   const plugins = props.plugins ?? []
+  const plane: Plane = props.plane ?? 'tenant'
 
   // Compose plugins + direct props (direct props win on key collisions).
   const effective = useMemo<VolcanicAdminProps>(
@@ -483,20 +548,52 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
     [props]
   )
 
+  // Before a manifest there is no `auth` block to read: the props say how to authenticate, and
+  // cookie is the backend default (T-10.37). The tenant header is set now, because a multi-tenant
+  // manifest is read inside a tenant.
+  const bootAuthMode: AuthMode = props.authMode ?? 'cookie'
+  const bootEndpointsKey = JSON.stringify(props.authEndpoints ?? {})
+  primeTenantStore({ plane, tenant: props.tenant, header: props.tenantHeader })
+
+  const bootClient: AuthClient = useMemo(
+    () =>
+      props.authClient ??
+      createVolcanicAuthClient({
+        apiUrl,
+        authMode: bootAuthMode,
+        plane,
+        endpoints: JSON.parse(bootEndpointsKey) as Record<string, string>,
+        getContextHeaders: () => tenantStore.headers()
+      }),
+    [props.authClient, apiUrl, bootAuthMode, plane, bootEndpointsKey]
+  )
+
   const load = useMemo(() => {
     if (props.manifest) return undefined
-    return (
-      props.loadManifest ??
-      (async () => {
-        const res = await fetch(`${apiUrl}/admin/manifest`, {
-          credentials: 'include',
-          headers: { Accept: 'application/json' }
-        })
-        if (!res.ok) throw new Error(`Manifest fetch failed (${res.status})`)
-        return res.json() as Promise<Manifest>
-      })
-    )
-  }, [props.manifest, props.loadManifest, apiUrl])
+    if (props.loadManifest) return props.loadManifest
+    // T-10.12: the manifest request authenticates exactly as a data request does, renewal included.
+    const request = createApiRequest({
+      authMode: bootAuthMode,
+      getToken: () => tokenStore.get(),
+      getContextHeaders: () => tenantStore.headers(),
+      renewSession: () => bootClient.renew?.() ?? Promise.resolve(false)
+    })
+    return async () => {
+      const res = await request(`${apiUrl}${MANIFEST_PATH[plane]}`, { headers: { Accept: 'application/json' } })
+      if (!res.ok) throw await manifestLoadError(res)
+      return (await res.json()) as Manifest
+    }
+  }, [props.manifest, props.loadManifest, apiUrl, bootAuthMode, plane, bootClient])
+
+  // The built-ins first, the project's own on top: a console that could not repoint one of them
+  // would be a framework decision a project has no way out of.
+  const manifestOverrides = useMemo(
+    () =>
+      plane === 'control'
+        ? (deepMerge(CONTROL_BUILTIN_OVERRIDES, props.manifestOverrides ?? {}) as ManifestOverrides)
+        : props.manifestOverrides,
+    [plane, props.manifestOverrides]
+  )
 
   return (
     <BrowserRouter basename={props.basename}>
@@ -505,12 +602,155 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
         <ManifestProvider
           manifest={props.manifest}
           load={load}
-          overrides={props.manifestOverrides}
+          overrides={manifestOverrides}
           fallback={props.loading}
+          renderError={(error, retry) =>
+            needsLogin(error) ? (
+              <BootstrapLogin
+                client={bootClient}
+                authMode={bootAuthMode}
+                plane={plane}
+                branding={effective.branding}
+                tenancy={bootTenancy(plane, error, props.tenantHeader)}
+                fixedTenant={plane === 'tenant' ? props.tenant : undefined}
+                onAuthenticated={retry}
+              />
+            ) : (
+              <ManifestFailure message={error.message} />
+            )
+          }
         >
-          {(model) => <AdminRuntime model={model} props={effective} />}
+          {(model) =>
+            model.manifest.auth?.plane && model.manifest.auth.plane !== plane ? (
+              // A pinned manifest of the other plane would draw screens whose every call is refused.
+              <ManifestFailure
+                message={`This console works on the ${plane} plane and the manifest describes the ${model.manifest.auth.plane} plane: set \`plane\` to match, or load the other manifest.`}
+              />
+            ) : (
+              <AdminRuntime model={model} props={effective} />
+            )
+          }
         </ManifestProvider>
       </ThemeProvider>
     </BrowserRouter>
+  )
+}
+
+/** A failed manifest load, with what the backend said: the status and the machine `code`. */
+interface LoadFailure extends Error {
+  status?: number
+  code?: string
+}
+
+async function manifestLoadError(res: Response): Promise<LoadFailure> {
+  let code: string | undefined
+  try {
+    const body = await res.json()
+    if (typeof body?.code === 'string') code = body.code
+  } catch {
+    /* not json */
+  }
+  return Object.assign(new Error(`Manifest fetch failed (${res.status}${code ? ` ${code}` : ''})`), {
+    status: res.status,
+    code
+  })
+}
+
+/**
+ * Whether a failed manifest load is a session to open rather than an error to show (T-10.12): no
+ * session (401), no tenant declared yet (`TENANT_REQUIRED`), a remembered tenant that does not
+ * exist (`TENANT_NOT_FOUND`), or a session of the other plane (`SCOPE_MISMATCH`). The login screen
+ * answers all four, and the error page none.
+ */
+function needsLogin(error: LoadFailure): boolean {
+  return error.status === 401 || ['TENANT_REQUIRED', 'TENANT_NOT_FOUND', 'SCOPE_MISMATCH'].includes(error.code ?? '')
+}
+
+/**
+ * The tenancy the login needs before a manifest describes it. A tenant is asked only where the
+ * backend showed it needs one, or where one is remembered or fixed; the control plane never.
+ */
+function bootTenancy(plane: Plane, error: LoadFailure, header?: string): Manifest['tenancy'] {
+  if (plane === 'control') return { mode: 'single' }
+  const needsTenant = error.code === 'TENANT_REQUIRED' || error.code === 'TENANT_NOT_FOUND' || Boolean(tenantStore.id)
+  return needsTenant ? { mode: 'multi', switchable: false, header: header ?? 'x-tenant-id' } : { mode: 'single' }
+}
+
+/** The manifest's tenancy as this console must apply it: the control plane declares no tenant. */
+function runtimeTenancy(tenancy: Manifest['tenancy'], plane: Plane): Manifest['tenancy'] {
+  return plane === 'control' ? { mode: tenancy.mode, switchable: false } : tenancy
+}
+
+function ManifestFailure({ message }: { message: string }) {
+  return (
+    <div style={{ padding: 24, fontFamily: 'system-ui', color: '#b91c1c' }}>
+      <strong>Manifest error:</strong> {message}
+    </div>
+  )
+}
+
+/**
+ * The login a console needs before it has a manifest (T-10.12). The manifest is read with the
+ * session, so a first visit, an expired session or a console that has not named its tenant yet
+ * lands here instead of on an error page. A completed login loads the manifest again, and the
+ * admin behind it appears where the user already is.
+ */
+function BootstrapLogin({
+  client,
+  authMode,
+  plane,
+  branding,
+  tenancy,
+  fixedTenant,
+  onAuthenticated
+}: {
+  client: AuthClient
+  authMode: AuthMode
+  plane: Plane
+  branding?: AdminBranding
+  tenancy: Manifest['tenancy']
+  fixedTenant?: string
+  onAuthenticated: () => void
+}) {
+  const authProvider: AuthProvider = useMemo(() => {
+    const base = createVolcanicAuthProvider({ client, authMode })
+    return {
+      ...base,
+      login: async (params: unknown) => {
+        const result = (await base.login(params)) as Awaited<ReturnType<AuthProvider['login']>> & {
+          mfaRequired?: boolean
+          mfaSetupRequired?: boolean
+        }
+        const complete = result.success && !result.mfaRequired && !result.mfaSetupRequired
+        if (!complete) return result
+        onAuthenticated()
+        // No navigation: the screens it would lead to exist once the manifest does.
+        return { success: true }
+      },
+      // Nobody is authenticated in this tree: it exists to open a session.
+      check: async () => ({ authenticated: false })
+    }
+  }, [client, authMode, onAuthenticated])
+
+  return (
+    <AuthClientProvider client={client}>
+      <TenantProvider tenancy={tenancy} fixedTenant={fixedTenant}>
+        <AdminConfigProvider branding={branding} plane={plane}>
+          <Refine
+            authProvider={authProvider}
+            routerProvider={routerProvider}
+            notificationProvider={notificationProvider}
+            options={{ disableTelemetry: true }}
+          >
+            <Routes>
+              {plane === 'tenant' && <Route path="/forgot-password" element={<ForgotPasswordView />} />}
+              {plane === 'tenant' && <Route path="/reset-password" element={<ResetPasswordView />} />}
+              <Route path="*" element={<LoginView />} />
+            </Routes>
+            <Toaster richColors closeButton position="bottom-right" />
+          </Refine>
+        </AdminConfigProvider>
+      </TenantProvider>
+    </AuthClientProvider>
   )
 }

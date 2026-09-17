@@ -91,10 +91,13 @@ npm run dev        # http://localhost:5273  (mock data, no backend needed)
 ```
 VITE_API_BASE_URL=http://0.0.0.0:2230
 VITE_ADMIN_SOURCE=mock   # "mock" (in-memory) | "rest" (real backend)
+VITE_ADMIN_PLANE=tenant  # "tenant" (a customer's console) | "control" (the platform console)
+VITE_ADMIN_TENANT=       # optional: the tenant of a single-customer console
 ```
 
-In `rest` mode the app fetches `GET /admin/manifest` and talks to the generic
-CRUD under `/admin/<path>` using Magic Query and the `v-*` pagination headers.
+In `rest` mode the app fetches `GET /admin/manifest` (`/system/manifest` with
+`VITE_ADMIN_PLANE=control`) and talks to the routes it describes, at the API root, using
+Magic Query and the `v-*` pagination headers. Without a session it shows the login first.
 
 ## Customization (4 override levels)
 

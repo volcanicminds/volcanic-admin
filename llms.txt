@@ -108,8 +108,12 @@ createRoot(document.getElementById('root')!).render(
 | `authMode` | `'cookie' \| 'bearer'` | Auth transport. Defaults to `manifest.auth.mode`. |
 | `basename` | `string` | Router basename when mounted under a sub-path. |
 | `manifest` | `Manifest` | Static manifest — skips fetching. |
-| `loadManifest` | `() => Promise<Manifest>` | Custom loader (default: `GET ${apiUrl}/admin/manifest`, `credentials: 'include'`). |
-| `apiBasePath` | `string` | Base path for CRUD calls. Default `/admin` (generic CRUD); set `''` for hand-written routes. |
+| `loadManifest` | `() => Promise<Manifest>` | Custom loader. Default: `GET ${apiUrl}/admin/manifest` (`/system/manifest` when `plane="control"`) with the session; 401, `TENANT_REQUIRED`, `TENANT_NOT_FOUND` or `SCOPE_MISMATCH` show the login instead of an error. |
+| `apiBasePath` | `string` | Prefix between `apiUrl` and every resource path. Default `''`: manifest paths are relative to the API root, where a v5 backend mounts its routes. Only for an API published under a sub-path. |
+| `authEndpoints` | `Partial<Record<string, string>>` | Auth routes that win over `manifest.auth.endpoints`, key by key. Unset keys follow the manifest, then the client defaults. |
+| `plane` | `'tenant' \| 'control'` | Default `'tenant'`. `'control'` = platform console: `/system/auth/*`, `/system/manifest`, no tenant header, no self-service password routes. |
+| `tenant` | `string` | Tenant of a single-customer console; never asked. Unset, a multi-tenant console asks for it at login. |
+| `tenantHeader` | `string` | Tenant header before the manifest names it. Default `'x-tenant-id'`. |
 | `manifestOverrides` | `ManifestOverrides<any>` | Project overrides merged onto the fetched/static manifest by (resource, field). See §4. |
 | `dataProvider` | `DataProvider` | Override the Refine data provider (e.g. an in-memory mock). |
 | `authClient` | `AuthClient` | Override the auth client (e.g. a mock). |
@@ -119,19 +123,20 @@ createRoot(document.getElementById('root')!).render(
 | `theme` | `AdminTheme` | Theme tokens injected as CSS variables (HSL channels, e.g. `"221 83% 53%"`), with a `dark` sub-block. No Tailwind needed. Full token list §9. |
 | `branding` | `AdminBranding` | Sidebar + login brand: `appName`, `logo`/`logoDark`, `logoCollapsed`/`logoCollapsedDark`, `loginLogo`/`loginLogoDark`, sizes, `poweredBy`. Light/dark pairs swap by `.dark`. Full list §9. |
 | `plugins` | `AdminPlugin[]` | Composable bundles of `widgets`/`views`/`actions`/`routes`/`dictionaries`/`theme`/`branding`. Direct props win on key collisions. `defineAdminPlugin()` is the typed authoring helper. |
-| `fetchTenants` | `() => Promise<TenantOption[]>` | Multi-tenant list loader. Default `GET ${apiUrl}${tenancy.listEndpoint ?? '/tenants'}`. |
+| `fetchTenants` | `() => Promise<TenantOption[]>` | Tenant list for a switcher, only when `tenancy.switchable`. No default: on v5 the token binds the tenant. |
 | `routes` | `AdminCustomRoute[]` | Extra screens (dashboards, custom pages). `{ path, element, index?, nav? }` — `index:true` sets the home route; `nav` adds a sidebar entry. |
 | `loading` | `ReactNode` | Rendered while the manifest loads. |
 | `toastPosition` | position enum | Default `'bottom-right'` (keeps the top-right action area clear). |
 
 ### Data source resolution
 
-- `manifest` prop → static (no fetch); else `loadManifest`; else fetch `${apiUrl}/admin/manifest`.
+- `manifest` prop → static (no fetch); else `loadManifest`; else fetch `${apiUrl}/admin/manifest`
+  (`/system/manifest` when `plane="control"`) with the session; a 401 or a tenant not yet named shows the login first.
 - `dataProvider`/`authClient` props override; otherwise the real Volcanic providers are
   built from `apiUrl` + `authMode`.
 - **mock vs rest** (demo app, via `VITE_ADMIN_SOURCE`): `mock` uses `src/mock` (static
   manifest + in-memory data/auth providers, no backend); `rest` fetches the live manifest
-  and talks to `/admin/<path>` using Magic Query and `v-*` pagination headers. Consumers
+  and talks to the routes it describes (`<apiUrl>/<path>`) using Magic Query and `v-*` pagination headers. Consumers
   replicate this by passing `manifest`/`dataProvider`/`authClient` for mock, or nothing for rest.
 
 Refine is configured with `syncWithLocation`, `warnWhenUnsavedChanges`,
@@ -522,10 +527,10 @@ fetch the manifest live and pass only `manifestOverrides`).
 
 ## 12. Ecosystem note
 
-`@volcanicminds/admin` pairs with **`@volcanicminds/backend`** (codename `rome`), whose core
-HTTP/Fastify layer plus data layer (subpath `@volcanicminds/backend/typeorm`, Magic Query +
-multi-tenant) emit the `GET /admin/manifest` and serve the generic CRUD under `/admin/<path>`
-using Magic Query + `v-*` pagination headers. The backend emits **only data + structure**; all
+`@volcanicminds/admin` pairs with **`@volcanicminds/backend`** v5 (codename `rome`), whose core
+HTTP/Fastify layer plus data layer (subpath `@volcanicminds/backend/db`, Drizzle, Magic Query +
+multi-tenant) emits `GET /admin/manifest` (and `GET /system/manifest` for the platform console)
+and serves the routes it describes at the API root, using Magic Query + `v-*` pagination headers. The backend emits **only data + structure**; all
 presentation, ordering, i18n text, theming, and custom widgets live in this admin (via overrides,
 dictionaries, theme tokens, and the registry). The bundled `src/mock` (Acme Corp) is a
 brand-neutral development sample and is excluded from the published build.

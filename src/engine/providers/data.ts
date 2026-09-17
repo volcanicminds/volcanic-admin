@@ -1,15 +1,17 @@
 /**
  * Volcanic data provider — a single Refine DataProvider for every admin
- * resource. Talks to the generic CRUD auto-mounted by the backend admin
- * capability under `/admin/<path>`, using Magic Query for list/sort/filter and
- * the `v-*` headers for pagination totals.
+ * resource. Talks to the routes the manifest describes, at
+ * `<apiUrl><basePath>/<resource path>`, using Magic Query for list/sort/filter and
+ * the `v-*` headers for pagination totals. A v5 backend mounts those routes at the
+ * API root (`/admin` holds the manifest only), so `basePath` is empty by default.
  */
 import type { DataProvider, HttpError } from '@refinedev/core'
 import { buildMagicQuery, readTotal } from '../magic-query.js'
 import { classifyBackendError } from './errors.js'
 import { translate } from '../i18n.js'
+import { createApiRequest, type AuthMode } from './http.js'
 
-export type AuthMode = 'bearer' | 'cookie'
+export type { AuthMode } from './http.js'
 
 export interface VolcanicDataProviderOptions {
   apiUrl: string
@@ -20,7 +22,13 @@ export interface VolcanicDataProviderOptions {
   getToken?: () => string | undefined
   /** Extra headers (e.g. tenant context). */
   getContextHeaders?: () => Record<string, string>
-  basePath?: string // defaults to "/admin"
+  /**
+   * Called once on a 401 before the error reaches Refine (whose `onError` logs out): when it
+   * resolves `true` the request is sent again, with whatever credential the renewal left.
+   */
+  renewSession?: () => Promise<boolean>
+  /** Prefix between `apiUrl` and the resource path, for an API published under a sub-path. Default `''`. */
+  basePath?: string
 }
 
 /** Page size requested when walking every page (`pagination.mode: 'off'`). The
@@ -31,32 +39,17 @@ const FETCH_ALL_CHUNK = 100
 const FETCH_ALL_MAX_PAGES = 500
 
 export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): DataProvider {
-  const { apiUrl, resolvePath, authMode = 'cookie', getToken, getContextHeaders } = opts
-  const basePath = opts.basePath ?? '/admin'
+  const { apiUrl, resolvePath, authMode = 'cookie', getToken, getContextHeaders, renewSession } = opts
+  const basePath = opts.basePath ?? ''
 
   const url = (resource: string, suffix = '') =>
     `${apiUrl}${basePath}/${resolvePath(resource)}${suffix}`
 
+  // Headers, credentials and the one renewal come from the builder the manifest loader uses too.
+  const send = createApiRequest({ authMode, getToken, getContextHeaders, renewSession })
+
   async function request(input: string, init: RequestInit = {}): Promise<Response> {
-    const headers: Record<string, string> = {
-      ...(getContextHeaders?.() ?? {}),
-      ...((init.headers as Record<string, string>) ?? {})
-    }
-    // Only declare a JSON body when one is actually sent. A bodyless request
-    // (e.g. DELETE /resource/:id) with Content-Type: application/json trips
-    // Fastify's FST_ERR_CTP_EMPTY_JSON_BODY.
-    if (init.body != null && !Object.keys(headers).some((h) => h.toLowerCase() === 'content-type')) {
-      headers['Content-Type'] = 'application/json'
-    }
-    if (authMode === 'bearer') {
-      const token = getToken?.()
-      if (token) headers.Authorization = `Bearer ${token}`
-    }
-    const res = await fetch(input, {
-      ...init,
-      headers,
-      credentials: authMode === 'cookie' ? 'include' : 'same-origin'
-    })
+    const res = await send(input, init)
     if (!res.ok) {
       let body: any = undefined
       try {
@@ -188,11 +181,13 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
     custom: async ({ url: customUrl, method, payload, query, headers }) => {
       const qs = query ? `?${new URLSearchParams(query as Record<string, string>)}` : ''
       const target = customUrl.startsWith('http') ? customUrl : `${apiUrl}${customUrl}`
-      const data = await json<any>(`${target}${qs}`, {
-        method: (method ?? 'get').toUpperCase(),
-        body: payload ? JSON.stringify(payload) : undefined,
-        headers
-      })
+      const verb = (method ?? 'get').toUpperCase()
+      // A GET or a HEAD may not carry a body, and the action runner always passes one, if only an
+      // empty object: fetch refuses the request before it leaves the page, so every GET action
+      // (an export, a report) failed without ever reaching the backend.
+      const empty = !payload || (typeof payload === 'object' && Object.keys(payload).length === 0)
+      const body = verb === 'GET' || verb === 'HEAD' || empty ? undefined : JSON.stringify(payload)
+      const data = await json<any>(`${target}${qs}`, { method: verb, body, headers })
       return { data }
     }
   }

@@ -247,7 +247,7 @@ shared by every view. Presentation and ordering are NOT here; they live in the
 
 | Key | Type | Notes |
 |---|---|---|
-| `type` | `FieldType` | `string`, `text`, `textarea`, `richtext`, `integer`, `number`, `boolean`, `date`, `datetime`, `enum`, `relation`, `email`, `url`, `uuid`, `json`, `image`, `file`. `textarea` = plain multi-line; `richtext` = HTML rich-text editor. |
+| `type` | `FieldType` | `string`, `text`, `textarea`, `richtext`, `integer`, `number`, `boolean`, `date`, `datetime`, `enum`, `relation`, `email`, `url`, `uuid`, `json`, `image`, `file`. `textarea` = plain multi-line; `richtext` = HTML rich-text editor. The backend infers only `string`, `integer`, `number`, `boolean`, `date`, `datetime`, `enum`, `email`, `url`, `uuid`, `json` from the JSON Schema; `text`, `textarea`, `richtext`, `relation`, `image` and `file` come from overrides alone, because a schema cannot tell them from a string or an object. The same 17 members in the backend generator and in `manifest.v2.schema.json`. |
 | `label` | i18n key | Default label for all views (a view entry may override it). |
 | `required` | `boolean` | Client `required` rule + `*` marker. |
 | `readOnly` | `boolean` | Excluded from the write payload; shown read-only. |
@@ -336,13 +336,15 @@ operation sections).
 | `target` | `('row'\|'bulk'\|'collection')[]` | Where the button surfaces (row = compact icon; collection = labeled header button). |
 | `payload` | `Record<string, unknown>` | Static body merged into the request. |
 | `confirm` / `confirmText` | `boolean` / i18n key | Confirm dialog before running. |
-| `input` | `{ fields: ActionInputField[], submitLabel? }` | Prompt for fields in a dialog, send as body (e.g. set-password). |
+| `input` | `{ fields: ActionInputField[], submitLabel? }` | Prompt for fields in a dialog, send as body (e.g. set-password). A v5 backend emits it for its own actions, derived from the route's body schema plus the route's `config.manifest.input` hint (backend `docs/API_V5.md` §7.1). |
 | `visibleWhen` | `Record<field, Record<op, value>>` | Row condition controlling visibility. |
 | `refresh` | `boolean` | After success, invalidate list/detail → refetch (no full reload). Default on. |
 | `download` | `string` | MIME type when the action returns a file (triggers browser download; `csv` → CSV). |
 | `component` | `string \| null` | Override registry id for a custom action button; null → generic handler. |
 
-`ActionInputField`: `{ name, label?, type?, widget?, required?, placeholder? }`.
+`ActionInputField`: `{ name, label?, type?, widget?, required?, placeholder? }`. The dialog draws
+`widget: 'password'` as a password input, `widget: 'textarea'` or `type: 'text' | 'textarea'` as a
+textarea, and anything else as a text input; the label defaults to `field.<name>`.
 
 ---
 
@@ -503,7 +505,10 @@ The ones that shape configuration:
 | Prop | Type | Notes |
 |---|---|---|
 | `apiUrl` | `string` | BE base URL (manifest + CRUD). |
-| `apiBasePath` | `string` | CRUD base path. Default `/admin` (generic CRUD); set `''` for hand-written routes. |
+| `apiBasePath` | `string` | Prefix between `apiUrl` and every resource path. Default `''` (v5 mounts routes at the API root); only for an API published under a sub-path. |
+| `authEndpoints` | `Partial<Record<string, string>>` | Auth routes that win over `manifest.auth.endpoints`, key by key. |
+| `plane` | `'tenant' \| 'control'` | Customer console (default) or platform console. See CONSUMING.md §4.2. |
+| `tenant` / `tenantHeader` | `string` | Fixed tenant of a single-customer console; tenant header before the manifest names it (default `x-tenant-id`). |
 | `authMode` | `'cookie' \| 'bearer'` | Defaults to `manifest.auth.mode`. |
 | `basename` | `string` | Router basename when mounted under a sub-path. |
 | `manifestOverrides` | `ManifestOverrides` | §2 — the main tuning surface. |

@@ -21,7 +21,13 @@ export function createVolcanicAuthProvider({
   client,
   authMode = 'cookie'
 }: VolcanicAuthOptions): AuthProvider {
+  // Only bearer mode keeps tokens in the page. In cookie mode the backend answers `null` in
+  // their place, and even a token that arrived anyway must not land where any script reads it
+  // (T-10.37). Leftovers of an earlier bearer configuration go too, for the same reason.
+  if (authMode === 'cookie') tokenStore.clear()
+
   const storeAuth = (data: AuthData) => {
+    if (authMode !== 'bearer') return
     if (data?.token) tokenStore.set(data.token)
     if (data?.refreshToken) tokenStore.setRefresh(data.refreshToken)
   }
@@ -140,6 +146,8 @@ export function createVolcanicAuthProvider({
     },
 
     onError: async (error) => {
+      // Reached after the data provider's own renewal attempt failed (T-10.39): a 401 here is
+      // a session that is really over.
       if (error?.statusCode === 401 || error?.status === 401) {
         return { logout: true, redirectTo: '/login', error }
       }

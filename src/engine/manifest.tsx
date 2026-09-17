@@ -5,6 +5,7 @@
  */
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -42,7 +43,11 @@ export interface ManifestSource {
 export interface ManifestProviderProps extends ManifestSource {
   children: (model: AdminModel) => ReactNode
   fallback?: ReactNode
-  renderError?: (error: Error) => ReactNode
+  /**
+   * What to draw when loading fails. `retry` loads the manifest again: a login screen drawn here
+   * calls it once the session exists (T-10.12).
+   */
+  renderError?: (error: Error, retry: () => void) => ReactNode
 }
 
 export function ManifestProvider({
@@ -57,19 +62,22 @@ export function ManifestProvider({
     manifest ? interpretManifest(mergeManifest(manifest, overrides)) : null
   )
   const [error, setError] = useState<Error | null>(null)
+  const [attempt, setAttempt] = useState(0)
+  const retry = useCallback(() => setAttempt((n) => n + 1), [])
 
   useEffect(() => {
     if (manifest || !load) return
     let cancelled = false
+    setError(null)
     load()
       .then((m) => !cancelled && setModel(interpretManifest(mergeManifest(m, overrides))))
       .catch((e) => !cancelled && setError(e instanceof Error ? e : new Error(String(e))))
     return () => {
       cancelled = true
     }
-  }, [manifest, load, overrides])
+  }, [manifest, load, overrides, attempt])
 
-  if (error) return <>{renderError ? renderError(error) : <DefaultError error={error} />}</>
+  if (error) return <>{renderError ? renderError(error, retry) : <DefaultError error={error} />}</>
   if (!model) return <>{fallback ?? <DefaultLoading />}</>
 
   return <ModelContext.Provider value={model}>{children(model)}</ModelContext.Provider>

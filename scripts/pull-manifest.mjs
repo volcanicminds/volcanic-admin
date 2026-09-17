@@ -4,8 +4,12 @@
  * committed snapshot, and scaffold the overrides file (ADM-2).
  *
  * Usage:
- *   volcanic-admin-pull --url http://localhost:2230 [--token <bearer>] [--out ./src]
+ *   volcanic-admin-pull --url http://localhost:2230 [--token <bearer>] [--plane tenant|control] [--out ./src]
  *   volcanic-admin-pull --from ./manifest.json [--out ./src]
+ *
+ * `--plane control` pulls the platform console's manifest (`/system/manifest`) instead of a
+ * customer console's (`/admin/manifest`). In cookie mode the header accepts integration tokens
+ * only, and the control plane has none: pull that one from a `MANIFEST_DUMP_PLANE=control` dump.
  *
  * Writes:
  *   <out>/manifest.generated.ts   (always overwritten — never edit by hand)
@@ -40,7 +44,11 @@ async function getManifest() {
   if (args.url) {
     const headers = { Accept: 'application/json' }
     if (args.token) headers.Authorization = `Bearer ${args.token}`
-    const res = await fetch(`${String(args.url).replace(/\/$/, '')}/admin/manifest`, {
+    if (args.plane && args.plane !== 'tenant' && args.plane !== 'control') {
+      throw new Error(`--plane is 'tenant' or 'control', not '${args.plane}'`)
+    }
+    const path = args.plane === 'control' ? '/system/manifest' : '/admin/manifest'
+    const res = await fetch(`${String(args.url).replace(/\/$/, '')}${path}`, {
       headers,
       credentials: 'include'
     })

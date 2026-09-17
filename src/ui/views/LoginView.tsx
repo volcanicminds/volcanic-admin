@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useLogin } from '@refinedev/core'
-import { useAuthClient, tokenStore } from '@/engine'
+import { useAuthClient, useTenant, tokenStore } from '@/engine'
 import type { MfaSetup } from '@/engine'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
@@ -27,7 +27,10 @@ const otpClass =
 export function LoginView() {
   const { mutate: login, isLoading } = useLogin()
   const client = useAuthClient()
-  const { branding } = useAdminConfig()
+  const { branding, plane } = useAdminConfig()
+  // T-10.15: a multi-tenant console that serves more than one customer asks which one. The login
+  // resolves the user inside that tenant, and from then on the token binds it.
+  const { asksTenant, currentTenantId, setTenant } = useTenant()
   const appName = branding?.appName ?? 'Volcanic Admin'
   // Login shows a bigger, centered "hero" logo — its own richer mark if provided,
   // otherwise the sidebar logo, at login-specific (larger) sizes.
@@ -41,6 +44,7 @@ export function LoginView() {
   const logoStyle = { height: loginLogoHeight, maxWidth: loginLogoMaxWidth }
 
   const [step, setStep] = useState<Step>('credentials')
+  const [tenant, setTenantInput] = useState(currentTenantId ?? '')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
@@ -58,12 +62,26 @@ export function LoginView() {
   const onCredentials = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    if (asksTenant) {
+      const slug = tenant.trim().toLowerCase()
+      if (!slug) {
+        setError('Enter your organization')
+        return
+      }
+      // Before the call: the store is what the auth client reads the header from.
+      setTenant(slug)
+    }
     login(
       { email, password },
       {
         onSuccess: (data: any) => {
           if (!data?.success) {
-            setError(data?.error?.message ?? 'Invalid credentials')
+            // An unknown and a suspended tenant answer the same 404 on purpose.
+            setError(
+              data?.error?.code === 'TENANT_NOT_FOUND'
+                ? 'Unknown organization'
+                : (data?.error?.message ?? 'Invalid credentials')
+            )
             return
           }
           if (data.mfaSetupRequired) {
@@ -153,6 +171,19 @@ export function LoginView() {
         <CardContent>
           {step === 'credentials' && (
             <form className="space-y-4" onSubmit={onCredentials}>
+              {asksTenant && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="tenant">Organization</Label>
+                  <Input
+                    id="tenant"
+                    autoComplete="organization"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    value={tenant}
+                    onChange={(e) => setTenantInput(e.target.value)}
+                  />
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -166,9 +197,12 @@ export function LoginView() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground">
-                    Forgot password?
-                  </Link>
+                  {/* The platform has no self-service reset: operators are provisioned. */}
+                  {plane !== 'control' && (
+                    <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground">
+                      Forgot password?
+                    </Link>
+                  )}
                 </div>
                 <PasswordInput
                   id="password"

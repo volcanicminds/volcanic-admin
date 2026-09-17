@@ -14,6 +14,9 @@ const MFA_KEY = 'volcanic.admin.mock.mfa'
 const DEMO_CODE = '123456'
 
 let currentEmail = 'admin@acme.example'
+// The plane decides which catalogue the session's roles come from: a tenant's users hold
+// application roles, the platform's operators hold `system:` ones and nothing else (T-4.1).
+let currentRoles = ['admin']
 
 function identity() {
   const [firstName, lastName] = ['Admin', 'Acme']
@@ -23,7 +26,7 @@ function identity() {
     lastName,
     email: currentEmail,
     username: currentEmail.split('@')[0],
-    roles: ['admin'],
+    roles: currentRoles,
     mfaEnabled: localStorage.getItem(MFA_KEY) === '1'
   }
 }
@@ -94,5 +97,27 @@ export const mockAuthClient: AuthClient = {
   forgotPassword: async () => ({}),
   resetPassword: async () => ({}),
   me: async () => identity(),
-  logout: async () => ({})
+  logout: async () => ({}),
+  // The mock session never expires, so there is never anything to renew.
+  renew: async () => false
+}
+
+/**
+ * The same mock on the control plane.
+ *
+ * A platform identity holds `system:` roles and nothing else (T-4.1), and every capability of
+ * the control manifest is gated on them. Signing in here as `admin` would draw an empty console,
+ * which is the access control doing its job rather than a bug: hence a client that says which
+ * plane its session belongs to.
+ */
+export const mockControlAuthClient: AuthClient = {
+  ...mockAuthClient,
+  login: async (email, password) => {
+    currentRoles = ['system:admin']
+    return mockAuthClient.login(email, password)
+  },
+  me: async () => {
+    currentRoles = ['system:admin']
+    return identity()
+  }
 }

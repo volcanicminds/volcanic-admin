@@ -115,6 +115,45 @@ export const seed: Record<string, Row[]> = {
       createdAt: now,
       updatedAt: now
     }
+  ],
+
+  // ── the control plane ──────────────────────────────────────────────────────────────────
+  // The platform's own operators (T-10.20). Their roles come from the control catalogue and
+  // nowhere else, and the credential columns are not here because they never leave the server:
+  // the manifest describes `password` as write-only and `mfaSecret` not at all.
+  systemUser: [
+    {
+      id: 's1', email: 'root@volcanic.example', roles: ['system:admin'],
+      blocked: false, mfaEnabled: true, version: 3, createdAt: now, updatedAt: now
+    },
+    {
+      id: 's2', email: 'ops@volcanic.example', roles: ['system:operator'],
+      blocked: false, mfaEnabled: false, version: 1, createdAt: now, updatedAt: now
+    },
+    {
+      id: 's3', email: 'audit@volcanic.example', roles: ['system:auditor'],
+      blocked: true, blockedReason: 'Left the company', blockedAt: now,
+      mfaEnabled: false, version: 2, createdAt: now, updatedAt: now
+    }
+  ],
+  // The tenant registry: one row per customer container, with the locator that names where it
+  // lives. `beta-trial` is the one the destruction demo consumes.
+  tenant: [
+    {
+      id: 't1', name: 'Acme HQ', slug: 'acme-hq', strategy: 'schema', engine: 'postgres',
+      locator: 'acme_hq', schemaVersion: '0000_initial_tenant', status: 'active', config: {},
+      createdAt: now, updatedAt: now
+    },
+    {
+      id: 't2', name: 'Acme West', slug: 'acme-west', strategy: 'schema', engine: 'postgres',
+      locator: 'acme_west', schemaVersion: '0000_initial_tenant', status: 'active', config: {},
+      createdAt: now, updatedAt: now
+    },
+    {
+      id: 't3', name: 'Beta Trial', slug: 'beta-trial', strategy: 'container', engine: 'sqlite',
+      locator: 'beta-trial.db', schemaVersion: '0000_initial_tenant', status: 'suspended', config: {},
+      createdAt: now, updatedAt: now
+    }
   ]
 }
 

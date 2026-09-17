@@ -20,6 +20,10 @@ export { buildMagicQuery, searchFilter, readTotal } from './magic-query.js'
 
 export { createVolcanicDataProvider } from './providers/data.js'
 export type { VolcanicDataProviderOptions, AuthMode } from './providers/data.js'
+export { createApiRequest } from './providers/http.js'
+export type { ApiRequest, ApiRequestOptions } from './providers/http.js'
+export { PLANE_ENDPOINTS, MANIFEST_PATH } from './auth/endpoints.js'
+export type { Plane } from './auth/endpoints.js'
 
 export { createVolcanicAuthProvider } from './providers/auth.js'
 export type { VolcanicAuthOptions } from './providers/auth.js'
@@ -41,7 +45,7 @@ export {
   canReachResource
 } from './providers/accessControl.js'
 
-export { TenantProvider, useTenant, tenantStore } from './providers/tenant.js'
+export { TenantProvider, useTenant, tenantStore, primeTenantStore, storedTenant } from './providers/tenant.js'
 export type { TenantOption } from './providers/tenant.js'
 
 export {

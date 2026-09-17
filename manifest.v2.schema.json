@@ -24,6 +24,7 @@
       "required": ["mode", "endpoints"],
       "properties": {
         "mode": { "enum": ["cookie", "bearer"] },
+        "plane": { "enum": ["tenant", "control"], "description": "Il piano della console che il manifest descrive (T-10.14)." },
         "endpoints": {
           "type": "object",
           "required": ["login", "refresh", "logout"],
@@ -66,8 +67,8 @@
     "CapabilityKind": { "enum": ["list", "read", "create", "update", "delete", "action"] },
     "FieldType": {
       "enum": [
-        "string", "text", "richtext", "integer", "number", "boolean", "date", "datetime",
-        "enum", "relation", "email", "url", "uuid", "json", "image", "file"
+        "string", "integer", "number", "boolean", "date", "datetime", "enum", "email", "url", "uuid", "json",
+        "text", "textarea", "richtext", "relation", "image", "file"
       ]
     },
     "RelationKind": { "enum": ["many-to-one", "one-to-many", "many-to-many"] },
@@ -128,6 +129,29 @@
         "operator": { "$ref": "#/$defs/FilterOperator" }
       }
     },
+    "ActionInputField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "label": { "$ref": "#/$defs/I18nKey" },
+        "type": { "$ref": "#/$defs/FieldType" },
+        "widget": { "type": "string" },
+        "required": { "type": "boolean" },
+        "placeholder": { "$ref": "#/$defs/I18nKey" }
+      }
+    },
+    "ActionInput": {
+      "description": "Campi che il dialogo di un'azione chiede prima di chiamarla (T-10.16): derivati dal body schema della rotta, arricchiti dall'hint config.manifest.input.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fields"],
+      "properties": {
+        "fields": { "type": "array", "items": { "$ref": "#/$defs/ActionInputField" } },
+        "submitLabel": { "$ref": "#/$defs/I18nKey" }
+      }
+    },
     "CapabilitySpec": {
       "description": "Verbo eseguibile: CRUD standard o azione custom. Unifica i v1 permissions+capabilities+actions; roles in un posto solo.",
       "type": "object",
@@ -156,7 +180,8 @@
         },
         "refresh": { "type": "boolean" },
         "download": { "type": "string", "description": "Mime-type quando l'azione ritorna un file." },
-        "component": { "type": ["string", "null"], "description": "Override registry id; null → handler generico." }
+        "component": { "type": ["string", "null"], "description": "Override registry id; null → handler generico." },
+        "input": { "$ref": "#/$defs/ActionInput" }
       },
       "allOf": [
         {
@@ -168,7 +193,8 @@
               "payload": false,
               "confirm": false,
               "visibleWhen": false,
-              "download": false
+              "download": false,
+              "input": false
             }
           }
         }
@@ -266,6 +292,7 @@
         "label": { "$ref": "#/$defs/I18nKey" },
         "required": { "type": "boolean" },
         "readOnly": { "type": "boolean" },
+        "writeOnly": { "type": "boolean" },
         "nullable": { "type": "boolean" },
         "default": {},
         "help": { "$ref": "#/$defs/I18nKey" },

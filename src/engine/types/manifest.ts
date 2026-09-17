@@ -18,7 +18,16 @@ export type CrudAction = 'list' | 'read' | 'create' | 'update' | 'delete'
 /** A capability is either a CRUD verb or a custom action. */
 export type CapabilityKind = CrudAction | 'action'
 
-/** Field primitive types (§2.4). */
+/**
+ * Field primitive types (§2.4).
+ *
+ * The backend generator infers only what a JSON Schema can say: `string`, `integer`, `number`,
+ * `boolean`, `date`, `datetime`, `enum`, `email`, `url`, `uuid`, `json`. The other members arrive
+ * from overrides alone, because nothing in a schema tells them apart from a plain string or object:
+ * `text`, `textarea` and `richtext` are presentations of a string, `relation` needs the target
+ * resource and its foreign key, `image` and `file` need their upload endpoints (`image.endpoints`).
+ * Kept identical to `FieldType` in the backend generator and to `manifest.v2.schema.json` (T-10.17).
+ */
 export type FieldType =
   | 'string'
   | 'text'
@@ -81,6 +90,11 @@ export interface Manifest {
   }
   auth: {
     mode: 'cookie' | 'bearer'
+    /**
+     * The plane this manifest describes (T-10.14): a customer's console (`tenant`) or the
+     * platform's (`control`). Absent in manifests from backends that predate it.
+     */
+    plane?: 'tenant' | 'control'
     endpoints: {
       login: string
       refresh: string
@@ -90,8 +104,14 @@ export interface Manifest {
   }
   tenancy: {
     mode: 'single' | 'multi'
+    /**
+     * A tenant switcher under the session. A v5 backend emits `false`: the token binds the tenant
+     * from the login on (T-10.15), so a different tenant is a new login.
+     */
     switchable?: boolean
+    /** The header a console must send the tenant in; absent where none is read. */
     header?: string
+    /** Tenant list for a switcher. No longer emitted by v5 backends. */
     listEndpoint?: string
   }
   groups: GroupSpec[]

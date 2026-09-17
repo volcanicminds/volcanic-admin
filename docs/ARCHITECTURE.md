@@ -427,11 +427,16 @@ Principle: **80% OOTB from the manifest, 20% targeted overrides**. No project re
 
 ## 7. Multi-tenant
 
-- **single**: no switcher; `tenancy.mode = 'single'`.
-- **multi**: topbar with a **tenant selector** (list from `tenancy.listEndpoint`, default `/tenants`); the chosen tenant
-  defines the context of the `tenantScoped` resources. The global resources (`tenant`, sometimes `user`) stay out of
-  scope. The backend isolates via `search_path`/`runInTenantContext` (never a global switch); the context header
-  (`tenancy.header`, e.g. `x-tenant-id`) is injected by the `tenantProvider` on every request.
+- **single**: no tenant header, no switcher; `tenancy.mode = 'single'`.
+- **multi** (a v5 backend with a `tenants` block): a console works on **one plane** (`plane` prop). A customer's
+  console (`plane: 'tenant'`) reads `/admin/manifest`, which describes the tenant routes only; under the `header`
+  resolver the tenant is asked on the login screen (or fixed by the `tenant` prop) and sent in `tenancy.header`
+  (e.g. `x-tenant-id`) on the login and on every request, from `tenantStore`. From the login on the token binds the
+  tenant, so there is no switcher (`tenancy.switchable` is `false`): another tenant is a new login. Under the
+  `subdomain` resolver the host is the tenant and no header is sent. The platform console (`plane: 'control'`)
+  signs operators in on `/system/auth/*`, reads `/system/manifest` (the tenant registry and the other control
+  routes) and never sends a tenant header. The backend opens the tenant's container per request from the token,
+  never through a connection-wide switch; the admin only declares which tenant it means.
 
 ---
 

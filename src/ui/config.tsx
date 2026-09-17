@@ -4,6 +4,7 @@
  * pages. Consumed by the Sidebar.
  */
 import { createContext, useContext, type ReactNode } from 'react'
+import type { Plane } from '@/engine'
 
 export interface AdminNavItem {
   path: string
@@ -50,21 +51,25 @@ export interface AdminBranding {
 interface AdminConfigValue {
   navExtras: AdminNavItem[]
   branding?: AdminBranding
+  /** The plane of this console (T-10.14): screens hide what that plane has no route for. */
+  plane: Plane
 }
 
-const AdminConfigContext = createContext<AdminConfigValue>({ navExtras: [] })
+const AdminConfigContext = createContext<AdminConfigValue>({ navExtras: [], plane: 'tenant' })
 
 export function AdminConfigProvider({
   navExtras = [],
   branding,
+  plane = 'tenant',
   children
 }: {
   navExtras?: AdminNavItem[]
   branding?: AdminBranding
+  plane?: Plane
   children: ReactNode
 }) {
   return (
-    <AdminConfigContext.Provider value={{ navExtras, branding }}>
+    <AdminConfigContext.Provider value={{ navExtras, branding, plane }}>
       {children}
     </AdminConfigContext.Provider>
   )
