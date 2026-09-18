@@ -10,7 +10,7 @@
  *   - pass `dataProvider`/`authClient` to override (e.g. a mock), otherwise the
  *     real Volcanic providers are built from `apiUrl` + `authMode`.
  */
-import { useMemo, type ComponentType, type ReactNode } from 'react'
+import { useMemo, useState, type ComponentType, type ReactNode } from 'react'
 import { Refine, Authenticated, usePermissions } from '@refinedev/core'
 import type { AuthProvider, DataProvider } from '@refinedev/core'
 import routerProvider, {
@@ -551,7 +551,14 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
   // Before a manifest there is no `auth` block to read: the props say how to authenticate, and
   // cookie is the backend default (T-10.37). The tenant header is set now, because a multi-tenant
   // manifest is read inside a tenant.
-  const bootAuthMode: AuthMode = props.authMode ?? 'cookie'
+  //
+  // The default is a guess, and on the control plane it cannot be checked before logging in:
+  // `/system/manifest` needs the session it is supposed to describe. So the login corrects it. A
+  // backend that answers with a token is a bearer deployment, and the console adopts that for the
+  // requests it makes next, the manifest included. Without this, a bearer deployment logged the
+  // operator in and bounced them straight back to the login screen (found live, T-10.20).
+  const [detectedAuthMode, setDetectedAuthMode] = useState<AuthMode | undefined>(undefined)
+  const bootAuthMode: AuthMode = props.authMode ?? detectedAuthMode ?? 'cookie'
   const bootEndpointsKey = JSON.stringify(props.authEndpoints ?? {})
   primeTenantStore({ plane, tenant: props.tenant, header: props.tenantHeader })
 
@@ -614,6 +621,7 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
                 tenancy={bootTenancy(plane, error, props.tenantHeader)}
                 fixedTenant={plane === 'tenant' ? props.tenant : undefined}
                 onAuthenticated={retry}
+                onModeDetected={setDetectedAuthMode}
               />
             ) : (
               <ManifestFailure message={error.message} />
@@ -702,7 +710,8 @@ function BootstrapLogin({
   branding,
   tenancy,
   fixedTenant,
-  onAuthenticated
+  onAuthenticated,
+  onModeDetected
 }: {
   client: AuthClient
   authMode: AuthMode
@@ -711,9 +720,15 @@ function BootstrapLogin({
   tenancy: Manifest['tenancy']
   fixedTenant?: string
   onAuthenticated: () => void
+  /** The login found the deployment to be bearer, whatever this console assumed. */
+  onModeDetected?: (mode: AuthMode) => void
 }) {
   const authProvider: AuthProvider = useMemo(() => {
-    const base = createVolcanicAuthProvider({ client, authMode })
+    const base = createVolcanicAuthProvider({
+      client,
+      authMode,
+      onBearerDetected: () => onModeDetected?.('bearer')
+    })
     return {
       ...base,
       login: async (params: unknown) => {
@@ -730,7 +745,7 @@ function BootstrapLogin({
       // Nobody is authenticated in this tree: it exists to open a session.
       check: async () => ({ authenticated: false })
     }
-  }, [client, authMode, onAuthenticated])
+  }, [client, authMode, onAuthenticated, onModeDetected])
 
   return (
     <AuthClientProvider client={client}>

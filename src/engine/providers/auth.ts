@@ -15,21 +15,41 @@ import { tokenStore } from '../auth/tokenStore.js'
 export interface VolcanicAuthOptions {
   client: AuthClient
   authMode?: AuthMode
+  /**
+   * Called when a login answered with a token although this console believed it was in cookie
+   * mode. Before a manifest the mode is a guess (T-10.12), and the server's own answer is the
+   * evidence that settles it.
+   */
+  onBearerDetected?: () => void
 }
 
 export function createVolcanicAuthProvider({
   client,
-  authMode = 'cookie'
+  authMode = 'cookie',
+  onBearerDetected
 }: VolcanicAuthOptions): AuthProvider {
-  // Only bearer mode keeps tokens in the page. In cookie mode the backend answers `null` in
-  // their place, and even a token that arrived anyway must not land where any script reads it
-  // (T-10.37). Leftovers of an earlier bearer configuration go too, for the same reason.
+  // Leftovers of an earlier bearer configuration go, because a token in the page is exactly what
+  // cookie mode exists to avoid (T-10.37).
   if (authMode === 'cookie') tokenStore.clear()
 
+  /**
+   * Keeps the session the server actually handed over.
+   *
+   * The decision is made on the ANSWER, not on the configured mode. A token in the body is only
+   * ever sent by a bearer deployment: in cookie mode the backend answers `null` in its place, so
+   * this cannot put a cookie session where a script can read it.
+   *
+   * Reading the configured mode instead is what broke a live control console (found by running
+   * it, T-10.20): before a manifest the mode is a guess, `/system/manifest` needs the session it
+   * does not have yet, and the guess is `cookie`. The login succeeded, the token it returned was
+   * dropped on the floor, the next request went out anonymous, and the operator landed back on
+   * the login screen with no error to read.
+   */
   const storeAuth = (data: AuthData) => {
-    if (authMode !== 'bearer') return
-    if (data?.token) tokenStore.set(data.token)
-    if (data?.refreshToken) tokenStore.setRefresh(data.refreshToken)
+    if (!data?.token) return
+    if (authMode !== 'bearer') onBearerDetected?.()
+    tokenStore.set(data.token)
+    if (data.refreshToken) tokenStore.setRefresh(data.refreshToken)
   }
 
   return {
