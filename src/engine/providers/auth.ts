@@ -46,7 +46,13 @@ export function createVolcanicAuthProvider({
    * the login screen with no error to read.
    */
   const storeAuth = (data: AuthData) => {
-    if (!data?.token) return
+    if (!data?.token) {
+      // A successful login that carries no token is a cookie deployment saying so. Anything left
+      // in the store belongs to an earlier configuration and must not outlive this answer, or the
+      // next boot would read it as evidence of a bearer deployment that no longer exists.
+      tokenStore.clear()
+      return
+    }
     if (authMode !== 'bearer') onBearerDetected?.()
     tokenStore.set(data.token)
     if (data.refreshToken) tokenStore.setRefresh(data.refreshToken)

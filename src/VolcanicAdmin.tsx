@@ -557,7 +557,13 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
   // backend that answers with a token is a bearer deployment, and the console adopts that for the
   // requests it makes next, the manifest included. Without this, a bearer deployment logged the
   // operator in and bounced them straight back to the login screen (found live, T-10.20).
-  const [detectedAuthMode, setDetectedAuthMode] = useState<AuthMode | undefined>(undefined)
+  // Seeded from the store, so the correction survives a reload: a console in cookie mode never
+  // holds a token (the provider clears the store when it builds), so finding one is evidence that
+  // this deployment is bearer. Without this the operator logged in, hit refresh, and landed back
+  // on the login screen with a perfectly good session sitting in the page.
+  const [detectedAuthMode, setDetectedAuthMode] = useState<AuthMode | undefined>(() =>
+    tokenStore.get() ? 'bearer' : undefined
+  )
   const bootAuthMode: AuthMode = props.authMode ?? detectedAuthMode ?? 'cookie'
   const bootEndpointsKey = JSON.stringify(props.authEndpoints ?? {})
   primeTenantStore({ plane, tenant: props.tenant, header: props.tenantHeader })
