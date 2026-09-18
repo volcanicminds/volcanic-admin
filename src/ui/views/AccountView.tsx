@@ -3,12 +3,14 @@
  * and MFA management (enable via QR + TOTP, or disable). Distinct from the
  * Operatori (users) CRUD, which manages other accounts.
  */
-import { useEffect, useState } from 'react'
-import { useGetIdentity, useUpdatePassword } from '@refinedev/core'
+import { useCallback, useEffect, useState } from 'react'
+import { useDataProvider, useGetIdentity, useUpdatePassword } from '@refinedev/core'
 import { toast } from 'sonner'
 import { ShieldCheck, ShieldOff, Sun, Moon, Monitor } from 'lucide-react'
-import { useAuthClient } from '@/engine'
+import { useAuthClient, useModel } from '@/engine'
 import type { MfaSetup } from '@/engine'
+import { ConfirmDialog } from '@/ui/components/ConfirmDialog'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/ui/table'
 import { cn } from '@/lib/utils'
 import { useTheme, type ThemeMode } from '@/ui/theme'
 import { useAdminConfig } from '@/ui/config'
@@ -27,6 +29,23 @@ interface Identity {
   roles?: string[]
   mfaEnabled?: boolean
   mfa?: { enabled?: boolean }
+}
+
+/**
+ * One row of `GET /auth/sessions`: a session, not a token.
+ *
+ * The backend sends no secret and no hash, and `sid` is only a handle: it identifies the session
+ * to close, and a session of somebody else answers the same 404 as one that does not exist.
+ */
+interface SessionRow {
+  sid: string
+  current: boolean
+  createdAt: string
+  lastUsedAt: string
+  idleExpiresAt: string
+  absoluteExpiresAt: string
+  ip: string | null
+  userAgent: string | null
 }
 
 export function AccountView() {
@@ -51,6 +70,13 @@ export function AccountView() {
   const [setup, setSetup] = useState<MfaSetup | null>(null)
   const [code, setCode] = useState('')
   const [mfaBusy, setMfaBusy] = useState(false)
+
+  const dataProvider = useDataProvider()
+  const model = useModel()
+  const [sessions, setSessions] = useState<SessionRow[] | null>(null)
+  const [sessionsAvailable, setSessionsAvailable] = useState(true)
+  const [closing, setClosing] = useState<string | null>(null)
+  const [pendingClose, setPendingClose] = useState<SessionRow | null>(null)
 
   useEffect(() => {
     setMfaEnabled(Boolean(identity?.mfaEnabled ?? identity?.mfa?.enabled))
@@ -119,6 +145,62 @@ export function AccountView() {
       toast.error(e?.message ?? 'Failed to disable MFA')
     } finally {
       setMfaBusy(false)
+    }
+  }
+
+  //
+  // Active sessions: every device signed in with this account, and a way to close one.
+  //
+  // The path comes from the manifest, not from this file: the two planes answer on different
+  // routes, and a backend without a session registry has none. The fallback is the plane's own
+  // route, for a manifest older than the endpoint.
+  const sessionsPath =
+    model.manifest.auth.endpoints.sessions ?? (plane === 'control' ? '/system/auth/sessions' : '/auth/sessions')
+
+  const loadSessions = useCallback(async () => {
+    const provider = dataProvider()
+    if (!provider.custom) {
+      setSessionsAvailable(false)
+      return
+    }
+    try {
+      const { data } = await provider.custom<SessionRow[]>({ url: sessionsPath, method: 'get' })
+      // The HTTP wrapper does not throw on a 4xx, it hands the body back: a deployment without a
+      // session registry answers something that is not a list, and that is what tells "no devices"
+      // apart from "this build has no registry". The card disappears rather than showing nothing.
+      if (!Array.isArray(data)) {
+        setSessionsAvailable(false)
+        return
+      }
+      setSessions(data)
+    } catch {
+      setSessionsAvailable(false)
+    }
+  }, [dataProvider, sessionsPath])
+
+  useEffect(() => {
+    void loadSessions()
+  }, [loadSessions])
+
+  const closeSession = async (row: SessionRow) => {
+    const provider = dataProvider()
+    if (!provider.custom) return
+    setClosing(row.sid)
+    try {
+      await provider.custom({ url: `${sessionsPath}/${row.sid}`, method: 'delete' })
+      // Closing the session you are speaking from is a logout on the server, cookies included, so
+      // the page has to stop pretending otherwise: a reload lands on the login screen.
+      if (row.current) {
+        window.location.reload()
+        return
+      }
+      toast.success('Session closed')
+      await loadSessions()
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Failed to close the session')
+    } finally {
+      setClosing(null)
+      setPendingClose(null)
     }
   }
 
@@ -284,6 +366,81 @@ export function AccountView() {
           )}
         </CardContent>
       </Card>
+
+      {sessionsAvailable && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Active sessions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Every device signed in with this account. Closing one stops it renewing straight away.
+            </p>
+            {sessions === null ? (
+              <p className="text-sm text-muted-foreground">…</p>
+            ) : sessions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No session is open.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Device</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead>Last used</TableHead>
+                    <TableHead className="w-0" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sessions.map((row) => (
+                    <TableRow key={row.sid}>
+                      <TableCell className="max-w-64 truncate">
+                        {describeDevice(row.userAgent)}
+                        {row.current && (
+                          <Badge variant="secondary" className="ml-2">
+                            This device
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>{row.ip ?? '—'}</TableCell>
+                      <TableCell>{formatWhen(row.lastUsedAt)}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={closing === row.sid}
+                          onClick={() => setPendingClose(row)}
+                        >
+                          {closing === row.sid ? '…' : 'Close'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <ConfirmDialog
+        open={pendingClose !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingClose(null)
+        }}
+        title={pendingClose?.current ? 'Sign out on this device?' : 'Close this session?'}
+        description={
+          pendingClose?.current
+            ? 'You will be signed out here and will have to log in again.'
+            : 'That device will have to log in again. Anything it holds stops working at once.'
+        }
+        confirmLabel="Close session"
+        cancelLabel="Cancel"
+        destructive
+        busy={closing !== null}
+        onConfirm={() => {
+          if (pendingClose) void closeSession(pendingClose)
+        }}
+      />
     </div>
   )
 }
@@ -293,6 +450,43 @@ const THEME_OPTIONS: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
   { value: 'dark', label: 'Dark', icon: Moon },
   { value: 'system', label: 'System', icon: Monitor }
 ]
+
+/**
+ * A readable guess at what a device is, and deliberately nothing more.
+ *
+ * A user agent is not an identification and must not be shown as one: the point of the line is to
+ * let someone recognise "the laptop at the office" among three rows, so it says browser and system
+ * and stops there.
+ */
+function describeDevice(userAgent: string | null): string {
+  if (!userAgent) return 'Unknown device'
+  const browser = /Edg\//.test(userAgent)
+    ? 'Edge'
+    : /Chrome\//.test(userAgent)
+      ? 'Chrome'
+      : /Firefox\//.test(userAgent)
+        ? 'Firefox'
+        : /Safari\//.test(userAgent)
+          ? 'Safari'
+          : 'Browser'
+  const system = /iPhone|iPad/.test(userAgent)
+    ? 'iOS'
+    : /Android/.test(userAgent)
+      ? 'Android'
+      : /Mac OS X/.test(userAgent)
+        ? 'macOS'
+        : /Windows/.test(userAgent)
+          ? 'Windows'
+          : /Linux/.test(userAgent)
+            ? 'Linux'
+            : ''
+  return system ? `${browser} on ${system}` : browser
+}
+
+function formatWhen(value: string): string {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString()
+}
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
