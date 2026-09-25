@@ -13,8 +13,6 @@ Done items are removed rather than checked off (git history is the record).
   each resource, refreshed when its list opens (only if cheap/fast).
 - **Always-edit detail mode** — an opt-in where a resource has no separate read-only `show`
   view: `…/edit/:id` is the only detail screen.
-- **Sticky list header** — keep the list toolbar (search / filters / action bar) pinned while
-  the rows scroll, mirroring the sticky toolbar the create/edit/show views already have.
 - **Per-field help tooltip** — an info icon next to a field/label that reveals the field's
   explanation on click/hover, complementing the current inline `help` text.
 - **Mobile-responsive sidebar** — collapse to a hamburger drawer on small viewports.
