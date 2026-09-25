@@ -74,10 +74,11 @@ are **peer dependencies** (the consumer app provides them).
 
 ## 2. Consuming it (`<VolcanicAdmin>`)
 
-Install (peers must be provided by the app):
+Install (peers must be provided by the app). This line needs `@volcanicminds/backend` 5 and is on
+the `next` dist-tag; `latest` (0.4.x) is the line for backend 4:
 
 ```bash
-npm i @volcanicminds/admin \
+npm i @volcanicminds/admin@next \
   react react-dom react-router \
   @refinedev/core @refinedev/react-router @refinedev/react-hook-form react-hook-form
 ```

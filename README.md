@@ -19,10 +19,12 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design (manifest
 
 ## Use it in a client project
 
-`@volcanicminds/admin` is consumed as a library. A client backoffice is usually one file:
+`@volcanicminds/admin` is consumed as a library. A client backoffice is usually one file.
+This line speaks to `@volcanicminds/backend` 5 and is published on the `next` dist-tag; `latest`
+(0.4.x) is the line for backend 4, whose login routes backend 5 no longer has.
 
 ```bash
-npm i @volcanicminds/admin \
+npm i @volcanicminds/admin@next \
   react react-dom react-router \
   @refinedev/core @refinedev/react-router @refinedev/react-hook-form react-hook-form
 ```
