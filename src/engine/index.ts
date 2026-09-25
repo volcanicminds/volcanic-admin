@@ -28,11 +28,15 @@ export type { Plane } from './auth/endpoints.js'
 export { createVolcanicAuthProvider } from './providers/auth.js'
 export type { VolcanicAuthOptions } from './providers/auth.js'
 export { tokenStore } from './auth/tokenStore.js'
-export { createVolcanicAuthClient } from './auth/client.js'
+export { createVolcanicAuthClient, FLOW_ENDING_CODES } from './auth/client.js'
 export type {
   AuthClient,
   AuthData,
-  LoginResponse,
+  FlowAnswer,
+  FlowChallenge,
+  FlowOption,
+  FlowOptions,
+  FlowPending,
   MfaSetup,
   VolcanicAuthClientOptions
 } from './auth/client.js'

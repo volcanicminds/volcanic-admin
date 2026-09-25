@@ -14,7 +14,15 @@ export const mockManifest: Manifest = {
   i18n: { defaultLocale: 'it', locales: ['it', 'en'] },
   auth: {
     mode: 'bearer',
-    endpoints: { login: '/auth/login', refresh: '/auth/refresh-token', logout: '/auth/logout' }
+    endpoints: {
+      flowOptions: '/auth/flow/options',
+      flowStart: '/auth/flow/start',
+      flowStep: '/auth/flow/step',
+      flowChallenge: '/auth/flow/challenge',
+      flowCancel: '/auth/flow/cancel',
+      refresh: '/auth/refresh-token',
+      logout: '/auth/logout'
+    }
   },
   tenancy: {
     mode: 'multi',

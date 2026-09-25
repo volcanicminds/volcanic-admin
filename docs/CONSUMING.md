@@ -433,7 +433,7 @@ Now dropping a new `*.plugin.ts(x)` under `src/plugins/` registers it automatica
 | `apiUrl` | Backend base URL (manifest + CRUD). |
 | `apiBasePath` | Prefix between `apiUrl` and every resource path. Default `''`: the manifest's paths are relative to the API root, where a v5 backend mounts its routes (`/admin` holds only the manifest). Set it only when a proxy publishes the API under a sub-path that `apiUrl` does not already include. |
 | `authMode` | `'cookie'` or `'bearer'`; default `manifest.auth.mode`, which follows the backend's `AUTH_MODE` (cookie unless set). See §4.1. |
-| `authEndpoints` | Auth routes that win over `manifest.auth.endpoints`, key by key (`login`, `refresh`, `logout`, `me`, `mfaVerify`, …). Unset keys follow the manifest, then the client defaults. |
+| `authEndpoints` | Auth routes that win over `manifest.auth.endpoints`, key by key (`flowStart`, `flowStep`, `refresh`, `logout`, `me`, …). Unset keys follow the manifest, then the client defaults. |
 | `plane` | `'tenant'` (default) or `'control'`: a customer's console or the platform's. Chooses the auth routes (`/auth/*` or `/system/auth/*`), the manifest (`/admin/manifest` or `/system/manifest`) and whether a tenant header exists. See §4.2. |
 | `tenant` | The tenant of a console that serves one customer: sent in the tenant header, never asked. Unset, a multi-tenant console asks for it on the login screen. |
 | `tenantHeader` | The tenant header before a manifest names it. Default `'x-tenant-id'`. |
@@ -468,12 +468,21 @@ so the admin and the API must be on the **same site** (`admin.example.com` and `
 not two unrelated domains), and the backend's `CORS_ORIGINS` must list the admin's origin so that
 credentials are granted.
 
+**The login** is the backend's flow (`/auth/flow/*`, `/system/auth/flow/*` on the platform console).
+The first screen draws what `flow/options` offers (password, a code by email, one button per
+external provider); every later screen draws the stage the backend owes next: a TOTP code, an email
+code with its resend, a forced TOTP enrolment. The labels are this console's `login.*` keys; a
+provider button reads `login.provider.<key>`, so a project names its providers in `dictionaries`
+(`'login.provider.acme-sso': 'Acme SSO'`). An external provider takes the page away and sends it
+back to the identity provider's `returnUrl`: point it at a URL of this console, which resumes the
+flow with a step on arrival.
+
 ### 4.2 Plane and tenant
 
 A backend with tenants has two identity spaces, and a console works in one of them. **A customer's
-console** (`plane` omitted) signs users in on `/auth/login` and reads `/admin/manifest`, which describes
-the tenant routes only. **The platform console** (`plane="control"`) signs operators in on
-`/system/auth/login`, learns who they are from `/system/auth/me`, reads `/system/manifest`, which
+console** (`plane` omitted) signs users in through the login flow on `/auth/flow/*` and reads `/admin/manifest`, which describes
+the tenant routes only. **The platform console** (`plane="control"`) signs operators in through
+`/system/auth/flow/*`, learns who they are from `/system/auth/me`, reads `/system/manifest`, which
 describes the control routes (the tenant registry), and never sends a tenant header. Its login has no
 password reset and its Account page no password change: operators are provisioned. A manifest of the
 other plane is refused with an explicit error instead of drawing screens whose calls would fail.

@@ -1,8 +1,8 @@
 /**
- * Auth API client — typed wrapper over the native @volcanicminds/backend auth
- * endpoints. Implemented for the real backend here; the mock provides the same
- * interface. Shapes mirror the framework contract (login may return a `202`-like
- * body with `mfaRequired`/`mfaSetupRequired` + `tempToken`).
+ * Auth API client: typed wrapper over the native @volcanicminds/backend auth endpoints.
+ * Implemented for the real backend here; the mock provides the same interface. A login is a flow
+ * (docs/AUTH_FLOW_V5.md of the backend): `flowStart` runs an identifier, then `flowStep` answers
+ * each stage, until one of them answers with the session.
  */
 import type { AuthMode } from '../providers/http.js'
 import { tokenStore } from './tokenStore.js'
@@ -14,12 +14,6 @@ export interface AuthData {
   [key: string]: unknown
 }
 
-export interface LoginResponse extends AuthData {
-  mfaRequired?: boolean
-  mfaSetupRequired?: boolean
-  tempToken?: string
-}
-
 export interface MfaSetup {
   /** Data-URL of the QR code image. */
   qrCode: string
@@ -29,11 +23,76 @@ export interface MfaSetup {
   secret: string
 }
 
+/** A code sent to the subject: where, masked, and when it may be asked again. */
+export interface FlowChallenge {
+  channel: string
+  destination: string
+  expiresAt: string
+  resendAt?: string
+}
+
+/**
+ * One way through a stage, by method `id`: codes and identifiers only, never a label, so the
+ * console draws its own. `enrol` is `true` while an enrolment is owed and not started, then the
+ * setup to show; `action` sends the browser elsewhere (an external provider).
+ */
+export interface FlowOption {
+  id: string
+  kind: 'identifier' | 'verifier'
+  challenge?: FlowChallenge
+  enrol?: true | MfaSetup
+  action?: { type: 'redirect'; url: string } | { type: 'post'; url: string; fields: Record<string, string> }
+  /** The provider keys of an `oidc` identifier, in the options of a plane. */
+  providers?: string[]
+}
+
+/** A partial authentication (202): the stage owed next. */
+export interface FlowPending {
+  expiresAt: string
+  stage: { options: FlowOption[] }
+}
+
+/** What a flow request ends in: the session, or the next stage. */
+export type FlowAnswer = { session: AuthData; pending?: undefined } | { pending: FlowPending; session?: undefined }
+
+/** `GET .../flow/options`: the identifiers of the plane and, on the tenant plane, who may register. */
+export interface FlowOptions {
+  options: FlowOption[]
+  accountCreation?: 'invite' | 'approval' | 'open'
+}
+
+/**
+ * The refusals that end the flow they answer (docs/AUTH_FLOW_V5.md §11): after one of these the
+ * stored credential names nothing, and a login screen goes back to its first step.
+ */
+export const FLOW_ENDING_CODES: ReadonlySet<string> = new Set([
+  'AUTH_INVALID_CREDENTIALS',
+  'AUTH_INPUT_INVALID',
+  'FLOW_REQUIRED',
+  'FLOW_EXPIRED',
+  'FLOW_ATTEMPTS_EXHAUSTED',
+  'FLOW_ENROLMENT_REFUSED',
+  'IDP_UNKNOWN_PROVIDER',
+  'IDP_UNAVAILABLE',
+  'IDP_RETURN_INVALID',
+  'IDP_DENIED',
+  'IDP_IDENTITY_NOT_LINKED',
+  'ACCOUNT_PENDING_APPROVAL'
+])
+
 export interface AuthClient {
-  login(email: string, password: string): Promise<LoginResponse>
-  verifyMfa(code: string, tempToken?: string): Promise<AuthData>
-  setupMfa(tempToken?: string): Promise<MfaSetup>
-  enableMfa(secret: string, code: string, tempToken?: string): Promise<AuthData>
+  flowOptions(): Promise<FlowOptions>
+  /** Runs the identifier `method` with its input (`email`, `password`, `provider`, ...). */
+  flowStart(method: string, input?: Record<string, unknown>): Promise<FlowAnswer>
+  /** Answers the current stage with `method`; `action: 'enrol'` starts an enrolment instead. */
+  flowStep(method: string, input?: Record<string, unknown>, action?: 'enrol'): Promise<FlowAnswer>
+  /** Sends a code again, within the backend's ceilings. */
+  flowChallenge(method: string, input?: Record<string, unknown>): Promise<FlowPending>
+  /** Ends the flow in progress, if any. Never fails. */
+  flowCancel(): Promise<void>
+  /** Account management: need a complete session. */
+  setupMfa(): Promise<MfaSetup>
+  enableMfa(secret: string, code: string): Promise<unknown>
   disableMfa(): Promise<unknown>
   changePassword(
     email: string,
@@ -77,16 +136,17 @@ export function createVolcanicAuthClient(opts: VolcanicAuthClientOptions): AuthC
 
   interface CallOptions {
     body?: unknown
-    bearer?: string
     method?: string
-    /** Send no Authorization header whatever the store holds (the renewal itself). */
+    /** Send no Authorization header whatever the store holds (the renewal, the login flow). */
     anonymous?: boolean
     headers?: Record<string, string>
     /**
      * Try one renewal on a 401 before failing. Off for the calls whose 401 is the answer itself:
-     * the login and its MFA steps, the renewal, the logout, the public password flows.
+     * the login flow, the renewal, the logout, the public password flows.
      */
     renewable?: boolean
+    /** Hand the status back with the body: a flow answers 200 and 202 with different bodies. */
+    withStatus?: boolean
   }
 
   async function call(path: string | undefined, opts: CallOptions = {}, renewed = false): Promise<any> {
@@ -95,13 +155,13 @@ export function createVolcanicAuthClient(opts: VolcanicAuthClientOptions): AuthC
       // refused here rather than sent to `${apiUrl}undefined`.
       throw Object.assign(new Error('Not available on this plane'), { code: 'ENDPOINT_NOT_AVAILABLE' })
     }
-    const { body, bearer, method = 'POST', anonymous = false, renewable = false } = opts
+    const { body, method = 'POST', anonymous = false, renewable = false } = opts
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(getContextHeaders?.() ?? {}),
       ...opts.headers
     }
-    const token = anonymous ? undefined : (bearer ?? (authMode === 'bearer' ? tokenStore.get() : undefined))
+    const token = anonymous || authMode !== 'bearer' ? undefined : tokenStore.get()
     if (token) headers.Authorization = `Bearer ${token}`
 
     const res = await fetch(`${apiUrl}${path}`, {
@@ -128,10 +188,37 @@ export function createVolcanicAuthClient(opts: VolcanicAuthClientOptions): AuthC
       throw Object.assign(new Error(message), {
         status: res.status,
         statusCode: res.status,
-        code: typeof data?.code === 'string' ? data.code : undefined
+        code: typeof data?.code === 'string' ? data.code : undefined,
+        // Attempts left after a wrong code, and when a refused send may be asked again.
+        remaining: typeof data?.remaining === 'number' ? data.remaining : undefined,
+        retryAt: typeof data?.retryAt === 'string' ? data.retryAt : undefined
       })
     }
-    return data
+    return opts.withStatus ? { status: res.status, data } : data
+  }
+
+  // The flow credential travels in the body in bearer mode, never in `Authorization`: that header
+  // names a session, and the backend reads it to resolve the tenant. It is sent whenever one is
+  // held and stored whenever an answer carries one, whatever the configured mode, because before a
+  // manifest the mode is a guess and a cookie deployment answers `flow: null`.
+  //
+  // Anonymous, all of it: a stored bearer token is at best stale and at worst from the other
+  // plane, and the backend refuses a control login that carries a tenant token (403
+  // SCOPE_MISMATCH), which is the very session a console that switches plane is replacing.
+  async function flowCall(path: string | undefined, body: Record<string, unknown>): Promise<FlowAnswer> {
+    const flow = tokenStore.getFlow()
+    try {
+      const { status, data } = await call(path, { body: flow ? { ...body, flow } : body, anonymous: true, withStatus: true })
+      if (status === 202) {
+        if (typeof data?.flow === 'string') tokenStore.setFlow(data.flow)
+        return { pending: { expiresAt: data.expiresAt, stage: data.stage } }
+      }
+      tokenStore.setFlow(undefined)
+      return { session: data }
+    } catch (e: any) {
+      if (FLOW_ENDING_CODES.has(e?.code)) tokenStore.setFlow(undefined)
+      throw e
+    }
   }
 
   // One renewal at a time: a screen that fires ten requests with an expired token must not
@@ -170,17 +257,25 @@ export function createVolcanicAuthClient(opts: VolcanicAuthClientOptions): AuthC
   }
 
   return {
-    // Anonymous: a stored bearer token is at best stale and at worst from the other plane, and
-    // the backend refuses a control login that carries a tenant token (403 SCOPE_MISMATCH),
-    // which is the very session a console that switches plane is replacing.
-    login: (email, password) => call(ep.login, { body: { email, password }, anonymous: true }),
-    // The pre-auth token travels in the header for the tenant plane and in the body for the
-    // control plane, in bearer mode; in cookie mode it is a cookie and `tempToken` is undefined.
-    verifyMfa: (code, tempToken) =>
-      call(ep.mfaVerify, { body: { token: code, tempToken }, bearer: tempToken }),
-    setupMfa: (tempToken) => call(ep.mfaSetup, { body: {}, bearer: tempToken }),
-    enableMfa: (secret, code, tempToken) =>
-      call(ep.mfaEnable, { body: { secret, token: code }, bearer: tempToken }),
+    flowOptions: () => call(ep.flowOptions, { method: 'GET', anonymous: true }),
+    flowStart: (method, input = {}) => {
+      // A new login replaces whatever flow the tab still held.
+      tokenStore.setFlow(undefined)
+      return flowCall(ep.flowStart, { ...input, method })
+    },
+    flowStep: (method, input = {}, action) => flowCall(ep.flowStep, { ...input, method, ...(action ? { action } : {}) }),
+    flowChallenge: async (method, input = {}) => {
+      const answer = await flowCall(ep.flowChallenge, { ...input, method })
+      if (!answer.pending) throw new Error('A challenge answered with a session')
+      return answer.pending
+    },
+    flowCancel: async () => {
+      const flow = tokenStore.getFlow()
+      tokenStore.setFlow(undefined)
+      await call(ep.flowCancel, { body: flow ? { flow } : {}, anonymous: true }).catch(() => undefined)
+    },
+    setupMfa: () => call(ep.mfaSetup, { body: {}, renewable: true }),
+    enableMfa: (secret, code) => call(ep.mfaEnable, { body: { secret, token: code }, renewable: true }),
     disableMfa: () => call(ep.mfaDisable, { body: {}, renewable: true }),
     changePassword: (email, oldPassword, newPassword1, newPassword2) =>
       call(ep.changePassword, {

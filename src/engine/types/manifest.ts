@@ -95,8 +95,14 @@ export interface Manifest {
      * platform's (`control`). Absent in manifests from backends that predate it.
      */
     plane?: 'tenant' | 'control'
+    /**
+     * The auth routes of the plane. A login is the flow (`flowOptions`, `flowStart`, `flowStep`,
+     * `flowChallenge`, `flowCancel`): there is no login route and no second-factor route.
+     */
     endpoints: {
-      login: string
+      flowOptions: string
+      flowStart: string
+      flowStep: string
       refresh: string
       logout: string
       [key: string]: string

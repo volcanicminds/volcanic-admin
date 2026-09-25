@@ -1,15 +1,14 @@
 /**
- * Volcanic auth provider — drives the native /auth flow through an AuthClient.
- * The login action is multi-step to support MFA:
- *   - { email, password }            → credentials; may return mfaRequired/mfaSetupRequired
- *   - { mfaStep: 'verify', code }     → TOTP verify with the stored temp token
- *   - { mfaStep: 'enable', secret, code } → enable MFA during a forced-setup login
- * On the MFA-pending branch login resolves with success:true (no redirect) and
- * the flags, so the LoginView can render the next step.
+ * Volcanic auth provider: drives the login flow of the backend through an AuthClient.
+ * The login action is one request of the flow:
+ *   - { flow: 'start', method, ...input }            runs an identifier (`password`, `email-otp`, `oidc`)
+ *   - { flow: 'step', method, action?, ...input }    answers the stage owed next
+ * A request that ends in the session resolves with a redirect; one that ends in another stage
+ * resolves with success:true, no redirect and `pending`, so the LoginView can render that stage.
  */
 import type { AuthProvider } from '@refinedev/core'
 import type { AuthMode } from './data.js'
-import type { AuthClient, AuthData } from '../auth/client.js'
+import type { AuthClient, AuthData, FlowAnswer } from '../auth/client.js'
 import { tokenStore } from '../auth/tokenStore.js'
 
 export interface VolcanicAuthOptions {
@@ -61,43 +60,28 @@ export function createVolcanicAuthProvider({
   return {
     login: async (params: any) => {
       try {
-        if (params?.mfaStep === 'verify') {
-          const data = await client.verifyMfa(params.code, tokenStore.getTempMfa())
-          storeAuth(data)
-          tokenStore.setTempMfa(undefined)
-          return { success: true, redirectTo: '/' }
-        }
-        if (params?.mfaStep === 'enable') {
-          const data = await client.enableMfa(params.secret, params.code, tokenStore.getTempMfa())
-          storeAuth(data)
-          tokenStore.setTempMfa(undefined)
-          return { success: true, redirectTo: '/' }
-        }
-
-        const res = await client.login(params.email ?? params.username, params.password)
-        if (res?.mfaRequired || res?.mfaSetupRequired) {
-          tokenStore.setTempMfa(res.tempToken)
-          return {
-            success: true,
-            mfaRequired: Boolean(res.mfaRequired),
-            mfaSetupRequired: Boolean(res.mfaSetupRequired)
-          }
-        }
-        storeAuth(res)
-        return { success: true, redirectTo: '/' }
+        const { flow, method, action, redirectTo = '/', ...input } = params ?? {}
+        const answer: FlowAnswer =
+          flow === 'step' ? await client.flowStep(method, input, action) : await client.flowStart(method, input)
+        if (answer.pending) return { success: true, pending: answer.pending }
+        storeAuth(answer.session)
+        return { success: true, redirectTo }
       } catch (e: any) {
         // The backend answers every pre-verification failure with one code
         // (`AUTH_INVALID_CREDENTIALS`), on purpose: distinct messages told anyone who asked
-        // whether an address had an account here. The one code worth acting on is
-        // `PASSWORD_TO_BE_CHANGED`, which arrives only after the password verified, so it is
-        // carried through for a login screen that wants to offer the reset directly.
+        // whether an address had an account here. The code is carried through because a login
+        // screen acts on it: `PASSWORD_TO_BE_CHANGED`, which arrives only after the password
+        // verified, offers the reset; a code that ends the flow goes back to the first step; and
+        // `remaining` and `retryAt` say how many attempts are left and when a send may be asked.
         return {
           success: false,
           error: {
             name: 'LoginError',
             message: e?.message ?? 'Login failed',
             statusCode: e?.statusCode ?? e?.status,
-            code: e?.code
+            code: e?.code,
+            remaining: e?.remaining,
+            retryAt: e?.retryAt
           }
         }
       }

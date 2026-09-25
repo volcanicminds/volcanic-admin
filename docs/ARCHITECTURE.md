@@ -68,7 +68,7 @@ interface Manifest {
   version: 2
   generatedAt: string
   i18n: { defaultLocale: string; locales: string[] }
-  auth: { mode: 'cookie' | 'bearer'; endpoints: { login: string; refresh: string; logout: string; [k: string]: string } }
+  auth: { mode: 'cookie' | 'bearer'; endpoints: { flowOptions: string; flowStart: string; flowStep: string; refresh: string; logout: string; [k: string]: string } }
   tenancy: { mode: 'single' | 'multi'; switchable?: boolean; header?: string; listEndpoint?: string }
   groups: GroupSpec[]
   enums: Record<string, EnumOption[]>
@@ -383,7 +383,7 @@ shadcn → the UI is replaceable.
   ├─ engine/   (headless)
   │   ├─ manifest interpreter   → manifest → resource model → <Resource> Refine
   │   ├─ dataProvider           → Refine operations → REST + Magic Query (field:op=value, _sort, _page/_pageSize) + v-* header
-  │   ├─ authProvider           → /auth (login/refresh/logout), AUTH_MODE BEARER|COOKIE
+  │   ├─ authProvider           → /auth (login flow/refresh/logout), AUTH_MODE BEARER|COOKIE
   │   ├─ accessControlProvider  → capabilities[].roles × user roles → hides/disables
   │   ├─ tenantProvider         → tenant switch + context header (active only if tenancy.mode='multi')
   │   └─ override registry      → componentId → custom component

@@ -172,8 +172,8 @@ export interface VolcanicAdminProps {
    */
   apiBasePath?: string
   /**
-   * Auth endpoints that win over `manifest.auth.endpoints`, key by key (`login`, `refresh`,
-   * `logout`, `me`, `mfaVerify`, …). Unset keys follow the manifest, then the client defaults.
+   * Auth endpoints that win over `manifest.auth.endpoints`, key by key (`flowStart`, `flowStep`,
+   * `refresh`, `logout`, `me`, …). Unset keys follow the manifest, then the client defaults.
    */
   authEndpoints?: Partial<Record<string, string>>
   /** Project overrides merged onto the generated/fetched manifest by (resource, field). */
@@ -624,6 +624,9 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
                 authMode={bootAuthMode}
                 plane={plane}
                 branding={effective.branding}
+                dictionaries={effective.dictionaries ?? {}}
+                defaultLocale={effective.defaultLocale ?? BOOT_LOCALE}
+                locales={effective.locales ?? [BOOT_LOCALE]}
                 tenancy={bootTenancy(plane, error, props.tenantHeader)}
                 fixedTenant={plane === 'tenant' ? props.tenant : undefined}
                 onAuthenticated={retry}
@@ -695,6 +698,9 @@ function runtimeTenancy(tenancy: Manifest['tenancy'], plane: Plane): Manifest['t
   return plane === 'control' ? { mode: tenancy.mode, switchable: false } : tenancy
 }
 
+/** The language of the login a console draws before a manifest names one. */
+const BOOT_LOCALE = 'en'
+
 function ManifestFailure({ message }: { message: string }) {
   return (
     <div style={{ padding: 24, fontFamily: 'system-ui', color: '#b91c1c' }}>
@@ -714,6 +720,9 @@ function BootstrapLogin({
   authMode,
   plane,
   branding,
+  dictionaries,
+  defaultLocale,
+  locales,
   tenancy,
   fixedTenant,
   onAuthenticated,
@@ -723,6 +732,9 @@ function BootstrapLogin({
   authMode: AuthMode
   plane: Plane
   branding?: AdminBranding
+  dictionaries: Dictionaries
+  defaultLocale: string
+  locales: string[]
   tenancy: Manifest['tenancy']
   fixedTenant?: string
   onAuthenticated: () => void
@@ -739,11 +751,10 @@ function BootstrapLogin({
       ...base,
       login: async (params: unknown) => {
         const result = (await base.login(params)) as Awaited<ReturnType<AuthProvider['login']>> & {
-          mfaRequired?: boolean
-          mfaSetupRequired?: boolean
+          pending?: unknown
         }
-        const complete = result.success && !result.mfaRequired && !result.mfaSetupRequired
-        if (!complete) return result
+        // A stage still owed is not a session: the login screen draws it.
+        if (!result.success || result.pending) return result
         onAuthenticated()
         // No navigation: the screens it would lead to exist once the manifest does.
         return { success: true }
@@ -753,25 +764,28 @@ function BootstrapLogin({
     }
   }, [client, authMode, onAuthenticated, onModeDetected])
 
+  // No manifest names a language yet: the console's own, and the project's dictionaries on top.
   return (
-    <AuthClientProvider client={client}>
-      <TenantProvider tenancy={tenancy} fixedTenant={fixedTenant}>
-        <AdminConfigProvider branding={branding} plane={plane}>
-          <Refine
-            authProvider={authProvider}
-            routerProvider={routerProvider}
-            notificationProvider={notificationProvider}
-            options={{ disableTelemetry: true }}
-          >
-            <Routes>
-              {plane === 'tenant' && <Route path="/forgot-password" element={<ForgotPasswordView />} />}
-              {plane === 'tenant' && <Route path="/reset-password" element={<ResetPasswordView />} />}
-              <Route path="*" element={<LoginView />} />
-            </Routes>
-            <Toaster richColors closeButton position="bottom-right" />
-          </Refine>
-        </AdminConfigProvider>
-      </TenantProvider>
-    </AuthClientProvider>
+    <I18nProvider dictionaries={dictionaries} defaultLocale={defaultLocale} locales={locales}>
+      <AuthClientProvider client={client}>
+        <TenantProvider tenancy={tenancy} fixedTenant={fixedTenant}>
+          <AdminConfigProvider branding={branding} plane={plane}>
+            <Refine
+              authProvider={authProvider}
+              routerProvider={routerProvider}
+              notificationProvider={notificationProvider}
+              options={{ disableTelemetry: true }}
+            >
+              <Routes>
+                {plane === 'tenant' && <Route path="/forgot-password" element={<ForgotPasswordView />} />}
+                {plane === 'tenant' && <Route path="/reset-password" element={<ResetPasswordView />} />}
+                <Route path="*" element={<LoginView />} />
+              </Routes>
+              <Toaster richColors closeButton position="bottom-right" />
+            </Refine>
+          </AdminConfigProvider>
+        </TenantProvider>
+      </AuthClientProvider>
+    </I18nProvider>
   )
 }

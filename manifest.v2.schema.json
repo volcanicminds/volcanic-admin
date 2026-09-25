@@ -27,10 +27,12 @@
         "plane": { "enum": ["tenant", "control"], "description": "Il piano della console che il manifest descrive (T-10.14)." },
         "endpoints": {
           "type": "object",
-          "required": ["login", "refresh", "logout"],
+          "required": ["flowOptions", "flowStart", "flowStep", "refresh", "logout"],
           "additionalProperties": { "type": "string" },
           "properties": {
-            "login": { "type": "string" },
+            "flowOptions": { "type": "string" },
+            "flowStart": { "type": "string" },
+            "flowStep": { "type": "string" },
             "refresh": { "type": "string" },
             "logout": { "type": "string" }
           }

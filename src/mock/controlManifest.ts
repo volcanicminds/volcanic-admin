@@ -5,13 +5,15 @@
  * the real manifest generator, so this demo renders what the framework emits: the operators as
  * a resource under a two-segment prefix (T-10.20), and the two tied calls of a container
  * destruction with the body the second one asks for (T-10.21). Regenerate it the same way when
- * those routes change, rather than editing it here.
+ * those routes change, rather than editing it here. One field is set after the dump: `auth.mode`
+ * is `bearer` whatever the dumped deployment ran, because the mock auth client holds its session
+ * as a token.
  */
 import type { Manifest } from "@/engine"
 
 export const mockControlManifest: Manifest = {
   "version": 2,
-  "generatedAt": "2026-09-16T00:00:00.000Z",
+  "generatedAt": "2026-09-25T12:16:43.497Z",
   "i18n": {
     "defaultLocale": "en",
     "locales": [
@@ -22,13 +24,17 @@ export const mockControlManifest: Manifest = {
     "mode": "bearer",
     "plane": "control",
     "endpoints": {
-      "login": "/system/auth/login",
+      "flowOptions": "/system/auth/flow/options",
+      "flowStart": "/system/auth/flow/start",
+      "flowStep": "/system/auth/flow/step",
+      "flowChallenge": "/system/auth/flow/challenge",
+      "flowCancel": "/system/auth/flow/cancel",
       "refresh": "/system/auth/refresh-token",
       "logout": "/system/auth/logout",
+      "sessions": "/system/auth/sessions",
       "me": "/system/auth/me",
       "mfaSetup": "/system/auth/mfa/setup",
-      "mfaEnable": "/system/auth/mfa/enable",
-      "mfaVerify": "/system/auth/mfa/verify"
+      "mfaEnable": "/system/auth/mfa/enable"
     }
   },
   "tenancy": {
@@ -43,169 +49,6 @@ export const mockControlManifest: Manifest = {
   ],
   "enums": {},
   "resources": [
-    {
-      "name": "systemUser",
-      "path": "system/users",
-      "label": {
-        "singular": "res.systemUser.singular",
-        "plural": "res.systemUser.plural"
-      },
-      "capabilities": [
-        {
-          "name": "list",
-          "kind": "list",
-          "method": "GET",
-          "path": "/system/users",
-          "roles": [
-            "system:admin"
-          ]
-        },
-        {
-          "name": "read",
-          "kind": "read",
-          "method": "GET",
-          "path": "/system/users/:id",
-          "roles": [
-            "system:admin"
-          ]
-        },
-        {
-          "name": "create",
-          "kind": "create",
-          "method": "POST",
-          "path": "/system/users",
-          "roles": [
-            "system:admin"
-          ]
-        },
-        {
-          "name": "update",
-          "kind": "update",
-          "method": "PUT",
-          "path": "/system/users/:id",
-          "roles": [
-            "system:admin"
-          ]
-        },
-        {
-          "name": "delete",
-          "kind": "delete",
-          "method": "DELETE",
-          "path": "/system/users/:id",
-          "roles": [
-            "system:admin"
-          ],
-          "target": [
-            "row"
-          ]
-        },
-        {
-          "name": "block",
-          "kind": "action",
-          "method": "POST",
-          "path": "/system/users/:id/block",
-          "roles": [
-            "system:admin"
-          ],
-          "label": "action.systemUser.block",
-          "target": [
-            "row"
-          ],
-          "input": {
-            "fields": [
-              {
-                "name": "reason",
-                "type": "string",
-                "widget": "textarea"
-              }
-            ]
-          }
-        },
-        {
-          "name": "unblock",
-          "kind": "action",
-          "method": "POST",
-          "path": "/system/users/:id/unblock",
-          "roles": [
-            "system:admin"
-          ],
-          "label": "action.systemUser.unblock",
-          "target": [
-            "row"
-          ]
-        },
-        {
-          "name": "reset",
-          "kind": "action",
-          "method": "POST",
-          "path": "/system/users/:id/mfa/reset",
-          "roles": [
-            "system:admin"
-          ],
-          "label": "action.systemUser.reset",
-          "target": [
-            "row"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "type": "string",
-          "readOnly": true
-        },
-        {
-          "name": "email",
-          "type": "string"
-        },
-        {
-          "name": "roles",
-          "type": "json"
-        },
-        {
-          "name": "blocked",
-          "type": "boolean",
-          "readOnly": true
-        },
-        {
-          "name": "blockedReason",
-          "type": "string",
-          "readOnly": true
-        },
-        {
-          "name": "blockedAt",
-          "type": "string",
-          "readOnly": true
-        },
-        {
-          "name": "mfaEnabled",
-          "type": "boolean",
-          "readOnly": true
-        },
-        {
-          "name": "version",
-          "type": "number",
-          "readOnly": true
-        },
-        {
-          "name": "createdAt",
-          "type": "string",
-          "readOnly": true
-        },
-        {
-          "name": "updatedAt",
-          "type": "string",
-          "readOnly": true
-        },
-        {
-          "name": "password",
-          "type": "string",
-          "writeOnly": true
-        }
-      ],
-      "group": "system",
-      "titleField": "email"
-    },
     {
       "name": "tenant",
       "path": "tenants",
@@ -407,6 +250,119 @@ export const mockControlManifest: Manifest = {
           "target": [
             "row"
           ]
+        },
+        {
+          "name": "identity-providers",
+          "kind": "action",
+          "method": "GET",
+          "path": "/tenants/:id/identity-providers",
+          "roles": [
+            "system:operator",
+            "system:admin"
+          ],
+          "label": "action.tenant.identity-providers",
+          "target": [
+            "row"
+          ]
+        },
+        {
+          "name": "identity-providers_post",
+          "kind": "action",
+          "method": "POST",
+          "path": "/tenants/:id/identity-providers",
+          "roles": [
+            "system:operator",
+            "system:admin"
+          ],
+          "label": "action.tenant.identity-providers_post",
+          "target": [
+            "row"
+          ],
+          "input": {
+            "fields": [
+              {
+                "name": "key",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "type",
+                "type": "enum",
+                "required": true
+              },
+              {
+                "name": "status",
+                "type": "enum"
+              },
+              {
+                "name": "config",
+                "type": "json",
+                "required": true
+              },
+              {
+                "name": "clientSecret",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "identity-providers_get",
+          "kind": "action",
+          "method": "GET",
+          "path": "/tenants/:id/identity-providers/:key",
+          "roles": [
+            "system:operator",
+            "system:admin"
+          ],
+          "label": "action.tenant.identity-providers_get",
+          "target": [
+            "row"
+          ]
+        },
+        {
+          "name": "identity-providers_put",
+          "kind": "action",
+          "method": "PUT",
+          "path": "/tenants/:id/identity-providers/:key",
+          "roles": [
+            "system:operator",
+            "system:admin"
+          ],
+          "label": "action.tenant.identity-providers_put",
+          "target": [
+            "row"
+          ],
+          "input": {
+            "fields": [
+              {
+                "name": "status",
+                "type": "enum"
+              },
+              {
+                "name": "config",
+                "type": "json"
+              },
+              {
+                "name": "clientSecret",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "identity-providers_delete",
+          "kind": "action",
+          "method": "DELETE",
+          "path": "/tenants/:id/identity-providers/:key",
+          "roles": [
+            "system:operator",
+            "system:admin"
+          ],
+          "label": "action.tenant.identity-providers_delete",
+          "target": [
+            "row"
+          ]
         }
       ],
       "fields": [
@@ -521,34 +477,438 @@ export const mockControlManifest: Manifest = {
       ],
       "group": "system",
       "titleField": "name"
+    },
+    {
+      "name": "systemAccessLog",
+      "path": "system/access-log",
+      "label": {
+        "singular": "res.systemAccessLog.singular",
+        "plural": "res.systemAccessLog.plural"
+      },
+      "capabilities": [
+        {
+          "name": "list",
+          "kind": "list",
+          "method": "GET",
+          "path": "/system/access-log",
+          "roles": [
+            "system:auditor",
+            "system:admin"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "readOnly": true
+        },
+        {
+          "name": "occurredAt",
+          "type": "datetime",
+          "readOnly": true
+        },
+        {
+          "name": "scope",
+          "type": "enum",
+          "enum": [
+            {
+              "value": "tenant",
+              "label": "enum.scope.tenant"
+            },
+            {
+              "value": "control",
+              "label": "enum.scope.control"
+            }
+          ],
+          "readOnly": true
+        },
+        {
+          "name": "event",
+          "type": "string",
+          "readOnly": true
+        },
+        {
+          "name": "outcome",
+          "type": "enum",
+          "enum": [
+            {
+              "value": "success",
+              "label": "enum.outcome.success"
+            },
+            {
+              "value": "failure",
+              "label": "enum.outcome.failure"
+            }
+          ],
+          "readOnly": true
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "readOnly": true
+        },
+        {
+          "name": "subjectId",
+          "type": "string",
+          "readOnly": true
+        },
+        {
+          "name": "methods",
+          "type": "json",
+          "readOnly": true
+        },
+        {
+          "name": "provider",
+          "type": "string",
+          "readOnly": true
+        },
+        {
+          "name": "flowId",
+          "type": "string",
+          "readOnly": true
+        },
+        {
+          "name": "sid",
+          "type": "string",
+          "readOnly": true
+        },
+        {
+          "name": "ip",
+          "type": "string",
+          "readOnly": true
+        }
+      ],
+      "group": "system",
+      "titleField": "event",
+      "subtitleField": "occurredAt"
+    },
+    {
+      "name": "systemUser",
+      "path": "system/users",
+      "label": {
+        "singular": "res.systemUser.singular",
+        "plural": "res.systemUser.plural"
+      },
+      "capabilities": [
+        {
+          "name": "list",
+          "kind": "list",
+          "method": "GET",
+          "path": "/system/users",
+          "roles": [
+            "system:admin"
+          ]
+        },
+        {
+          "name": "read",
+          "kind": "read",
+          "method": "GET",
+          "path": "/system/users/:id",
+          "roles": [
+            "system:admin"
+          ]
+        },
+        {
+          "name": "create",
+          "kind": "create",
+          "method": "POST",
+          "path": "/system/users",
+          "roles": [
+            "system:admin"
+          ]
+        },
+        {
+          "name": "update",
+          "kind": "update",
+          "method": "PUT",
+          "path": "/system/users/:id",
+          "roles": [
+            "system:admin"
+          ]
+        },
+        {
+          "name": "delete",
+          "kind": "delete",
+          "method": "DELETE",
+          "path": "/system/users/:id",
+          "roles": [
+            "system:admin"
+          ],
+          "target": [
+            "row"
+          ]
+        },
+        {
+          "name": "block",
+          "kind": "action",
+          "method": "POST",
+          "path": "/system/users/:id/block",
+          "roles": [
+            "system:admin"
+          ],
+          "label": "action.systemUser.block",
+          "target": [
+            "row"
+          ],
+          "input": {
+            "fields": [
+              {
+                "name": "reason",
+                "type": "string",
+                "widget": "textarea"
+              }
+            ]
+          }
+        },
+        {
+          "name": "unblock",
+          "kind": "action",
+          "method": "POST",
+          "path": "/system/users/:id/unblock",
+          "roles": [
+            "system:admin"
+          ],
+          "label": "action.systemUser.unblock",
+          "target": [
+            "row"
+          ]
+        },
+        {
+          "name": "reset",
+          "kind": "action",
+          "method": "POST",
+          "path": "/system/users/:id/mfa/reset",
+          "roles": [
+            "system:admin"
+          ],
+          "label": "action.systemUser.reset",
+          "target": [
+            "row"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "readOnly": true
+        },
+        {
+          "name": "email",
+          "type": "string"
+        },
+        {
+          "name": "roles",
+          "type": "json"
+        },
+        {
+          "name": "blocked",
+          "type": "boolean",
+          "readOnly": true
+        },
+        {
+          "name": "blockedReason",
+          "type": "string",
+          "readOnly": true
+        },
+        {
+          "name": "blockedAt",
+          "type": "string",
+          "readOnly": true
+        },
+        {
+          "name": "mfaEnabled",
+          "type": "boolean",
+          "readOnly": true
+        },
+        {
+          "name": "version",
+          "type": "number",
+          "readOnly": true
+        },
+        {
+          "name": "createdAt",
+          "type": "string",
+          "readOnly": true
+        },
+        {
+          "name": "updatedAt",
+          "type": "string",
+          "readOnly": true
+        },
+        {
+          "name": "password",
+          "type": "string",
+          "writeOnly": true
+        }
+      ],
+      "group": "system",
+      "titleField": "email"
+    },
+    {
+      "name": "health",
+      "path": "health",
+      "label": {
+        "singular": "res.health.singular",
+        "plural": "res.health.plural"
+      },
+      "capabilities": [
+        {
+          "name": "list",
+          "kind": "list",
+          "method": "GET",
+          "path": "/health",
+          "roles": [
+            "public",
+            "system:admin"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "ok",
+          "type": "boolean",
+          "readOnly": true
+        }
+      ]
     }
   ],
   "capabilities": [
     {
-      "name": "login",
+      "name": "options",
       "kind": "action",
-      "method": "POST",
-      "path": "/system/auth/login",
+      "method": "GET",
+      "path": "/system/auth/flow/options",
       "roles": [
         "public",
         "system:admin"
       ],
-      "label": "action.system.login",
+      "label": "action.system.options",
+      "target": [
+        "collection"
+      ]
+    },
+    {
+      "name": "start",
+      "kind": "action",
+      "method": "POST",
+      "path": "/system/auth/flow/start",
+      "roles": [
+        "public",
+        "system:admin"
+      ],
+      "label": "action.system.start",
       "target": [
         "collection"
       ],
       "input": {
         "fields": [
           {
-            "name": "email",
+            "name": "method",
+            "type": "string",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "step",
+      "kind": "action",
+      "method": "POST",
+      "path": "/system/auth/flow/step",
+      "roles": [
+        "public",
+        "system:admin"
+      ],
+      "label": "action.system.step",
+      "target": [
+        "collection"
+      ],
+      "input": {
+        "fields": [
+          {
+            "name": "method",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "flow",
             "type": "string"
           },
           {
-            "name": "password",
+            "name": "action",
+            "type": "enum"
+          },
+          {
+            "name": "code",
             "type": "string"
           }
         ]
       }
+    },
+    {
+      "name": "challenge",
+      "kind": "action",
+      "method": "POST",
+      "path": "/system/auth/flow/challenge",
+      "roles": [
+        "public",
+        "system:admin"
+      ],
+      "label": "action.system.challenge",
+      "target": [
+        "collection"
+      ],
+      "input": {
+        "fields": [
+          {
+            "name": "method",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "flow",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "cancel",
+      "kind": "action",
+      "method": "POST",
+      "path": "/system/auth/flow/cancel",
+      "roles": [
+        "public",
+        "system:admin"
+      ],
+      "label": "action.system.cancel",
+      "target": [
+        "collection"
+      ],
+      "input": {
+        "fields": [
+          {
+            "name": "flow",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "return",
+      "kind": "action",
+      "method": "GET",
+      "path": "/system/auth/flow/return/:method",
+      "roles": [
+        "public",
+        "system:admin"
+      ],
+      "label": "action.system.return",
+      "target": [
+        "row"
+      ]
     },
     {
       "name": "logout",
@@ -588,6 +948,91 @@ export const mockControlManifest: Manifest = {
         "system:admin"
       ],
       "label": "action.system.me",
+      "target": [
+        "collection"
+      ]
+    },
+    {
+      "name": "sessions",
+      "kind": "action",
+      "method": "GET",
+      "path": "/system/auth/sessions",
+      "roles": [
+        "public",
+        "system:admin"
+      ],
+      "label": "action.system.sessions",
+      "target": [
+        "collection"
+      ]
+    },
+    {
+      "name": "sessions_delete",
+      "kind": "action",
+      "method": "DELETE",
+      "path": "/system/auth/sessions/:id",
+      "roles": [
+        "public",
+        "system:admin"
+      ],
+      "label": "action.system.sessions_delete",
+      "target": [
+        "row"
+      ]
+    },
+    {
+      "name": "account-creation",
+      "kind": "action",
+      "method": "GET",
+      "path": "/system/account-creation",
+      "roles": [
+        "system:operator",
+        "system:auditor",
+        "system:admin"
+      ],
+      "label": "action.system.account-creation",
+      "target": [
+        "collection"
+      ]
+    },
+    {
+      "name": "account-creation_put",
+      "kind": "action",
+      "method": "PUT",
+      "path": "/system/account-creation",
+      "roles": [
+        "system:operator",
+        "system:admin"
+      ],
+      "label": "action.system.account-creation_put",
+      "target": [
+        "collection"
+      ],
+      "input": {
+        "fields": [
+          {
+            "name": "allowed",
+            "type": "json",
+            "required": true
+          },
+          {
+            "name": "default",
+            "type": "enum",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "account-creation_delete",
+      "kind": "action",
+      "method": "DELETE",
+      "path": "/system/account-creation",
+      "roles": [
+        "system:operator",
+        "system:admin"
+      ],
+      "label": "action.system.account-creation_delete",
       "target": [
         "collection"
       ]
@@ -636,15 +1081,15 @@ export const mockControlManifest: Manifest = {
       ]
     },
     {
-      "name": "verify",
+      "name": "control",
       "kind": "action",
-      "method": "POST",
-      "path": "/system/auth/mfa/verify",
+      "method": "GET",
+      "path": "/probe/control",
       "roles": [
         "public",
         "system:admin"
       ],
-      "label": "action.system.verify",
+      "label": "action.probe.control",
       "target": [
         "collection"
       ]

@@ -386,10 +386,12 @@ entry's `widget`. The registry has three kinds: `widget`, `view`, `action`.
   response header.
 - **XLS** (`ListIO`, lazy `xlsx`): export current list to `.xlsx`; import = bulk edit (each row
   with an `id` updates that record). writeOnly fields are excluded.
-- **Auth + MFA** (`src/engine/auth/client.ts`): login may return an MFA-pending body
-  (`mfaRequired` / `mfaSetupRequired` + `tempToken`); the client then drives
-  `/auth/mfa/{setup,enable,verify,disable}` with the temp token until TOTP is verified. Token
-  transport is cookie (HttpOnly) or bearer per `authMode`; refresh/logout via manifest endpoints.
+- **Auth** (`src/engine/auth/client.ts`, `src/ui/views/LoginView.tsx`): the login is the backend's
+  flow (`{prefix}/flow/options|start|step|challenge|cancel`, prefix `/auth` or `/system/auth`). A 202
+  answers the stage owed next (TOTP, email code, forced TOTP enrolment, a provider redirect); a 200
+  is the session. The flow credential (`vf1.`) rides the body field `flow` in bearer mode (held in
+  sessionStorage) and an HttpOnly cookie in cookie mode; a provider return resumes with a step.
+  Token transport is cookie (HttpOnly) or bearer per `authMode`; refresh/logout via manifest endpoints.
 - **Multi-tenant**: `TenantProvider` + a tenant switcher; the selected tenant's headers
   (`tenantStore.headers()`) ride every data request.
 
