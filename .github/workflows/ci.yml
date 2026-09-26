@@ -13,6 +13,8 @@ jobs:
         with: { node-version-file: .nvmrc, cache: npm }
       - run: npm ci
       - run: npm run lint
+      # The bundled example against the schema: the contract a backend emits must stay describable.
+      - run: npm run validate:manifest
       # The dependencies a consumer installs. Dev-only advisories never reach a deployment;
       # a high one in production dependencies stops the build.
       - run: npm audit --omit=dev --audit-level=high

@@ -4,7 +4,16 @@
   "i18n": { "defaultLocale": "it", "locales": ["it", "en"] },
   "auth": {
     "mode": "bearer",
-    "endpoints": { "login": "/auth/login", "refresh": "/auth/refresh-token", "logout": "/auth/logout" }
+    "endpoints": {
+      "flowOptions": "/auth/flow/options",
+      "flowStart": "/auth/flow/start",
+      "flowStep": "/auth/flow/step",
+      "flowChallenge": "/auth/flow/challenge",
+      "flowCancel": "/auth/flow/cancel",
+      "refresh": "/auth/refresh-token",
+      "logout": "/auth/logout",
+      "sessions": "/auth/sessions"
+    }
   },
   "tenancy": { "mode": "single" },
   "groups": [{ "name": "catalog", "label": "group.catalog", "icon": "layers", "order": 10 }],
