@@ -37,6 +37,8 @@ const PHASE_ONE = 'destruction-request'
 interface Plan {
   token: string
   expiresAt?: string
+  /** The factor phase 2 takes: the TOTP, or the code phase 1 emailed to an operator without MFA. */
+  factor?: { method: 'totp' } | { method: 'email-otp'; destination: string }
   warning?: string
   preview?: { rowCounts?: Record<string, number> } & Record<string, unknown>
 }
@@ -165,7 +167,11 @@ export function TenantDestroy({ capability, record, model, t }: ActionComponentP
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="destroy-otp">{t('destroy.otp')}</Label>
+                <Label htmlFor="destroy-otp">
+                  {plan.factor?.method === 'email-otp'
+                    ? t('destroy.otp.email', { destination: plan.factor.destination })
+                    : t('destroy.otp')}
+                </Label>
                 <Input
                   id="destroy-otp"
                   autoComplete="one-time-code"

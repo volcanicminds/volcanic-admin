@@ -184,6 +184,7 @@ export const mockDataProvider: DataProvider = {
             requestId: `req-${tenant.id}`,
             token,
             expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+            factor: { method: 'totp' },
             preview: { rowCounts: { user: 42, token: 7, vehicle: 128, tracking: 3910 } },
             warning: 'Destroying a container does not remove it from backups taken before now.'
           } as any
