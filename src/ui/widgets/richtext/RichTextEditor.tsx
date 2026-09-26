@@ -8,10 +8,8 @@
  * bundle of apps that actually use rich text.
  */
 import { Fragment, useEffect, useRef } from 'react'
-import { useEditor, EditorContent, type Editor } from '@tiptap/react'
+import { useEditor, useEditorState, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import Link from '@tiptap/extension-link'
-import Underline from '@tiptap/extension-underline'
 import {
   Bold,
   Italic,
@@ -200,6 +198,21 @@ function Toolbar({ editor, actions }: { editor: Editor; actions: RichTextAction[
   const groups = GROUPS.map((g) => g.filter((id) => enabled.has(id) && ACTIONS[id])).filter(
     (g) => g.length > 0
   )
+  // The editor no longer re-renders its host on every transaction, so the button
+  // state is read through a selector: without it bold, headings and link would
+  // stay frozen at their first-render state.
+  const state = useEditorState({
+    editor,
+    selector: ({ editor: e }) =>
+      Object.fromEntries(
+        groups
+          .flat()
+          .map((id) => [
+            id,
+            { active: ACTIONS[id].isActive?.(e), disabled: ACTIONS[id].isDisabled?.(e) }
+          ])
+      )
+  })
   return (
     // Sticky against the editor box (the scroll container): with a long text the
     // body scrolls under the toolbar instead of carrying it away. The background
@@ -215,8 +228,8 @@ function Toolbar({ editor, actions }: { editor: Editor; actions: RichTextAction[
                 key={id}
                 icon={a.icon}
                 label={a.label}
-                active={a.isActive?.(editor)}
-                disabled={a.isDisabled?.(editor)}
+                active={state[id]?.active}
+                disabled={state[id]?.disabled}
                 onClick={() => a.run(editor)}
               />
             )
@@ -243,10 +256,14 @@ export default function RichTextEditor({ field, value, onChange, disabled, t }: 
   const editor = useEditor({
     editable: !disabled,
     immediatelyRender: false,
+    // StarterKit bundles Link and Underline. TrailingNode stays off: it appends an
+    // empty paragraph after a closing heading, list or quote, so the saved HTML
+    // would grow a `<p></p>` and such a record would read as edited on load.
     extensions: [
-      StarterKit,
-      Underline,
-      Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: 'noopener' } })
+      StarterKit.configure({
+        link: { openOnClick: false, autolink: true, HTMLAttributes: { rel: 'noopener' } },
+        trailingNode: false
+      })
     ],
     content: value || '',
     editorProps: {
@@ -275,7 +292,8 @@ export default function RichTextEditor({ field, value, onChange, disabled, t }: 
     if (!editor) return
     const incoming = value || ''
     if (incoming !== normalize(editor.getHTML())) {
-      editor.commands.setContent(incoming, false)
+      // Loading a value is not an edit: no update event, see onUpdate above.
+      editor.commands.setContent(incoming, { emitUpdate: false })
     }
   }, [value, editor])
 
