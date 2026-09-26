@@ -17,6 +17,7 @@ export const mockManifest: Manifest = {
     endpoints: {
       flowOptions: '/auth/flow/options',
       flowStart: '/auth/flow/start',
+      flowStepUp: '/auth/flow/step-up',
       flowStep: '/auth/flow/step',
       flowChallenge: '/auth/flow/challenge',
       flowCancel: '/auth/flow/cancel',

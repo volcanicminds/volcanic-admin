@@ -142,6 +142,12 @@ export const mockAuthClient: AuthClient = {
     stage = []
   },
 
+  // The mock never asks for a step-up; when one is started it answers as a login of the same person.
+  stepUp: async (method, input = {}) => {
+    if (input.email && input.email !== currentEmail) throw refusal('Invalid credentials', 'AUTH_INVALID_CREDENTIALS')
+    return mockAuthClient.flowStart(method, input)
+  },
+
   setupMfa: async () => mfaSetup(),
 
   enableMfa: async (_secret, code) => {

@@ -97,7 +97,8 @@ export interface Manifest {
     plane?: 'tenant' | 'control'
     /**
      * The auth routes of the plane. A login is the flow (`flowOptions`, `flowStart`, `flowStep`,
-     * `flowChallenge`, `flowCancel`): there is no login route and no second-factor route.
+     * `flowChallenge`, `flowCancel`, and `flowStepUp` for the step-up of a session already open):
+     * there is no login route and no second-factor route.
      */
     endpoints: {
       flowOptions: string

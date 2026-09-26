@@ -26,6 +26,7 @@ export const mockControlManifest: Manifest = {
     "endpoints": {
       "flowOptions": "/system/auth/flow/options",
       "flowStart": "/system/auth/flow/start",
+      "flowStepUp": "/system/auth/flow/step-up",
       "flowStep": "/system/auth/flow/step",
       "flowChallenge": "/system/auth/flow/challenge",
       "flowCancel": "/system/auth/flow/cancel",

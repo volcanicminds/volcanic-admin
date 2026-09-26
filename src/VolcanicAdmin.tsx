@@ -33,6 +33,7 @@ import {
   createVolcanicAuthClient,
   AuthClientProvider,
   createApiRequest,
+  createStepUpBroker,
   primeTenantStore,
   MANIFEST_PATH,
   tokenStore,
@@ -61,6 +62,7 @@ import {
   ForgotPasswordView,
   ResetPasswordView,
   AccountView,
+  StepUpDialog,
   resourceRouteElements,
   notificationProvider,
   Toaster,
@@ -235,6 +237,8 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
   // key is a string so that an inline `authEndpoints` object does not rebuild the client, and
   // with it the shared renewal, on every render.
   const endpointsKey = JSON.stringify({ ...manifest.auth?.endpoints, ...props.authEndpoints })
+  // One broker per console: a request refused with STEP_UP_REQUIRED waits on the dialog it opens.
+  const stepUp = useMemo(() => createStepUpBroker(), [])
   const authClient: AuthClient = useMemo(
     () =>
       props.authClient ??
@@ -243,9 +247,10 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
         authMode,
         plane,
         endpoints: JSON.parse(endpointsKey) as Record<string, string>,
-        getContextHeaders: () => tenantStore.headers()
+        getContextHeaders: () => tenantStore.headers(),
+        confirmIdentity: stepUp.confirm
       }),
-    [props.authClient, apiUrl, authMode, plane, endpointsKey]
+    [props.authClient, apiUrl, authMode, plane, endpointsKey, stepUp]
   )
 
   const authProvider: AuthProvider = useMemo(
@@ -263,9 +268,10 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
       resolvePath: (name) => pathByName.get(name) ?? name,
       getToken: () => tokenStore.get(),
       getContextHeaders: () => tenantStore.headers(),
-      renewSession: () => authClient.renew?.() ?? Promise.resolve(false)
+      renewSession: () => authClient.renew?.() ?? Promise.resolve(false),
+      confirmIdentity: stepUp.confirm
     })
-  }, [props.dataProvider, props.apiBasePath, model, apiUrl, authMode, authClient])
+  }, [props.dataProvider, props.apiBasePath, model, apiUrl, authMode, authClient, stepUp])
 
   const accessControlProvider = useMemo(() => createVolcanicAccessControlProvider(model), [model])
 
@@ -336,6 +342,7 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
                     element={
                       <Authenticated key="app" fallback={<CatchAllNavigate to="/login" />}>
                         <AdminLayout />
+                        <StepUpDialog broker={stepUp} />
                       </Authenticated>
                     }
                   >

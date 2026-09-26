@@ -34,6 +34,7 @@ export type { OptionGroup, Taxonomy, TagSuggestion } from './widgets/tags'
 
 export { ConfirmDialog } from './components/ConfirmDialog'
 export type { ConfirmDialogProps } from './components/ConfirmDialog'
+export { StepUpDialog } from './components/StepUpDialog'
 export { UnsavedChangesGuard } from './components/UnsavedChangesGuard'
 export { ImagePreviewDialog } from './components/ImagePreviewDialog'
 export type { ImagePreviewDialogProps } from './components/ImagePreviewDialog'

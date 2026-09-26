@@ -29,6 +29,8 @@ export { createVolcanicAuthProvider } from './providers/auth.js'
 export type { VolcanicAuthOptions } from './providers/auth.js'
 export { tokenStore } from './auth/tokenStore.js'
 export { createVolcanicAuthClient, FLOW_ENDING_CODES } from './auth/client.js'
+export { createStepUpBroker, adoptStepUp } from './auth/stepUp.js'
+export type { StepUpBroker, StepUpHandler } from './auth/stepUp.js'
 export type {
   AuthClient,
   AuthData,

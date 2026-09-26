@@ -4,7 +4,7 @@
  * (docs/AUTH_FLOW_V5.md of the backend): `flowStart` runs an identifier, then `flowStep` answers
  * each stage, until one of them answers with the session.
  */
-import type { AuthMode } from '../providers/http.js'
+import { stepUpRequired, type AuthMode } from '../providers/http.js'
 import { tokenStore } from './tokenStore.js'
 import { PLANE_ENDPOINTS, type Plane } from './endpoints.js'
 
@@ -80,6 +80,20 @@ export const FLOW_ENDING_CODES: ReadonlySet<string> = new Set([
   'ACCOUNT_PENDING_APPROVAL'
 ])
 
+/**
+ * A 401 that is a flow's own answer (a wrong password at the start of a step-up), not an access
+ * token that ran out: renewing and sending it again would spend a second attempt on the same
+ * wrong input.
+ */
+async function flowRefusal(res: Response): Promise<boolean> {
+  const body: any = await res
+    .clone()
+    .json()
+    .catch(() => undefined)
+  const code = typeof body?.code === 'string' ? body.code : ''
+  return FLOW_ENDING_CODES.has(code) || code.startsWith('FLOW_')
+}
+
 export interface AuthClient {
   flowOptions(): Promise<FlowOptions>
   /** Runs the identifier `method` with its input (`email`, `password`, `provider`, ...). */
@@ -90,6 +104,12 @@ export interface AuthClient {
   flowChallenge(method: string, input?: Record<string, unknown>): Promise<FlowPending>
   /** Ends the flow in progress, if any. Never fails. */
   flowCancel(): Promise<void>
+  /**
+   * Starts a step-up for the session already open: the same identifiers as `flowStart`, then
+   * `flowStep` until the end. The end is not a new session: it carries a new access token for the
+   * same one (`adoptStepUp`), and the refresh credential does not change.
+   */
+  stepUp(method: string, input?: Record<string, unknown>): Promise<FlowAnswer>
   /** Account management: need a complete session. */
   setupMfa(): Promise<MfaSetup>
   enableMfa(secret: string, code: string): Promise<unknown>
@@ -127,10 +147,15 @@ export interface VolcanicAuthClientOptions {
    * to know which container the refresh token belongs to.
    */
   getContextHeaders?: () => Record<string, string>
+  /**
+   * Called once when an authenticated call answers 403 `STEP_UP_REQUIRED`: when it resolves
+   * `true` the call is sent again. Without it the refusal reaches the caller as any other error.
+   */
+  confirmIdentity?: (maxAge?: number) => Promise<boolean>
 }
 
 export function createVolcanicAuthClient(opts: VolcanicAuthClientOptions): AuthClient {
-  const { apiUrl, authMode = 'cookie', getContextHeaders } = opts
+  const { apiUrl, authMode = 'cookie', getContextHeaders, confirmIdentity } = opts
   const ep: Record<string, string | undefined> = { ...PLANE_ENDPOINTS[opts.plane ?? 'tenant'], ...opts.endpoints }
   const credentials: RequestCredentials = authMode === 'cookie' ? 'include' : 'same-origin'
 
@@ -141,15 +166,25 @@ export function createVolcanicAuthClient(opts: VolcanicAuthClientOptions): AuthC
     anonymous?: boolean
     headers?: Record<string, string>
     /**
-     * Try one renewal on a 401 before failing. Off for the calls whose 401 is the answer itself:
-     * the login flow, the renewal, the logout, the public password flows.
+     * Try one renewal on a 401, and one step-up on a 403 `STEP_UP_REQUIRED`, before failing. Off
+     * for the calls whose 401 is the answer itself: the login flow, the renewal, the logout, the
+     * public password flows.
      */
     renewable?: boolean
+    /**
+     * Never ask for a step-up on this call: the start of a step-up is one, and a dialog waiting on
+     * itself would never close.
+     */
+    noStepUp?: boolean
     /** Hand the status back with the body: a flow answers 200 and 202 with different bodies. */
     withStatus?: boolean
   }
 
-  async function call(path: string | undefined, opts: CallOptions = {}, renewed = false): Promise<any> {
+  async function call(
+    path: string | undefined,
+    opts: CallOptions = {},
+    retried: { renewed?: boolean; confirmed?: boolean } = {}
+  ): Promise<any> {
     if (!path) {
       // A route this plane does not have (the platform has no self-service password reset):
       // refused here rather than sent to `${apiUrl}undefined`.
@@ -170,8 +205,12 @@ export function createVolcanicAuthClient(opts: VolcanicAuthClientOptions): AuthC
       credentials,
       body: body !== undefined ? JSON.stringify(body) : undefined
     })
-    if (res.status === 401 && renewable && !renewed && (await renew())) {
-      return call(path, opts, true)
+    if (res.status === 401 && renewable && !retried.renewed && !(await flowRefusal(res)) && (await renew())) {
+      return call(path, opts, { ...retried, renewed: true })
+    }
+    if (renewable && confirmIdentity && !opts.noStepUp && !retried.confirmed) {
+      const stepUp = await stepUpRequired(res)
+      if (stepUp && (await confirmIdentity(stepUp.maxAge))) return call(path, opts, { ...retried, confirmed: true })
     }
     let data: any = undefined
     try {
@@ -202,13 +241,20 @@ export function createVolcanicAuthClient(opts: VolcanicAuthClientOptions): AuthC
   // held and stored whenever an answer carries one, whatever the configured mode, because before a
   // manifest the mode is a guess and a cookie deployment answers `flow: null`.
   //
-  // Anonymous, all of it: a stored bearer token is at best stale and at worst from the other
-  // plane, and the backend refuses a control login that carries a tenant token (403
-  // SCOPE_MISMATCH), which is the very session a console that switches plane is replacing.
-  async function flowCall(path: string | undefined, body: Record<string, unknown>): Promise<FlowAnswer> {
+  // Anonymous, all of it but the start of a step-up: a stored bearer token is at best stale and at
+  // worst from the other plane, and the backend refuses a control login that carries a tenant
+  // token (403 SCOPE_MISMATCH), which is the very session a console that switches plane is
+  // replacing. A step-up starts from the session it confirms, so that one request carries it.
+  async function flowCall(path: string | undefined, body: Record<string, unknown>, session = false): Promise<FlowAnswer> {
     const flow = tokenStore.getFlow()
     try {
-      const { status, data } = await call(path, { body: flow ? { ...body, flow } : body, anonymous: true, withStatus: true })
+      const { status, data } = await call(path, {
+        body: flow ? { ...body, flow } : body,
+        anonymous: !session,
+        renewable: session,
+        noStepUp: true,
+        withStatus: true
+      })
       if (status === 202) {
         if (typeof data?.flow === 'string') tokenStore.setFlow(data.flow)
         return { pending: { expiresAt: data.expiresAt, stage: data.stage } }
@@ -268,6 +314,10 @@ export function createVolcanicAuthClient(opts: VolcanicAuthClientOptions): AuthC
       const answer = await flowCall(ep.flowChallenge, { ...input, method })
       if (!answer.pending) throw new Error('A challenge answered with a session')
       return answer.pending
+    },
+    stepUp: (method, input = {}) => {
+      tokenStore.setFlow(undefined)
+      return flowCall(ep.flowStepUp, { ...input, method }, true)
     },
     flowCancel: async () => {
       const flow = tokenStore.getFlow()

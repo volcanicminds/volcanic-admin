@@ -15,6 +15,8 @@ export type Plane = 'tenant' | 'control'
 const flowEndpoints = (prefix: string) => ({
   flowOptions: `${prefix}/flow/options`,
   flowStart: `${prefix}/flow/start`,
+  // The same flow for a session already open, when a route asks for a fresh proof (step-up).
+  flowStepUp: `${prefix}/flow/step-up`,
   flowStep: `${prefix}/flow/step`,
   flowChallenge: `${prefix}/flow/challenge`,
   flowCancel: `${prefix}/flow/cancel`

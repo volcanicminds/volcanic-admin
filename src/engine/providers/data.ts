@@ -27,6 +27,8 @@ export interface VolcanicDataProviderOptions {
    * resolves `true` the request is sent again, with whatever credential the renewal left.
    */
   renewSession?: () => Promise<boolean>
+  /** Called once on a 403 `STEP_UP_REQUIRED`; `true` sends the request again (see `ApiRequestOptions`). */
+  confirmIdentity?: (maxAge?: number) => Promise<boolean>
   /** Prefix between `apiUrl` and the resource path, for an API published under a sub-path. Default `''`. */
   basePath?: string
 }
@@ -39,14 +41,16 @@ const FETCH_ALL_CHUNK = 100
 const FETCH_ALL_MAX_PAGES = 500
 
 export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): DataProvider {
-  const { apiUrl, resolvePath, authMode = 'cookie', getToken, getContextHeaders, renewSession } = opts
+  const { apiUrl, resolvePath, authMode = 'cookie', getToken, getContextHeaders, renewSession, confirmIdentity } =
+    opts
   const basePath = opts.basePath ?? ''
 
   const url = (resource: string, suffix = '') =>
     `${apiUrl}${basePath}/${resolvePath(resource)}${suffix}`
 
-  // Headers, credentials and the one renewal come from the builder the manifest loader uses too.
-  const send = createApiRequest({ authMode, getToken, getContextHeaders, renewSession })
+  // Headers, credentials, the one renewal and the one step-up come from the builder the manifest
+  // loader uses too.
+  const send = createApiRequest({ authMode, getToken, getContextHeaders, renewSession, confirmIdentity })
 
   async function request(input: string, init: RequestInit = {}): Promise<Response> {
     const res = await send(input, init)

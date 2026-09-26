@@ -215,7 +215,15 @@ export const defaultDictionaries: Dictionaries = {
     'login.error.idpFailed': 'The provider sign-in failed: try again.',
     'login.error.idpNotLinked': 'This provider account is not linked to a user here.',
     'login.error.pendingApproval': 'Your account is waiting for an administrator to approve it.',
-    'login.error.methodNotAllowed': 'This sign-in method is not allowed for this account.'
+    'login.error.methodNotAllowed': 'This sign-in method is not allowed for this account.',
+    // The step-up dialog: a sensitive action asks for a recent sign-in.
+    'stepUp.title': 'Confirm it is you',
+    'stepUp.description': 'This action needs a recent sign-in. Enter your password to continue.',
+    'stepUp.description.code': 'This action needs a recent sign-in. We can email you a code to confirm it is you.',
+    'stepUp.confirm': 'Confirm',
+    'stepUp.relogin': 'Sign in again',
+    'stepUp.reloginOnly': 'This action needs a recent sign-in, and this session can be confirmed only by signing in again.',
+    'stepUp.error.notAvailable': 'This session cannot be confirmed: sign in again.'
   },
   it: {
     'error.unique': 'Valore già presente.',
@@ -334,6 +342,15 @@ export const defaultDictionaries: Dictionaries = {
     'login.error.idpFailed': "L'accesso tramite provider non è riuscito: riprova.",
     'login.error.idpNotLinked': 'Questo account del provider non è collegato a nessun utente.',
     'login.error.pendingApproval': "L'account è in attesa dell'approvazione di un amministratore.",
-    'login.error.methodNotAllowed': 'Questo metodo di accesso non è ammesso per questo account.'
+    'login.error.methodNotAllowed': 'Questo metodo di accesso non è ammesso per questo account.',
+    'stepUp.title': 'Conferma la tua identità',
+    'stepUp.description': 'Questa operazione richiede un accesso recente. Inserisci la password per continuare.',
+    'stepUp.description.code':
+      'Questa operazione richiede un accesso recente. Possiamo inviarti un codice via email per confermare che sei tu.',
+    'stepUp.confirm': 'Conferma',
+    'stepUp.relogin': 'Accedi di nuovo',
+    'stepUp.reloginOnly':
+      'Questa operazione richiede un accesso recente, e questa sessione si può confermare solo accedendo di nuovo.',
+    'stepUp.error.notAvailable': 'Questa sessione non può essere confermata: accedi di nuovo.'
   }
 }
