@@ -292,8 +292,9 @@ export default function RichTextEditor({ field, value, onChange, disabled, t }: 
     if (!editor) return
     const incoming = value || ''
     if (incoming !== normalize(editor.getHTML())) {
-      // Loading a value is not an edit: no update event, see onUpdate above.
-      editor.commands.setContent(incoming, { emitUpdate: false })
+      // Loading a value is not an edit: no update event (see onUpdate above) and
+      // no history entry, or the first Undo would restore the empty document.
+      editor.chain().setMeta('addToHistory', false).setContent(incoming, { emitUpdate: false }).run()
     }
   }, [value, editor])
 
