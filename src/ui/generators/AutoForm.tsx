@@ -3,7 +3,7 @@
  * `formSections` and submits only the fields the form actually manages (so the
  * payload matches the body schema, not the whole fetched record).
  */
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from '@refinedev/react-hook-form'
 import { useBack, useApiUrl, useNavigation } from '@refinedev/core'
 import { useLocation } from 'react-router'
@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/car
 import { UnsavedChangesGuard } from '@/ui/components/UnsavedChangesGuard'
 import { useT, interpolatePath } from '@/engine'
 import type { ResourceModel, ResolvedField } from '@/engine'
-import { FieldInput, formFieldName } from '@/ui/widgets/inputs'
+import { FieldInput, fieldSeed, formFieldName } from '@/ui/widgets/inputs'
 import { uploadFiles, pendingFiles } from '@/ui/widgets/upload/rest'
 import { CLONE_STATE_KEY } from './cloneSeed'
 import { detailColumns, sectionGridClass, fieldSpanClass } from './layout'
@@ -33,10 +33,7 @@ interface AutoFormProps {
 
 function defaultsFor(fields: ResolvedField[]): Record<string, unknown> {
   const out: Record<string, unknown> = {}
-  for (const f of fields) {
-    if (f.default !== undefined) out[formFieldName(f)] = f.default
-    else if (f.type === 'boolean') out[formFieldName(f)] = false
-  }
+  for (const f of fields) out[formFieldName(f)] = fieldSeed(f)
   return out
 }
 
@@ -97,6 +94,7 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
     handleSubmit,
     control,
     reset,
+    getValues,
     formState
   } = useForm({
     refineCoreProps: {
@@ -127,7 +125,17 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
 
   // Browser tab title on edit: "<singular label> <record title>" once the record
   // loads. Create keeps the route-level handler's "New <label>" title (no record).
-  useRecordDocumentTitle(model, query?.data?.data, action === 'edit')
+  const record = query?.data?.data
+  useRecordDocumentTitle(model, record, action === 'edit')
+
+  // refine copies the fetched record into the form with setValue, which leaves the
+  // defaults empty: every loaded value then reads as an edit, and the unsaved-changes
+  // guard fires on a form nobody touched. The record becomes the baseline instead.
+  // This effect runs after refine's own (declared inside useForm, above), so
+  // getValues() already holds the record.
+  useEffect(() => {
+    if (action === 'edit' && record) reset(getValues())
+  }, [action, record, reset, getValues])
 
   // Image/file fields that upload out-of-band to their own endpoints: excluded
   // from the body, and (on create) the source of files staged in the widget.

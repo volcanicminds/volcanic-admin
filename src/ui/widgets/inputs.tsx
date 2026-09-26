@@ -363,6 +363,15 @@ export function formFieldName(field: ResolvedField): string {
   return field.name
 }
 
+/**
+ * The value a field starts from when the form has none for it. The form's default
+ * values must be built from this same seed: a field seeded here but missing there
+ * reads as an edit, and the unsaved-changes guard fires on an untouched form.
+ */
+export function fieldSeed(field: ResolvedField): unknown {
+  return field.default ?? (field.type === 'boolean' ? false : '')
+}
+
 export function FieldInput({ field, control, t }: FieldInputProps) {
   const registry = useRegistry()
   const disabled = Boolean(field.readOnly)
@@ -372,7 +381,7 @@ export function FieldInput({ field, control, t }: FieldInputProps) {
       name={formFieldName(field)}
       control={control}
       rules={toRules(field)}
-      defaultValue={(field.default as any) ?? (field.type === 'boolean' ? false : '')}
+      defaultValue={fieldSeed(field) as any}
       render={({ field: rhf, fieldState }) => {
         const custom = registry.resolve('widget', field.form?.widget)
         const builtin = field.form?.widget ? BUILTIN_WIDGETS[field.form.widget] : undefined
