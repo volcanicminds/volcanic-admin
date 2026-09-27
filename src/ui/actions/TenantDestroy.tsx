@@ -43,6 +43,19 @@ interface Plan {
   preview?: { rowCounts?: Record<string, number> } & Record<string, unknown>
 }
 
+/** What the data provider throws: a translated message, the engine's code, and attempts left on a code. */
+type Refusal = { message?: string; code?: string; remaining?: number } | undefined
+
+/** A wrong code says how many attempts are left, and the last one says where a new code comes from. */
+function destroyRefusal(err: Refusal, t: ActionComponentProps['t']): string {
+  if (err?.code === 'destruction_otp_invalid' && typeof err.remaining === 'number') {
+    return err.remaining > 0
+      ? `${t('destroy.error.otpInvalid')} ${t('login.error.remaining', { remaining: err.remaining })}`
+      : t('destroy.error.otpExhausted')
+  }
+  return err?.message ?? t('error.generic')
+}
+
 const counts = (plan: Plan | null): [string, number][] =>
   Object.entries(plan?.preview?.rowCounts ?? {}).filter(([, n]) => typeof n === 'number')
 
@@ -102,7 +115,7 @@ export function TenantDestroy({ capability, record, model, t }: ActionComponentP
       // The dialog stays open with the token intact: the codes the backend answers with
       // (a wrong slug, a wrong code) are worth a second attempt, and a closed dialog would
       // have spent the permission for nothing.
-      toast.error((err as { message?: string })?.message ?? t('error.generic'))
+      toast.error(destroyRefusal(err as Refusal, t))
     } finally {
       setBusy(false)
     }

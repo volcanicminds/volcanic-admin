@@ -423,7 +423,8 @@ box, sent as the synthetic `q=` param that the backend expands across the listed
 
 Source: `src/engine/i18n.tsx`. The manifest carries **keys only**; the project supplies
 `dictionaries` (`Record<locale, Record<i18nKey, string>>`). A **missing key is humanized** (last
-segment, `snake`/`kebab`/`camelCase` → spaced, title-cased) so the UI never shows a raw key.
+segment, `snake`/`kebab`/`camelCase` → spaced, title-cased; for `res.<name>.singular|plural` the
+`<name>` segment) so the UI never shows a raw key.
 Interpolation is single-brace `{var}` (`t(key, vars)`); an unresolved var stays literal `{var}`.
 
 **Key conventions emitted by the backend:**

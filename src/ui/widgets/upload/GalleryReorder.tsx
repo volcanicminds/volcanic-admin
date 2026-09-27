@@ -11,7 +11,7 @@
  * files are inlined as data URLs in the array value.
  */
 import { useEffect, useRef, useState } from 'react'
-import { useApiUrl, useInvalidate, useResource } from '@refinedev/core'
+import { useApiUrl, useDataProvider, useInvalidate, useResource } from '@refinedev/core'
 import { useParams } from 'react-router'
 import { toast } from 'sonner'
 import { Upload, X, GripVertical, Star } from 'lucide-react'
@@ -53,6 +53,7 @@ function normalize(v: unknown): GalleryItem[] {
 export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const apiUrl = useApiUrl()
+  const dataProvider = useDataProvider()
   const { id } = useParams()
   const invalidate = useInvalidate()
   const { identifier } = useResource()
@@ -127,7 +128,7 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
     }
     setBusy(true)
     try {
-      const res = await uploadFiles(apiUrl, interpolatePath(endpoints!.upload!.path, { id }), files)
+      const res = await uploadFiles(dataProvider(), interpolatePath(endpoints!.upload!.path, { id }), files)
       setItems(normalize(res))
       refresh()
     } catch (e) {
@@ -143,7 +144,7 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
     if (realMode && endpoints?.remove) {
       setBusy(true)
       try {
-        await sendJson(apiUrl, endpoints.remove.method, interpolatePath(endpoints.remove.path, { id, imageId: item.id }))
+        await sendJson(dataProvider(), endpoints.remove.method, interpolatePath(endpoints.remove.path, { id, imageId: item.id }))
         refresh()
       } catch (e) {
         fail(e)
@@ -161,7 +162,7 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
     if (realMode && endpoints?.reorder) {
       setBusy(true)
       try {
-        const res = await sendJson(apiUrl, endpoints.reorder.method, interpolatePath(endpoints.reorder.path, { id }), {
+        const res = await sendJson(dataProvider(), endpoints.reorder.method, interpolatePath(endpoints.reorder.path, { id }), {
           order: reindexed.map((it) => it.id)
         })
         if (Array.isArray(res)) setItems(normalize(res))
@@ -192,7 +193,7 @@ export function GalleryReorder({ field, value, onChange, disabled, t }: WidgetPr
     setItems(items.map((it, idx) => (idx === i ? { ...it, altView: alt } : it)))
     if (realMode && endpoints?.update) {
       try {
-        await sendJson(apiUrl, endpoints.update.method, interpolatePath(endpoints.update.path, { id, imageId: item.id }), {
+        await sendJson(dataProvider(), endpoints.update.method, interpolatePath(endpoints.update.path, { id, imageId: item.id }), {
           altView: alt
         })
       } catch (e) {

@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from '@refinedev/react-hook-form'
-import { useBack, useApiUrl, useNavigation } from '@refinedev/core'
+import { useBack, useDataProvider, useNavigation } from '@refinedev/core'
 import { useLocation } from 'react-router'
 import { toast } from 'sonner'
 import { X, Save, AlertCircle } from 'lucide-react'
@@ -68,7 +68,7 @@ function emptyToNull(field: ResolvedField, value: unknown): unknown {
 export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFormProps) {
   const t = useT()
   const back = useBack()
-  const apiUrl = useApiUrl()
+  const dataProvider = useDataProvider()
   const { list, show, edit } = useNavigation()
   const location = useLocation()
   const [serverError, setServerError] = useState<string | null>(null)
@@ -205,7 +205,7 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
         if (staged.length > 0 && savedId != null) {
           try {
             for (const u of staged) {
-              await uploadFiles(apiUrl, interpolatePath(u.f.image!.endpoints!.upload!.path, { id: savedId }), u.files)
+              await uploadFiles(dataProvider(), interpolatePath(u.f.image!.endpoints!.upload!.path, { id: savedId }), u.files)
             }
           } catch {
             // Record created but some images failed: go to its edit view so the user

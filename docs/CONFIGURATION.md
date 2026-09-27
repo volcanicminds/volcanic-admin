@@ -481,8 +481,8 @@ To add an icon name, extend the relevant map in code.
 
 The manifest emits **keys only** (`res.*`, `field.*`, `enum.*`, `action.*`,
 `group.*`, `meta.*`). The project supplies dictionaries (`dictionaries` prop /
-plugin). A **missing key is humanized** (last segment title-cased) rather than
-shown raw.
+plugin). A **missing key is humanized** (last segment title-cased; for
+`res.<name>.singular|plural` the `<name>` segment) rather than shown raw.
 
 **Reserved default keys** shipped in `defaultDictionaries` (en/it) — override as
 needed:

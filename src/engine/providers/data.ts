@@ -63,11 +63,13 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
       }
       // Humanize: never leak raw driver/SQL text into the UI (see errors.ts).
       const classified = classifyBackendError(res.status, body ?? res.statusText)
-      const error: HttpError & { code?: string } = {
+      const error: HttpError & { code?: string; remaining?: number } = {
         message: classified.message ?? translate(classified.messageKey),
         code: classified.code,
         statusCode: res.status,
-        errors: body?.errors
+        errors: body?.errors,
+        // Attempts left on a code, as data: the caller words it, the backend's prose is for logs.
+        ...(typeof body?.remaining === 'number' ? { remaining: body.remaining } : {})
       }
       throw error
     }
@@ -189,8 +191,10 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
       // A GET or a HEAD may not carry a body, and the action runner always passes one, if only an
       // empty object: fetch refuses the request before it leaves the page, so every GET action
       // (an export, a report) failed without ever reaching the backend.
-      const empty = !payload || (typeof payload === 'object' && Object.keys(payload).length === 0)
-      const body = verb === 'GET' || verb === 'HEAD' || empty ? undefined : JSON.stringify(payload)
+      // A FormData (an upload) goes as it is: it has no own keys to count, and JSON would empty it.
+      const multipart = payload instanceof FormData
+      const empty = !payload || (!multipart && typeof payload === 'object' && Object.keys(payload).length === 0)
+      const body = verb === 'GET' || verb === 'HEAD' || empty ? undefined : multipart ? payload : JSON.stringify(payload)
       const data = await json<any>(`${target}${qs}`, { method: verb, body, headers })
       return { data }
     }

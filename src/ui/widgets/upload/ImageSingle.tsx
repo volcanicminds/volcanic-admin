@@ -11,7 +11,7 @@
  */
 import { useRef, useState } from 'react'
 import { Controller } from 'react-hook-form'
-import { useApiUrl, useInvalidate, useResource } from '@refinedev/core'
+import { useApiUrl, useDataProvider, useInvalidate, useResource } from '@refinedev/core'
 import { useParams } from 'react-router'
 import { toast } from 'sonner'
 import { Upload, X } from 'lucide-react'
@@ -27,6 +27,7 @@ import { prepareUploads } from './resize'
 export function ImageSingle({ field, value, onChange, disabled, t, control }: WidgetProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const apiUrl = useApiUrl()
+  const dataProvider = useDataProvider()
   const { id } = useParams()
   const invalidate = useInvalidate()
   const { identifier } = useResource()
@@ -75,7 +76,7 @@ export function ImageSingle({ field, value, onChange, disabled, t, control }: Wi
     }
     setBusy(true)
     try {
-      const res = await uploadFiles(apiUrl, interpolatePath(endpoints!.upload!.path, { id }), [file])
+      const res = await uploadFiles(dataProvider(), interpolatePath(endpoints!.upload!.path, { id }), [file])
       const url = res?.[field.name] ?? res?.url ?? res?.logoUrl ?? (typeof res === 'string' ? res : null)
       onChange(url ?? null)
       refresh()
@@ -91,7 +92,7 @@ export function ImageSingle({ field, value, onChange, disabled, t, control }: Wi
     if (realMode && endpoints?.remove) {
       setBusy(true)
       try {
-        await sendJson(apiUrl, endpoints.remove.method, interpolatePath(endpoints.remove.path, { id }))
+        await sendJson(dataProvider(), endpoints.remove.method, interpolatePath(endpoints.remove.path, { id }))
         refresh()
       } catch (e) {
         toast.error((e as Error)?.message ?? t('upload.failed'))

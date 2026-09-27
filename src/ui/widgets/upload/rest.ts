@@ -1,10 +1,10 @@
 /**
- * REST helpers for the upload widgets. Uploads can't go through the JSON data
- * provider (multipart vs. application/json), so they fetch directly against the
- * resource's dedicated image endpoints (`field.image.endpoints`), reusing the
- * same auth as the data provider (bearer token + credentials).
+ * REST helpers for the upload widgets, against the resource's dedicated image endpoints
+ * (`field.image.endpoints`). They go through the data provider's `custom()`, multipart included,
+ * so an upload authenticates, renews and steps up exactly as any other request: a route marked
+ * `freshAuth` opens the step-up dialog and is sent again, instead of failing with a 403.
  */
-import { tokenStore, tenantStore } from '@/engine'
+import type { DataProvider } from '@refinedev/core'
 
 export { absoluteUrl } from '@/lib/utils'
 
@@ -31,29 +31,9 @@ export function imagesFromClipboard(data: DataTransfer | null): File[] {
   return out
 }
 
-function authHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { ...tenantStore.headers() }
-  const token = tokenStore.get()
-  if (token) headers.Authorization = `Bearer ${token}`
-  return headers
-}
-
-async function parse(res: Response): Promise<any> {
-  if (!res.ok) {
-    let body: any
-    try {
-      body = await res.json()
-    } catch {
-      /* non-json */
-    }
-    throw Object.assign(new Error(body?.message ?? res.statusText), { statusCode: res.status, body })
-  }
-  if (res.status === 204) return undefined
-  try {
-    return await res.json()
-  } catch {
-    return undefined
-  }
+function custom(provider: DataProvider) {
+  if (!provider.custom) throw new Error('Uploads require a data provider with custom() support')
+  return provider.custom
 }
 
 /**
@@ -74,32 +54,22 @@ export function pendingFiles(value: unknown): File[] {
 }
 
 /** POST a multipart upload (one or more files under the `files` field). */
-export async function uploadFiles(apiUrl: string, path: string, files: File[]): Promise<any> {
+export async function uploadFiles(provider: DataProvider, path: string, files: File[]): Promise<any> {
   const form = new FormData()
   for (const f of files) form.append('files', f)
-  // NOTE: do not set Content-Type — the browser adds the multipart boundary.
-  const res = await fetch(`${apiUrl}${path}`, {
-    method: 'POST',
-    headers: authHeaders(),
-    credentials: 'include',
-    body: form
-  })
-  return parse(res)
+  const { data } = await custom(provider)({ url: path, method: 'post', payload: form })
+  return data
 }
 
+type Verb = 'get' | 'delete' | 'head' | 'options' | 'post' | 'put' | 'patch'
+
 /** Send a JSON request (reorder/update/remove) to an image endpoint. */
-export async function sendJson(
-  apiUrl: string,
-  method: string,
-  path: string,
-  body?: unknown
-): Promise<any> {
-  const res = await fetch(`${apiUrl}${path}`, {
-    method,
-    headers: { ...authHeaders(), ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
-    credentials: 'include',
-    body: body !== undefined ? JSON.stringify(body) : undefined
+export async function sendJson(provider: DataProvider, method: string, path: string, body?: unknown): Promise<any> {
+  const { data } = await custom(provider)({
+    url: path,
+    method: method.toLowerCase() as Verb,
+    payload: body as Record<string, unknown> | undefined
   })
-  return parse(res)
+  return data
 }
 

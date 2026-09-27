@@ -42,7 +42,16 @@ const CODE_MESSAGES: Record<string, ClassifiedError> = {
   SCHEMA_BEHIND: { code: 'schema_behind', messageKey: 'error.unavailable' },
   TRACKING_FAILED: { code: 'server_error', messageKey: 'error.generic' },
   PASSWORD_TO_BE_CHANGED: { code: 'password_expired', messageKey: 'error.passwordExpired' },
-  AUTH_INVALID_CREDENTIALS: { code: 'invalid_credentials', messageKey: 'error.invalidCredentials' }
+  AUTH_INVALID_CREDENTIALS: { code: 'invalid_credentials', messageKey: 'error.invalidCredentials' },
+  TENANT_DESTROYED: { code: 'tenant_destroyed', messageKey: 'error.tenantDestroyed' },
+  // The two phases of a destruction: each refusal says what to do next, and a 403 read as
+  // "not allowed" would send the operator looking for a permission they already have.
+  DESTRUCTION_NOT_AVAILABLE: { code: 'destruction_not_available', messageKey: 'destroy.error.notAvailable' },
+  DESTRUCTION_FACTOR_NOT_AVAILABLE: { code: 'destruction_factor_not_available', messageKey: 'destroy.error.factorUnavailable' },
+  DESTRUCTION_TOKEN_INVALID: { code: 'destruction_token_invalid', messageKey: 'destroy.error.tokenInvalid' },
+  DESTRUCTION_SLUG_MISMATCH: { code: 'destruction_slug_mismatch', messageKey: 'destroy.error.slugMismatch' },
+  DESTRUCTION_OTP_INVALID: { code: 'destruction_otp_invalid', messageKey: 'destroy.error.otpInvalid' },
+  DESTRUCTION_EXPORT_FAILED: { code: 'destruction_export_failed', messageKey: 'destroy.error.exportFailed' }
 }
 
 /** Map a failed response (status + parsed body) to a user-safe message key. */

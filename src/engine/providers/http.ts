@@ -53,8 +53,13 @@ export function createApiRequest(opts: ApiRequestOptions): ApiRequest {
     }
     // Only declare a JSON body when one is actually sent. A bodyless request
     // (e.g. DELETE /resource/:id) with Content-Type: application/json trips
-    // Fastify's FST_ERR_CTP_EMPTY_JSON_BODY.
-    if (init.body != null && !Object.keys(headers).some((h) => h.toLowerCase() === 'content-type')) {
+    // Fastify's FST_ERR_CTP_EMPTY_JSON_BODY. A multipart body gets no header at all: the
+    // browser writes it, with the boundary.
+    if (
+      init.body != null &&
+      !(init.body instanceof FormData) &&
+      !Object.keys(headers).some((h) => h.toLowerCase() === 'content-type')
+    ) {
       headers['Content-Type'] = 'application/json'
     }
     if (authMode === 'bearer') {

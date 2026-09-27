@@ -1,7 +1,8 @@
 /**
  * i18n — the manifest emits KEYS only (res.*, field.*, enum.*, action.*,
  * group.*). The project supplies translation dictionaries; missing keys fall
- * back to a humanized last segment so the UI never shows a raw key.
+ * back to a humanized last segment (the resource name, for resource labels) so
+ * the UI never shows a raw key.
  */
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
@@ -17,9 +18,15 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | null>(null)
 
+// Resource labels are `res.<name>.singular|plural`: their last segment is the
+// same for every resource, so the fallback names the resource instead.
+const LABEL_FORMS = new Set(['singular', 'plural'])
+
 function humanize(key: string): string {
-  const last = key.split('.').pop() ?? key
-  return last
+  const segments = key.split('.')
+  const last = segments.pop() ?? key
+  const subject = LABEL_FORMS.has(last) && segments.length > 1 ? segments.pop()! : last
+  return subject
     .replace(/[_-]/g, ' ')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/^\w/, (c) => c.toUpperCase())
@@ -107,6 +114,7 @@ export const defaultDictionaries: Dictionaries = {
     'error.invalidQuery': 'The list could not be read: the filter is not valid.',
     'error.tenantRequired': 'No workspace selected.',
     'error.tenantNotFound': 'That workspace does not exist or is not active.',
+    'error.tenantDestroyed': 'That workspace was destroyed and can no longer be changed.',
     'error.unavailable': 'Temporarily unavailable. Try again shortly.',
     'error.invalidCredentials': 'Wrong email or password.',
     'error.passwordExpired': 'Your password has expired: set a new one.',
@@ -140,6 +148,13 @@ export const defaultDictionaries: Dictionaries = {
     'destroy.warning': 'The container is exported first, then destroyed. This cannot be undone.',
     'destroy.done': 'Container destroyed',
     'destroy.already': 'That container was already destroyed.',
+    'destroy.error.notAvailable': 'This backend cannot destroy containers.',
+    'destroy.error.factorUnavailable': 'No second factor can reach you: set up two-factor authentication first.',
+    'destroy.error.tokenInvalid': 'This permission is no longer valid: check again what would be destroyed.',
+    'destroy.error.slugMismatch': 'The slug does not match this container.',
+    'destroy.error.otpInvalid': 'The code is not valid.',
+    'destroy.error.otpExhausted': 'No attempts left: check again what would be destroyed to get a new code.',
+    'destroy.error.exportFailed': 'The export failed, so nothing was destroyed.',
     'unsaved.title': 'Discard unsaved changes?',
     'unsaved.text': 'You have unsaved changes that will be lost if you leave this page.',
     'unsaved.leave': 'Leave without saving',
@@ -236,6 +251,7 @@ export const defaultDictionaries: Dictionaries = {
     'error.invalidQuery': 'Elenco non leggibile: il filtro non è valido.',
     'error.tenantRequired': 'Nessuno spazio di lavoro selezionato.',
     'error.tenantNotFound': 'Spazio di lavoro inesistente o non attivo.',
+    'error.tenantDestroyed': 'Quello spazio di lavoro è stato distrutto e non si può più modificare.',
     'error.unavailable': 'Momentaneamente non disponibile. Riprova fra poco.',
     'error.invalidCredentials': 'Email o password errate.',
     'error.passwordExpired': 'La password è scaduta: impostane una nuova.',
@@ -269,6 +285,13 @@ export const defaultDictionaries: Dictionaries = {
     'destroy.warning': 'Il contenitore viene prima esportato, poi distrutto. Non si torna indietro.',
     'destroy.done': 'Contenitore distrutto',
     'destroy.already': 'Quel contenitore era già stato distrutto.',
+    'destroy.error.notAvailable': 'Questo backend non può distruggere contenitori.',
+    'destroy.error.factorUnavailable': 'Nessun secondo fattore può raggiungerti: configura prima i due fattori.',
+    'destroy.error.tokenInvalid': 'Questo permesso non è più valido: verifica di nuovo che cosa sparirebbe.',
+    'destroy.error.slugMismatch': 'Lo slug non corrisponde a questo contenitore.',
+    'destroy.error.otpInvalid': 'Il codice non è valido.',
+    'destroy.error.otpExhausted': 'Tentativi esauriti: verifica di nuovo che cosa sparirebbe per ricevere un codice nuovo.',
+    'destroy.error.exportFailed': "L'esportazione non è riuscita, quindi non è stato distrutto nulla.",
     'unsaved.title': 'Scartare le modifiche non salvate?',
     'unsaved.text': 'Ci sono modifiche non salvate che andranno perse se lasci la pagina.',
     'unsaved.leave': 'Esci senza salvare',
