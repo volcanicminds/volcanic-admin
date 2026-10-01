@@ -67,7 +67,7 @@ the **ui** renders it. The engine has no shadcn dependency, so the ui is replace
 The publishable build (`vite.config.lib.ts`) explicitly **excludes** `src/mock/**`,
 `src/App.tsx`, `src/main.tsx`.
 
-Stack: Node >= 24, ESM, React 18, TypeScript. Refine/React/react-router/react-hook-form
+Stack: Node >= 26, ESM, React 18, TypeScript. Refine/React/react-router/react-hook-form
 are **peer dependencies** (the consumer app provides them).
 
 ---

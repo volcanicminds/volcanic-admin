@@ -83,7 +83,7 @@ renders it. The engine has no shadcn dependency, so the ui is replaceable.
 ## Develop
 
 ```bash
-nvm use            # Node >= 24
+nvm use            # Node >= 26
 npm install
 npm run dev        # http://localhost:5273  (mock data, no backend needed)
 ```
