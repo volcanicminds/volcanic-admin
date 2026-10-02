@@ -13,7 +13,7 @@ import type { Manifest } from "@/engine"
 
 export const mockControlManifest: Manifest = {
   "version": 2,
-  "generatedAt": "2026-09-25T12:16:43.497Z",
+  "generatedAt": "2026-10-02T13:46:59.469Z",
   "i18n": {
     "defaultLocale": "en",
     "locales": [
@@ -444,6 +444,10 @@ export const mockControlManifest: Manifest = {
             {
               "value": "archived",
               "label": "enum.status.archived"
+            },
+            {
+              "value": "destroyed",
+              "label": "enum.status.destroyed"
             }
           ]
         },
@@ -806,6 +810,29 @@ export const mockControlManifest: Manifest = {
       }
     },
     {
+      "name": "step-up",
+      "kind": "action",
+      "method": "POST",
+      "path": "/system/auth/flow/step-up",
+      "roles": [
+        "public",
+        "system:admin"
+      ],
+      "label": "action.system.step-up",
+      "target": [
+        "collection"
+      ],
+      "input": {
+        "fields": [
+          {
+            "name": "method",
+            "type": "string",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
       "name": "step",
       "kind": "action",
       "method": "POST",
@@ -1069,20 +1096,6 @@ export const mockControlManifest: Manifest = {
         "system:admin"
       ],
       "label": "action.system.enable",
-      "target": [
-        "collection"
-      ]
-    },
-    {
-      "name": "control",
-      "kind": "action",
-      "method": "GET",
-      "path": "/probe/control",
-      "roles": [
-        "public",
-        "system:admin"
-      ],
-      "label": "action.probe.control",
       "target": [
         "collection"
       ]
