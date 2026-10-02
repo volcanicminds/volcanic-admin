@@ -150,8 +150,8 @@ export const seed: Record<string, Row[]> = {
       createdAt: now, updatedAt: now
     },
     {
-      id: 't3', name: 'Beta Trial', slug: 'beta-trial', strategy: 'container', engine: 'sqlite',
-      locator: 'beta-trial.db', schemaVersion: '0000_initial_tenant', status: 'suspended', config: {},
+      id: 't3', name: 'Beta Trial', slug: 'beta-trial', strategy: 'container', engine: 'postgres',
+      locator: 'beta_trial', schemaVersion: '0000_initial_tenant', status: 'suspended', config: {},
       createdAt: now, updatedAt: now
     }
   ]

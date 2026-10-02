@@ -412,14 +412,6 @@ export const mockControlManifest: Manifest = {
             {
               "value": "postgres",
               "label": "enum.engine.postgres"
-            },
-            {
-              "value": "sqlite",
-              "label": "enum.engine.sqlite"
-            },
-            {
-              "value": "libsql",
-              "label": "enum.engine.libsql"
             }
           ]
         },
