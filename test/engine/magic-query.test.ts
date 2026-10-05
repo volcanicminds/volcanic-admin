@@ -91,9 +91,7 @@ describe('buildMagicQuery: operators and values', () => {
     ])
   })
 
-  // Suspected bug (magic-query.ts:63): array values are joined with Array#join, which turns a Date
-  // into Date#toString ("Fri Jan 02 2026 ..."), so a Date range is not ISO while a single Date is.
-  it.skip('serializes a range of dates as ISO timestamps', () => {
+  it('serializes a range of dates as ISO timestamps', () => {
     const from = new Date('2026-01-01T00:00:00.000Z')
     const to = new Date('2026-01-31T00:00:00.000Z')
     expect(pairs(buildMagicQuery({ filters: [f('createdAt', 'between', [from, to])] }))).toEqual([

@@ -57,13 +57,19 @@ const OPERATOR_MAP: Record<string, string> = {
 /** Operators whose value is a boolean intent rather than data. */
 const BOOLEAN_INTENT = new Set(['null', 'nnull'])
 
+/** A Date is ISO 8601; null and undefined are empty, as Array#join prints them. */
+function serializeScalar(value: unknown): string {
+  if (value == null) return ''
+  return value instanceof Date ? value.toISOString() : String(value)
+}
+
 function serializeValue(operator: string, value: unknown): string {
   if (Array.isArray(value)) {
     // A range is `from..to`; every other list is comma-separated (`:in`, `:nin`, arrays).
-    return operator === 'between' ? value.join('..') : value.join(',')
+    // Each item goes through the scalar rule: Array#join would print a Date with toString.
+    return value.map(serializeScalar).join(operator === 'between' ? '..' : ',')
   }
-  if (value instanceof Date) return value.toISOString()
-  return String(value)
+  return serializeScalar(value)
 }
 
 function isLogical(filter: CrudFilter): filter is Extract<CrudFilter, { operator: 'or' | 'and' }> {
