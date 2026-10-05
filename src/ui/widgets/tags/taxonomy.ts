@@ -182,8 +182,9 @@ export function exactOption(
 
 const MAX_FREE_TAG = 60
 
-/** Trim, collapse inner whitespace, drop a leading '#', and strip commas — a stored
- *  comma would split into two tags on the XLSX export/import round-trip. */
+/** Trim, collapse inner whitespace, drop a leading '#', and strip commas (a stored
+ *  comma would split into two tags on the XLSX export/import round-trip). The cap
+ *  comes before the last trim, so a cut that lands on a space never stores it. */
 function cleanFreeText(raw: string): string {
   return raw
     .replace(/,/g, ' ')
@@ -192,6 +193,7 @@ function cleanFreeText(raw: string): string {
     .replace(/^#+/, '')
     .trim()
     .slice(0, MAX_FREE_TAG)
+    .trimEnd()
 }
 
 /** URL/filter-safe form, matching the `snake_case` style of the taxonomy codes. */
@@ -202,8 +204,8 @@ function slugify(raw: string): string {
     // Combining diacritical marks, written as escapes so the source stays ASCII.
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
     .slice(0, MAX_FREE_TAG)
+    .replace(/^_+|_+$/g, '')
 }
 
 /** Hand-typed text as it should be stored, or '' when it must not be. */

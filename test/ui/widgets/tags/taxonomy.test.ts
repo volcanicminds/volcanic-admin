@@ -193,9 +193,7 @@ describe('normalizeFreeText', () => {
     expect(normalizeFreeText('x'.repeat(80), 'slug')).toHaveLength(60)
   })
 
-  // Suspected bug (taxonomy.ts:189-192): the cap is applied after the trim, so text cut at a space
-  // is stored with a trailing space: 'a' x 59 + ' b' becomes 'a' x 59 + ' '.
-  it.skip('never stores a trailing space after the cap', () => {
+  it('never stores a trailing space after the cap', () => {
     expect(normalizeFreeText('a'.repeat(59) + ' b')).toBe('a'.repeat(59))
   })
 })
