@@ -37,10 +37,7 @@ describe('classifyBackendError: backend machine code first', () => {
     expect(classifyBackendError(400, { code: 42, message: 'Name is too long' })).toEqual({ message: 'Name is too long' })
   })
 
-  // Suspected bug (errors.ts:61): CODE_MESSAGES is a plain object, so an inherited key resolves:
-  // { code: 'constructor' } returns the Object constructor function as the classification.
-  // Low impact: the backend does not emit such codes.
-  it.skip('does not resolve codes through the object prototype', () => {
+  it('does not resolve codes through the object prototype', () => {
     expect(classifyBackendError(400, { code: 'constructor', message: 'Bad input' })).toEqual({ message: 'Bad input' })
   })
 })

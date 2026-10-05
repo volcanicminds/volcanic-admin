@@ -58,7 +58,9 @@ const CODE_MESSAGES: Record<string, ClassifiedError> = {
 export function classifyBackendError(status: number, body: unknown): ClassifiedError {
   const code = typeof (body as any)?.code === 'string' ? (body as any).code : undefined
   if (code) {
-    if (CODE_MESSAGES[code]) return CODE_MESSAGES[code]
+    // Own keys only: the code comes from the response, and `constructor` or `toString` would
+    // otherwise resolve to a member of Object.prototype.
+    if (Object.hasOwn(CODE_MESSAGES, code)) return CODE_MESSAGES[code]
     // Every other QUERY_* is the same story for the operator: the list could not be read.
     if (code.startsWith('QUERY_')) return { code: 'invalid_query', messageKey: 'error.invalidQuery' }
   }
