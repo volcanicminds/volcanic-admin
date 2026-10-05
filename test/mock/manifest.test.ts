@@ -3,10 +3,7 @@ import { mockManifest } from '@/mock/manifest'
 import { manifestSchemaErrors } from '../helpers/schema'
 
 describe('mockManifest', () => {
-  // Schema drift: the `tags` field (resources[1].fields[9]) carries `multiple: true`, declared on
-  // FieldSpec in src/engine/types/manifest.ts:609 but absent from FieldSpec in
-  // manifest.v2.schema.json:287-308 (additionalProperties: false). Owner decides which side moves.
-  it.skip('validates against manifest.v2.schema.json', () => {
+  it('validates against manifest.v2.schema.json', () => {
     expect(manifestSchemaErrors(mockManifest)).toEqual([])
   })
 

@@ -85,22 +85,21 @@
           "name": "status",
           "type": "enum",
           "enumRef": "vehicleStatus",
-          "list": { "visible": true, "filterable": true, "operators": ["eq", "in"] },
-          "form": { "group": "header", "widget": "select" }
+          "filterable": true,
+          "operators": ["eq", "in"]
         },
         {
           "name": "name",
           "type": "string",
           "required": true,
-          "list": { "visible": true, "sortable": true },
-          "form": { "group": "header", "colSpan": 2 }
+          "sortable": true
         },
         {
           "name": "brand",
           "type": "relation",
           "relation": { "resource": "brand", "titleField": "name" },
-          "list": { "visible": true, "filterable": true, "operators": ["eq", "in"] },
-          "form": { "widget": "reference-select", "group": "header" }
+          "filterable": true,
+          "operators": ["eq", "in"]
         }
       ],
       "views": { "list": "auto", "create": "auto", "edit": "auto", "show": "auto" }

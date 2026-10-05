@@ -260,6 +260,7 @@ shared by every view. Presentation and ordering are NOT here; they live in the
 | `help` | i18n key | Helper text under the input. |
 | `enum` | `EnumOption[]` | Inline options (alternative to `enumRef`). |
 | `enumRef` | `string` | Reference a shared enum in `Manifest.enums`. |
+| `multiple` | `boolean` | The value holds several enum values (an array column such as Postgres `text[]`): one badge per value, filtered with `overlap` instead of `in`. See §7.1. |
 | `relation` | `RelationSpec` | See §4.1. |
 | `image` | `ImageSpec` | See §4.2. |
 | `validation` | `ValidationSpec` | See §4.3. |
@@ -291,7 +292,8 @@ shared by every view. Presentation and ordering are NOT here; they live in the
 | `cover` | `'first' \| 'flag'` | `first` → first image is the cover; `flag` → per-image `isCover`. |
 | `altField` | `string` | Field holding alt text. |
 | `accept` | `string[]` | Accepted MIME types. |
-| `maxSize` | `number` | Max bytes. |
+| `maxSize` | `number` | Max bytes, checked after `resize`. |
+| `resize` | `ImageResizeSpec` | Client-side downscale and conversion before upload, off unless `resize.enabled`: `{ enabled?, format? ('webp' \| 'jpg' \| 'png'), width?, height?, quality?, reSample?, sharpen?, bgColor?, upscale?, keepIfLarger?, skipUnder? }`. A convenience, not an enforcement: hard limits belong on the server. |
 | `endpoints` | `{ upload?, reorder?, update?, remove? }` | Each `{ method, path }`. **Presence of `upload` enables real REST multipart upload + DnD**, and the field is managed out-of-band → **excluded from the form body**. |
 | `storage` | `'folder' \| 's3' \| string` | Storage backend hint. |
 
@@ -362,7 +364,8 @@ textarea, and anything else as a text input; the label defaults to `field.<name>
 - **Search**: `search.fields` enables a global OR search box.
 - **Operators available** (`FilterOperator`): `eq`, `neq`, `contains`, `containsi`,
   `ncontains`, `ncontainsi`, `starts`, `startsi`, `ends`, `endsi`, `gt`, `ge`,
-  `lt`, `le`, `between`, `in`, `nin`, `null`, `notNull`. (`raw` is never exposed.)
+  `lt`, `le`, `between`, `in`, `nin`, `null`, `notNull`, and for array columns
+  (`multiple`) `overlap` ("any of") and `arrayContains` ("all of"). (`raw` is never exposed.)
 
 ---
 

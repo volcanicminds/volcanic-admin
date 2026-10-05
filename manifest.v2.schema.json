@@ -78,7 +78,7 @@
       "enum": [
         "eq", "neq", "contains", "containsi", "ncontains", "ncontainsi",
         "starts", "startsi", "ends", "endsi", "gt", "ge", "lt", "le",
-        "between", "in", "nin", "null", "notNull"
+        "between", "in", "nin", "null", "notNull", "overlap", "arrayContains"
       ]
     },
     "ListLayout": { "enum": ["table", "card"] },
@@ -222,10 +222,12 @@
       "properties": {
         "multiple": { "type": "boolean" },
         "ordered": { "type": "boolean" },
+        "fit": { "enum": ["cover", "contain"] },
         "cover": { "enum": ["first", "flag"] },
         "altField": { "type": "string" },
         "accept": { "type": "array", "items": { "type": "string" } },
         "maxSize": { "type": "number" },
+        "resize": { "$ref": "#/$defs/ImageResizeSpec" },
         "endpoints": {
           "type": "object",
           "additionalProperties": false,
@@ -237,6 +239,23 @@
           }
         },
         "storage": { "type": "string" }
+      }
+    },
+    "ImageResizeSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "format": { "enum": ["webp", "jpg", "png"] },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "quality": { "type": "number" },
+        "reSample": { "type": "number" },
+        "sharpen": { "type": "number" },
+        "bgColor": { "type": "string" },
+        "upscale": { "type": "boolean" },
+        "keepIfLarger": { "type": "boolean" },
+        "skipUnder": { "type": "number" }
       }
     },
     "EndpointSpec": {
@@ -261,29 +280,6 @@
         "step": { "type": "number" }
       }
     },
-    "FieldListSpec": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "visible": { "type": "boolean" },
-        "sortable": { "type": "boolean" },
-        "filterable": { "type": "boolean" },
-        "operators": { "type": "array", "items": { "$ref": "#/$defs/FilterOperator" } },
-        "width": { "type": "number" },
-        "align": { "enum": ["left", "center", "right"] }
-      }
-    },
-    "FieldFormSpec": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "visible": { "type": "boolean" },
-        "widget": { "type": "string" },
-        "group": { "type": "string" },
-        "colSpan": { "type": "number" },
-        "placeholder": { "$ref": "#/$defs/I18nKey" }
-      }
-    },
     "FieldSpec": {
       "type": "object",
       "additionalProperties": false,
@@ -300,11 +296,13 @@
         "help": { "$ref": "#/$defs/I18nKey" },
         "enum": { "type": "array", "items": { "$ref": "#/$defs/EnumOption" } },
         "enumRef": { "type": "string" },
+        "multiple": { "type": "boolean" },
         "relation": { "$ref": "#/$defs/RelationSpec" },
         "image": { "$ref": "#/$defs/ImageSpec" },
         "validation": { "$ref": "#/$defs/ValidationSpec" },
-        "list": { "$ref": "#/$defs/FieldListSpec" },
-        "form": { "$ref": "#/$defs/FieldFormSpec" }
+        "filterable": { "type": "boolean" },
+        "sortable": { "type": "boolean" },
+        "operators": { "type": "array", "items": { "$ref": "#/$defs/FilterOperator" } }
       }
     },
     "ResourceViews": {

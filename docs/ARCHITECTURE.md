@@ -162,6 +162,7 @@ interface FieldSpec {
   required?: boolean; readOnly?: boolean; nullable?: boolean; default?: unknown; help?: I18nKey
   writeOnly?: boolean          // in the write body, never read/listed (e.g. password)
   enum?: EnumOption[]; enumRef?: string
+  multiple?: boolean           // several enum values in an array column (e.g. Postgres text[])
   relation?: { resource: string; titleField?: string; kind?: RelationKind; foreignKey?: string }  // kind/fk: only via override (schema-only)
   image?: ImageSpec            // populated only via admin override (the BE does not generate it)
   validation?: ValidationSpec  // required/min/max/minLength/maxLength/pattern/step — from the schema
@@ -256,7 +257,8 @@ side) · `integer`/`number`→numeric · `boolean`→switch · `date`/`datetime`
 `image`/`file`→uploader.
 
 **Filter operators (`FilterOperator`)** = subset of Magic Query exposed to the UI: `eq, neq, contains[i],
-ncontains[i], starts[i], ends[i], gt, ge, lt, le, between, in, nin, null`. `:raw` is **never** exposed, and
+ncontains[i], starts[i], ends[i], gt, ge, lt, le, between, in, nin, null`, plus `overlap` and `arrayContains` for
+array columns (`multiple`), sent as `:arrayOverlaps` and `:arrayContains`. `:raw` is **never** exposed, and
 `:notNull` no longer exists: `null=false` is how one asks for "is not null". The
 type→recommended-operators map is a presentation choice (admin); the BE can only restrict.
 
