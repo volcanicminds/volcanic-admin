@@ -61,9 +61,7 @@ describe('matchVisibleWhen', () => {
     expect(matchVisibleWhen({ f: value }, { f: { [op]: expected } })).toBe(result)
   })
 
-  // Suspected bug (actions.ts:36-37): `null` ignores its value, so `{ null: false }` (the v5 way to
-  // say "is not null", docs/ARCHITECTURE.md:260) is true for a null field and false for a set one.
-  it.skip('reads { null: false } as "is not null"', () => {
+  it('reads { null: false } as "is not null"', () => {
     expect(matchVisibleWhen({ deletedAt: '2026-01-01' }, { deletedAt: { null: false } })).toBe(true)
     expect(matchVisibleWhen({ deletedAt: null }, { deletedAt: { null: false } })).toBe(false)
   })

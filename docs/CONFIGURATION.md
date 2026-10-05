@@ -337,7 +337,7 @@ operation sections).
 | `payload` | `Record<string, unknown>` | Static body merged into the request. |
 | `confirm` / `confirmText` | `boolean` / i18n key | Confirm dialog before running. |
 | `input` | `{ fields: ActionInputField[], submitLabel? }` | Prompt for fields in a dialog, send as body (e.g. set-password). A v5 backend emits it for its own actions, derived from the route's body schema plus the route's `config.manifest.input` hint (backend `docs/API_V5.md` §7.1). |
-| `visibleWhen` | `Record<field, Record<op, value>>` | Row condition controlling visibility. |
+| `visibleWhen` | `Record<field, Record<op, value>>` | Row condition controlling visibility; every operator of every field must hold. `{ null: true }` means "is null", `{ null: false }` means "is not null". |
 | `refresh` | `boolean` | After success, invalidate list/detail → refetch (no full reload). Default on. |
 | `download` | `string` | MIME type when the action returns a file (triggers browser download; `csv` → CSV). |
 | `component` | `string \| null` | Override registry id for a custom action button; null → generic handler. |

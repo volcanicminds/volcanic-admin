@@ -12,6 +12,11 @@ export function interpolatePath(path: string, record?: Record<string, unknown>):
   })
 }
 
+/** A boolean intent written as JSON `false` or as the query-string word `'false'`. */
+function isFalse(expected: unknown): boolean {
+  return expected === false || expected === 'false'
+}
+
 function matchOp(value: unknown, op: string, expected: unknown): boolean {
   switch (op) {
     case 'eq':
@@ -34,7 +39,8 @@ function matchOp(value: unknown, op: string, expected: unknown): boolean {
     case 'lte':
       return Number(value) <= Number(expected)
     case 'null':
-      return value == null
+      // `null: false` asks for "is not null" (one operator for the pair, as in Magic Query v5).
+      return isFalse(expected) ? value != null : value == null
     case 'notNull':
       return value != null
     default:
