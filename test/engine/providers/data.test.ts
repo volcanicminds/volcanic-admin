@@ -123,10 +123,7 @@ describe('data provider: getList with pagination off (page walk)', () => {
     }
   })
 
-  // Suspected bug (data.ts:113,118): without a v-total header the total falls back to the rows
-  // read so far, so `all.length >= total` ends the walk after the first page and an export
-  // silently returns 100 rows of 250. Expected: keep walking until a short or empty page.
-  it.skip('walks past the first page when v-total is missing', async () => {
+  it('walks past the first page when v-total is missing', async () => {
     vi.stubGlobal('fetch', fakeServer(rowsOf(250), { total: false }))
     const res = await getAll()
     expect(res.data).toHaveLength(250)

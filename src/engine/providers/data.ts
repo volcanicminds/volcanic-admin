@@ -40,6 +40,14 @@ const FETCH_ALL_CHUNK = 100
 /** Safety net for the walk: never loop forever on a missing/wrong `v-total`. */
 const FETCH_ALL_MAX_PAGES = 500
 
+/** `v-total` alone, `undefined` when absent: `v-count` counts the rows of one page, so it
+ *  cannot tell the walk where the collection ends. */
+function reportedTotal(headers: Headers): number | undefined {
+  const raw = headers.get('v-total')
+  const n = raw ? Number(raw) : NaN
+  return Number.isFinite(n) ? n : undefined
+}
+
 export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): DataProvider {
   const { apiUrl, resolvePath, authMode = 'cookie', getToken, getContextHeaders, renewSession, confirmIdentity } =
     opts
@@ -85,11 +93,14 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
   /**
    * Every record matching the filters (Refine's `pagination.mode: 'off'`).
    *
-   * The API always paginates — omitting page/pageSize just yields its default
-   * first page — so "no pagination" has to be walked page by page. The requested
+   * The API always paginates (omitting page/pageSize just yields its default
+   * first page), so "no pagination" has to be walked page by page. The requested
    * size is capped server-side, and `skip` is computed from the size the client
    * asked for: keep asking for exactly the size the server reports applying
    * (`v-pageSize`), otherwise skip/take drift apart and rows fall between pages.
+   *
+   * The walk ends on an empty page, once `v-total` rows are read, or, when the
+   * response carries no `v-total`, on the first page shorter than the size applied to it.
    */
   async function getAllPages(
     resource: string,
@@ -99,7 +110,7 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
   ) {
     const all: any[] = []
     let pageSize = FETCH_ALL_CHUNK
-    let total = 0
+    let total: number | undefined
 
     for (let page = 1; page <= FETCH_ALL_MAX_PAGES; page++) {
       const qs = buildMagicQuery({
@@ -110,12 +121,13 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
       const res = await request(`${url(resource)}?${qs}`, { method: 'GET', headers })
       const chunk = await res.json()
       all.push(...chunk)
-      total = readTotal(res.headers, all.length)
+      total = reportedTotal(res.headers)
 
       const applied = Number(res.headers.get('v-pageSize'))
       if (Number.isFinite(applied) && applied > 0) pageSize = applied
 
-      if (!Array.isArray(chunk) || chunk.length === 0 || all.length >= total) break
+      if (!Array.isArray(chunk) || chunk.length === 0) break
+      if (total !== undefined ? all.length >= total : chunk.length < pageSize) break
     }
     return { data: all, total: total || all.length }
   }
