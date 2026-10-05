@@ -19,15 +19,17 @@ export function keyOf(value: unknown): string {
  *
  * Tolerates every shape the form layer can hand over: `undefined` before the record
  * loads, `''` from the Controller's default, `null` from a legacy row, a bare string,
- * or the array itself. Empty entries are dropped — which also repairs rows written
- * by the `['']` bug (see AutoForm.emptyToNull) — and duplicates collapse, first
- * occurrence winning so the author's order survives.
+ * or the array itself. Empty entries (blank, `null`, `undefined`) are dropped, which
+ * also repairs rows written by the `['']` bug (see AutoForm.emptyToNull), and
+ * duplicates collapse, first occurrence winning so the author's order survives.
  */
 export function toArray(value: unknown): string[] {
   const raw = Array.isArray(value) ? value : value == null || value === '' ? [] : [value]
   const out: string[] = []
   const seen = new Set<string>()
   for (const entry of raw) {
+    // String() would turn these into the tags "null" and "undefined".
+    if (entry == null) continue
     const str = String(entry).trim()
     if (!str) continue
     const key = keyOf(str)

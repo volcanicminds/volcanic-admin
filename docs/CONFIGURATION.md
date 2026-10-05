@@ -458,7 +458,8 @@ comma would split in two on the XLSX export/import round-trip), and a value outs
 taxonomy renders as an `outline` chip so it is visible at a glance.
 
 **Value contract.** Always a `string[]`, in selection order. Reading tolerates `''`,
-`null`, a bare string and an array with empty entries; writing always emits an array,
+`null`, a bare string and an array with empty entries (blank, `null` or `undefined`,
+all dropped); writing always emits an array,
 never `''` or `null`. Declare `default: []` on the field: without it the form seeds `''`,
 and a server that coerces types can turn that into a phantom `['']` entry.
 

@@ -62,9 +62,7 @@ describe('toArray', () => {
     expect(toArray(['Mechanics', '', '  ', 'mechanics ', 'news', 'NEWS'])).toEqual(['Mechanics', 'news'])
   })
 
-  // Suspected bug (taxonomy.ts:31): a null/undefined entry inside the array becomes the tag
-  // "null"/"undefined" instead of being dropped like the other empty entries.
-  it.skip('drops null and undefined entries inside the array', () => {
+  it('drops null and undefined entries inside the array', () => {
     expect(toArray(['news', null, undefined])).toEqual(['news'])
   })
 })
