@@ -58,6 +58,7 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "test": "vitest run",
     "prepublishOnly": "npm run build",
     "validate:manifest": "node scripts/validate-manifest.mjs",
     "pull:manifest": "node scripts/pull-manifest.mjs"
@@ -108,7 +109,8 @@
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.19.1",
     "vite": "^6.0.7",
-    "vite-plugin-dts": "^4.4.0"
+    "vite-plugin-dts": "^4.4.0",
+    "vitest": "^3.2.7"
   },
   "peerDependencies": {
     "@refinedev/core": "^4.57.0",

@@ -118,6 +118,7 @@ npm run build        # build the publishable library → dist (JS + style.css + 
 npm run build:demo   # build the demo app → dist-demo
 npm run type-check   # tsc --noEmit
 npm run lint         # eslint
+npm test             # vitest: engine, generators, manifest schema against the types
 ```
 
 The repo is both the **library** (`src/engine`, `src/ui`, `src/VolcanicAdmin.tsx`,
