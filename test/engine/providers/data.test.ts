@@ -129,9 +129,7 @@ describe('data provider: getList with pagination off (page walk)', () => {
     expect(res.data).toHaveLength(250)
   })
 
-  // Suspected bug (data.ts:112,118): the `!Array.isArray(chunk)` guard runs after
-  // `all.push(...chunk)`, so a non-array page body throws "is not iterable" instead of ending the walk.
-  it.skip('ends the walk on a page body that is not an array', async () => {
+  it('ends the walk on a page body that is not an array', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => new Response(JSON.stringify({ data: [] }), { status: 200, headers: { 'content-type': 'application/json' } }))

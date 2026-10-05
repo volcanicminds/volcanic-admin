@@ -99,8 +99,9 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
    * asked for: keep asking for exactly the size the server reports applying
    * (`v-pageSize`), otherwise skip/take drift apart and rows fall between pages.
    *
-   * The walk ends on an empty page, once `v-total` rows are read, or, when the
-   * response carries no `v-total`, on the first page shorter than the size applied to it.
+   * The walk ends on an empty page or a body that is not an array, once `v-total`
+   * rows are read, or, when the response carries no `v-total`, on the first page
+   * shorter than the size applied to it.
    */
   async function getAllPages(
     resource: string,
@@ -119,14 +120,16 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
         filters
       })
       const res = await request(`${url(resource)}?${qs}`, { method: 'GET', headers })
-      const chunk = await res.json()
+      const chunk: unknown = await res.json()
+      // A v5 list answers with the rows as the body; anything else carries no rows.
+      if (!Array.isArray(chunk)) break
       all.push(...chunk)
       total = reportedTotal(res.headers)
 
       const applied = Number(res.headers.get('v-pageSize'))
       if (Number.isFinite(applied) && applied > 0) pageSize = applied
 
-      if (!Array.isArray(chunk) || chunk.length === 0) break
+      if (chunk.length === 0) break
       if (total !== undefined ? all.length >= total : chunk.length < pageSize) break
     }
     return { data: all, total: total || all.length }
