@@ -31,13 +31,16 @@ describe('deepMerge', () => {
     expect(deepMerge<object>({ a: 1 }, [1])).toEqual([1])
   })
 
-  // Suspected bug (merge.ts:42): `if (!source)` treats a falsy scalar source as "no source", so
-  // deepMerge(1, 0) returns 1 and deepMerge(true, false) returns true; the contract says scalars are
-  // replaced by the source. Low impact: the engine only calls it with objects.
-  it.skip('replaces a scalar target with a falsy scalar source', () => {
+  it('replaces a scalar target with a falsy scalar source', () => {
     expect(deepMerge<number>(1, 0)).toBe(0)
     expect(deepMerge<boolean>(true, false)).toBe(false)
     expect(deepMerge<string>('a', '')).toBe('')
+  })
+
+  it('keeps the target value where the source key is undefined', () => {
+    const out = deepMerge<Record<string, unknown>>({ a: 1, n: { x: 1 } }, { a: undefined, n: { x: undefined } })
+    expect(out).toEqual({ a: 1, n: { x: 1 } })
+    expect(deepMerge<Record<string, unknown>>({ a: 1, b: true }, { a: 0, b: false })).toEqual({ a: 0, b: false })
   })
 
   it('never mutates the target', () => {

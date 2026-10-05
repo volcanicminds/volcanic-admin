@@ -37,12 +37,17 @@ type Plain = Record<string, unknown>
 const isPlain = (v: unknown): v is Plain =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
 
-/** Deep-merge plain objects (arrays and scalars are replaced by the source). */
+/**
+ * Deep-merge plain objects (arrays and scalars are replaced by the source).
+ * Only `undefined` means "not overridden": any defined source value wins, including
+ * `0`, `false`, `''` and `null`, at the top level and on every key.
+ */
 export function deepMerge<T>(target: T, source: Partial<T> | undefined): T {
-  if (!source) return target
-  if (!isPlain(target) || !isPlain(source)) return (source as T) ?? target
+  if (source === undefined) return target
+  if (!isPlain(target) || !isPlain(source)) return source as T
   const out: Plain = { ...target }
   for (const [k, v] of Object.entries(source)) {
+    if (v === undefined) continue
     out[k] = isPlain(v) && isPlain(out[k]) ? deepMerge(out[k], v as Plain) : v
   }
   return out as T

@@ -69,8 +69,11 @@ browser**. So:
 
 ## 2. `ManifestOverrides` (top level)
 
-Defined in `src/engine/merge.ts`. Every key is optional. Generic over a field-map
-(`ManifestOverrides<FM>`) for typed field names — see §12; the default is untyped.
+Defined in `src/engine/merge.ts`. Every key is optional. Inside a deep-merged
+patch, a property set to `undefined` is not an override, while any defined value
+replaces the generated one, including `0`, `false`, `''` and `null`. Generic over a
+field-map (`ManifestOverrides<FM>`) for typed field names (see §12); the default is
+untyped.
 
 ```ts
 export const overrides: ManifestOverrides = { … }
