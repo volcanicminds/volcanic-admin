@@ -235,7 +235,7 @@ BE marks read-only) render disabled and are never submitted.
 | `addFields` | `FieldSpec[]` | Add fields absent from the generated manifest. |
 | `excludeFields` | `string[]` | Remove fields by name. |
 | `capabilities` | `Record<name, CapabilityOverride>` | Patch a capability by name (deep-merge); **unknown names are added**. See §5. |
-| `excludeCapabilities` | `string[]` | Remove capabilities by name. |
+| `excludeCapabilities` | `string[]` | Remove capabilities by name. Exclusion wins: a `capabilities` patch for an excluded name is ignored, never added back. |
 
 ---
 

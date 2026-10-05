@@ -141,15 +141,14 @@ function applyResourceOverride(r: ResourceSpec, ov: ResourceOverride): ResourceS
   if (addFields?.length) nextFields = [...nextFields, ...addFields]
   next.fields = nextFields
 
-  // capabilities by name
-  let nextCaps = r.capabilities
-  if (excludeCapabilities?.length) {
-    const ex = new Set(excludeCapabilities)
-    nextCaps = nextCaps.filter((c) => !ex.has(c.name))
-  }
+  // capabilities by name; exclusion wins over a patch for the same name, which would
+  // otherwise be re-added as an unknown capability without kind, method or path.
+  const excludedCaps = new Set(excludeCapabilities ?? [])
+  let nextCaps = r.capabilities.filter((c) => !excludedCaps.has(c.name))
   if (capabilities) {
     nextCaps = nextCaps.map((c) => (capabilities[c.name] ? deepMerge(c, capabilities[c.name]) : c))
     for (const [name, patch] of Object.entries(capabilities)) {
+      if (excludedCaps.has(name)) continue
       if (!nextCaps.some((c) => c.name === name)) nextCaps.push({ name, ...patch } as CapabilitySpec)
     }
   }

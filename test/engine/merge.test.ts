@@ -191,10 +191,7 @@ describe('mergeManifest: resource override', () => {
     expect(r.capabilities[2]).toEqual({ name: 'export', kind: 'action', method: 'GET', path: '/cars/export', roles: [] })
   })
 
-  // Suspected bug (merge.ts:146-155): an excluded capability that is also patched is re-added from
-  // the patch alone ({ name: 'delete', roles: ['root'] }, no kind/method/path), while an excluded
-  // field that is also patched stays excluded. Exclusion should win for capabilities too.
-  it.skip('does not resurrect an excluded capability that is also patched', () => {
+  it('does not resurrect an excluded capability that is also patched', () => {
     const r = cars({ excludeCapabilities: ['delete'], capabilities: { delete: { roles: ['root'] } } })
     expect(r.capabilities.map((c) => c.name)).toEqual(['list', 'publish'])
   })
