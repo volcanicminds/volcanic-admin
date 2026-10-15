@@ -20,8 +20,8 @@ There are three distribution models; pick per client:
 
 ## 1. The manifest: auto-generated + your overrides
 
-The backend (`@volcanicminds/backend` 5.x, the `5.0.0-alpha` line) **generates the manifest automatically** from
-its routes + JSON Schemas — no hand-authoring of the resource map. The client never edits
+The backend (`@volcanicminds/backend` 5.x) **generates the manifest automatically** from
+its routes and JSON Schemas: no hand-authoring of the resource map. The client never edits
 that generated description; it only adds a thin **overrides** layer for presentation
 (labels, groups, widgets, layouts). Two files, two owners:
 
