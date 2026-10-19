@@ -7,7 +7,7 @@
 > platform console) from a manifest that `@volcanicminds/backend` v5 emits at runtime.
 >
 > This file is the reference for an AI agent that consumes or extends the package. It describes
-> version `0.5.0-alpha.0` (the `v5` line, published on the `next` dist-tag) talking to
+> version `5.0.0` (the `v5` line) talking to
 > `@volcanicminds/backend` v5. When this file and the code disagree, the code in `src/` wins.
 > The engine is domain-agnostic; the bundled `src/mock` "Acme Corp" sample is a development
 > fixture, excluded from the published build and not part of the API.
@@ -85,13 +85,10 @@ and `src/vite-env.d.ts`.
 ## 2. Install, exports and peers
 
 ```bash
-npm i @volcanicminds/admin@next \
+npm i @volcanicminds/admin \
   react react-dom react-router \
   @refinedev/core @refinedev/react-router @refinedev/react-hook-form react-hook-form
 ```
-
-`next` is the line for backend 5. The `latest` dist-tag (0.4.x) is the line for backend 4 and
-uses login routes that backend 5 no longer has.
 
 | Item | Value |
 |---|---|
