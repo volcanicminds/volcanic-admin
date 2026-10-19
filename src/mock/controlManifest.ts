@@ -182,14 +182,14 @@ export const mockControlManifest: Manifest = {
           }
         },
         {
-          "name": "export",
+          "name": "exports",
           "kind": "action",
           "method": "POST",
-          "path": "/tenants/:id/export",
+          "path": "/tenants/:id/exports",
           "roles": [
             "system:admin"
           ],
-          "label": "action.tenant.export",
+          "label": "action.tenant.exports",
           "target": [
             "row"
           ],

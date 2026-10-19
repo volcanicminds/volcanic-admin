@@ -212,7 +212,7 @@ export const mockDataProvider: DataProvider = {
         Object.assign(tenant, { status: 'active', updatedAt: stamp() })
         return { data: { ...tenant } as any }
       }
-      if (last === 'export') return { data: { id: tenant.id, exportedAt: stamp() } as any }
+      if (last === 'exports') return { data: { id: tenant.id, exportedAt: stamp() } as any }
     }
 
     // status workflow: /<plural>/:id/status
