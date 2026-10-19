@@ -192,7 +192,16 @@ export const mockControlManifest: Manifest = {
           "label": "action.tenant.export",
           "target": [
             "row"
-          ]
+          ],
+          "input": {
+            "fields": [
+              {
+                "name": "profile",
+                "type": "enum",
+                "required": true
+              }
+            ]
+          }
         },
         {
           "name": "impersonate",
