@@ -853,8 +853,10 @@ Keys the backend emits: `res.<name>.singular|plural`, `group.<name>`. Keys the e
 Default key families shipped in `defaultDictionaries` (override any of them): `error.*` (unique,
 reference, required, forbidden, notFound, conflict, invalidQuery, tenantRequired,
 tenantNotFound, tenantDestroyed, unavailable, invalidCredentials, passwordExpired, generic),
-`meta.*` (id, createdAt, updatedAt), `docTitle.*`, `action.*` (copy, clone, remove, delete,
-cancel, confirm, delete.confirmTitle, delete.confirmText), `unsaved.*`, `badge.featured`,
+`meta.*` (id, createdAt, updatedAt), `docTitle.*`, `action.*` (new, search, back, edit, save,
+copy, clone, remove, delete, cancel, confirm, delete.confirmTitle, delete.confirmText),
+`list.*` (pageInfo, pageSize, prev, next), `state.*` (loading, empty), `form.saveError`,
+`nav.account`, `unsaved.*`, `badge.featured`,
 `upload.*`, `tags.*`, `sort.*`, `filter.*`, `stepUp.*`, `login.*` (screens, stages, methods and
 `login.error.*`, including `login.error.remaining`), `destroy.*`.
 

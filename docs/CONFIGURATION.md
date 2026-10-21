@@ -491,14 +491,18 @@ The manifest emits **keys only** (`res.*`, `field.*`, `enum.*`, `action.*`,
 plugin). A **missing key is humanized** (last segment title-cased; for
 `res.<name>.singular|plural` the `<name>` segment) rather than shown raw.
 
-**Reserved default keys** shipped in `defaultDictionaries` (en/it) — override as
-needed:
+**Reserved default keys** shipped in `defaultDictionaries` (en/it), override as
+needed. Every literal key the engine and the ui translate is among them, in both
+locales: `test/engine/i18n.test.ts` reads the sources and fails on a missing one.
 
 - `error.*`: `unique`, `reference`, `required`, `forbidden`, `notFound`,
   `conflict`, `generic` (used by `classifyBackendError` to humanize BE errors).
 - `meta.*`: `id`, `createdAt`, `updatedAt`.
-- `action.*`: `copy`, `clone`, `remove` (plus view-level `back`, `edit`, `save`,
-  `cancel`, `delete`, `delete.confirmTitle`, `delete.confirmText`, `confirm`).
+- `action.*`: `copy`, `clone`, `remove` (plus view-level `new`, `search`, `back`,
+  `edit`, `save`, `cancel`, `delete`, `delete.confirmTitle`, `delete.confirmText`,
+  `confirm`).
+- `list.*` (`pageInfo`, `pageSize`, `prev`, `next`), `state.*` (`loading`,
+  `empty`), `form.saveError`, `nav.account`.
 - `badge.featured`, `upload.*`, `sort.*` (`by`, `asc`, `desc`, `clear`),
   `filter.*` (`title`, `clear`, `any`, `yes`, `no`, `min`, `max`).
 
