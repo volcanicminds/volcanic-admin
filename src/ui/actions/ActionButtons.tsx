@@ -34,6 +34,7 @@ import {
   DialogTitle
 } from '@/ui/components/ui/dialog'
 import { useRegistry, actionsByTarget, matchVisibleWhen } from '@/engine'
+import type { CrudFilters } from '@refinedev/core'
 import type { CapabilitySpec, ResourceModel } from '@/engine'
 import type { TFunc } from '../generators/listShared'
 import { useCapabilityRunner } from './useCapabilityRunner'
@@ -136,6 +137,7 @@ function ActionButton({
   run,
   t,
   model,
+  filters,
   compact,
   variant,
   size,
@@ -148,6 +150,8 @@ function ActionButton({
   /** The resource the action belongs to, handed to a custom component: without it a component
    * that calls the API itself cannot name what to invalidate, nor reach its sibling actions. */
   model?: ResourceModel
+  /** The list's filters, handed to a custom collection action as its selection. */
+  filters?: CrudFilters
   compact?: boolean
   /** Button styling overrides so callers can match sibling buttons (card overlay,
    * show header). Fall back to the per-mode defaults when not provided. */
@@ -168,6 +172,7 @@ function ActionButton({
         capability={cap}
         record={record}
         model={model}
+        filters={filters}
         run={(r?: Rec, body?: Rec) => run(cap, r ?? record, label, body)}
         t={t}
       />
@@ -284,14 +289,14 @@ export function RowActions({
 }
 
 /** Labeled buttons for collection-target actions (list header). */
-export function CollectionActions({ model, t }: { model: ResourceModel; t: TFunc }) {
+export function CollectionActions({ model, t, filters }: { model: ResourceModel; t: TFunc; filters?: CrudFilters }) {
   const { run } = useCapabilityRunner(model.spec.name)
   const actions = actionsByTarget(model.actions, 'collection')
   if (!actions.length) return null
   return (
     <>
       {actions.map((a) => (
-        <ActionButton key={a.name} cap={a} run={run} t={t} model={model} />
+        <ActionButton key={a.name} cap={a} run={run} t={t} model={model} filters={filters} />
       ))}
     </>
   )

@@ -298,6 +298,8 @@ freely.
 > `input: { fields: [...] }` to prompt for values in a dialog and send them as the request body
 > (e.g. a "Reset password" action posting a typed password). The registry also has an `action`
 > slot (`overrides.action`, resolved by `action.component`) to swap in a fully custom button.
+> A custom collection action receives the list's `filters` as the list applies them, so it can
+> act on the same selection: `buildMagicQuery({ filters })` writes them as the backend reads them.
 
 ```tsx
 import { useResourceModel, useT } from '@volcanicminds/admin'

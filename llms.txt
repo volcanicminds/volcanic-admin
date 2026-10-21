@@ -789,7 +789,10 @@ asks for `input` fields in a dialog or a `confirm` first, shows a toast, invalid
 `refresh`, and with `download` saves the answer as `<resource>-<name>.csv` (CSV mime) or `.txt`.
 
 A `component` id replaces the generic button with a registered `action` component receiving
-`ActionComponentProps`: `{ capability, record?, model?, run(record?, body?), t }`.
+`ActionComponentProps`: `{ capability, record?, model?, filters?, run(record?, body?), t }`. A
+collection action in the list header receives the list's `filters` as the list applies them,
+search box included: its selection is the rows the operator sees, and
+`buildMagicQuery({ filters })` writes it as the backend reads it.
 
 Built-in action components (`defaultActions`): `tenant-destroy` (`TenantDestroy`), wired by the
 engine on the control plane to the `tenant` resource's `data` capability. Destroying a tenant

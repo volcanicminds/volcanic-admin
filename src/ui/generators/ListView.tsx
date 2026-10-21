@@ -153,7 +153,7 @@ export function ListView({ model }: { model: ResourceModel }) {
         <h1 className="text-2xl font-semibold">{t(spec.label.plural)}</h1>
         <div className="flex items-center gap-2">
           <ListIO model={model} filters={filters} sorters={sorters} canWrite={canCreate || canEdit} />
-          <CollectionActions model={model} t={t} />
+          <CollectionActions model={model} t={t} filters={filters} />
           {layouts.length > 1 && (
             <div className="flex h-9 items-center rounded-md border p-0.5">
               <Button

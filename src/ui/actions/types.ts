@@ -6,6 +6,7 @@
  * belongs to: to invalidate the right list afterwards, and to reach the sibling capabilities of
  * a flow that is more than one call.
  */
+import type { CrudFilters } from '@refinedev/core'
 import type { CapabilitySpec, ResourceModel } from '@/engine'
 import type { TFunc } from '../generators/listShared'
 
@@ -15,6 +16,12 @@ export interface ActionComponentProps {
   capability: CapabilitySpec
   record?: ActionRecord
   model?: ResourceModel
+  /**
+   * A collection action's selection: the list's filters as the list applies them, the search
+   * box included, so an action on "every row filtered" acts on the rows the operator sees.
+   * `buildMagicQuery({ filters })` writes them as the backend reads them.
+   */
+  filters?: CrudFilters
   /** Runs THIS capability through the generic runner (toast, download, invalidation). */
   run: (record?: ActionRecord, body?: ActionRecord) => void
   t: TFunc
