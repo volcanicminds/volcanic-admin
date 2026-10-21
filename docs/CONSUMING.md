@@ -352,7 +352,8 @@ the full field list (`loginLogo*`, `logoHeight`, `poweredBy`, …).
 ```
 
 If you build your **own** components with Tailwind and want the same tokens/utilities, extend
-the shipped preset:
+the shipped preset. It loads two Tailwind plugins, optional peers of the package that the
+project installs next to `tailwindcss` 3: `npm i -D tailwindcss-animate @tailwindcss/typography`.
 
 ```js
 // tailwind.config.js
