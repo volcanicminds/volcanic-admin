@@ -13,6 +13,7 @@ import { Button } from '@/ui/components/ui/button'
 import { Badge } from '@/ui/components/ui/badge'
 import { Checkbox } from '@/ui/components/ui/checkbox'
 import { Input } from '@/ui/components/ui/input'
+import { DateWidget } from '@/ui/widgets/inputs'
 import {
   Dialog,
   DialogContent,
@@ -254,24 +255,26 @@ export function FilterBar({
             // range
             const r = (draft[f.name] as { min?: string; max?: string }) ?? {}
             const numeric = f.type === 'integer' || f.type === 'number'
-            const inputType = numeric ? 'number' : f.type === 'datetime' ? 'datetime-local' : 'date'
+            // A date bound is drawn by the forms' widget: a datetime goes out as the full ISO
+            // instant in the browser's zone, never as the zoneless wall-clock time the input holds.
+            const bound = (key: 'min' | 'max') =>
+              numeric ? (
+                <Input
+                  type="number"
+                  placeholder={t(`filter.${key}`)}
+                  value={r[key] ?? ''}
+                  onChange={(e) => setRange(f.name, key, e.target.value)}
+                />
+              ) : (
+                <DateWidget field={f} value={r[key]} onChange={(v) => setRange(f.name, key, String(v ?? ''))} t={t} />
+              )
             return (
               <div key={f.name} className="space-y-1.5">
                 <div className="text-sm font-medium">{label}</div>
                 <div className="flex items-center gap-2">
-                  <Input
-                    type={inputType}
-                    placeholder={t('filter.min')}
-                    value={r.min ?? ''}
-                    onChange={(e) => setRange(f.name, 'min', e.target.value)}
-                  />
+                  {bound('min')}
                   <span className="text-muted-foreground">–</span>
-                  <Input
-                    type={inputType}
-                    placeholder={t('filter.max')}
-                    value={r.max ?? ''}
-                    onChange={(e) => setRange(f.name, 'max', e.target.value)}
-                  />
+                  {bound('max')}
                 </div>
               </div>
             )
