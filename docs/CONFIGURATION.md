@@ -348,8 +348,11 @@ operation sections).
 | `component` | `string \| null` | Override registry id for a custom action button; null → generic handler. |
 
 `ActionInputField`: `{ name, label?, type?, widget?, required?, placeholder? }`. The dialog draws
-`widget: 'password'` as a password input, `widget: 'textarea'` or `type: 'text' | 'textarea'` as a
-textarea, and anything else as a text input; the label defaults to `field.<name>`.
+`widget: 'password'` as a password input, `type: 'date' | 'datetime'` and `type: 'boolean'` with
+the forms' own date picker and switch, `widget: 'textarea'` or `type: 'text' | 'textarea'` as a
+textarea, and anything else as a text input; the label defaults to `field.<name>`. The body
+carries only the fields touched, a cleared date as `null` as the forms send it; with none touched
+it is `{}`, still sent, as a route with a body schema refuses a request without one.
 
 ---
 

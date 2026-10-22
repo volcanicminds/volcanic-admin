@@ -35,12 +35,21 @@ import {
 } from '@/ui/components/ui/dialog'
 import { useRegistry, actionsByTarget, matchVisibleWhen } from '@/engine'
 import type { CrudFilters } from '@refinedev/core'
-import type { CapabilitySpec, ResourceModel } from '@/engine'
+import type { ActionInputField, CapabilitySpec, ResolvedField, ResourceModel } from '@/engine'
+import { BooleanWidget, DateWidget, emptyToNull } from '@/ui/widgets/inputs'
 import type { TFunc } from '../generators/listShared'
 import { useCapabilityRunner } from './useCapabilityRunner'
 
 type Rec = Record<string, any>
 type RunFn = (cap: CapabilitySpec, record?: Rec, label?: string, body?: Rec) => void
+
+/** A dialog's input as a form field: a date, a datetime or a boolean is drawn and sent as the form does. */
+const asField = (f: ActionInputField): ResolvedField => ({ name: f.name, type: f.type ?? 'string', label: f.label, required: f.required })
+
+/** The values entered, a cleared date or choice sent as null (`emptyToNull`); a field never touched is left out. */
+export function dialogBody(fields: ActionInputField[], values: Rec): Rec {
+  return Object.fromEntries(fields.filter((f) => f.name in values).map((f) => [f.name, emptyToNull(asField(f), values[f.name])]))
+}
 
 /** Dialog that prompts for `cap.input.fields` and runs the action with them as the body. */
 function ActionInputDialog({
@@ -71,11 +80,13 @@ function ActionInputDialog({
         </DialogHeader>
         <div className="space-y-3">
           {fields.map((f) => {
+            const set = (value: unknown) => setValues((v) => ({ ...v, [f.name]: value }))
             const common = {
               placeholder: f.placeholder ? t(f.placeholder) : undefined,
               value: values[f.name] ?? '',
-              onChange: (e: { target: { value: string } }) => setValues((v) => ({ ...v, [f.name]: e.target.value }))
+              onChange: (e: { target: { value: string } }) => set(e.target.value)
             }
+            const field = asField(f)
             // A reason recorded with the operation is prose, not a one-line value (T-10.16).
             const multiline = f.widget === 'textarea' || f.type === 'text' || f.type === 'textarea'
             return (
@@ -86,6 +97,10 @@ function ActionInputDialog({
                 </Label>
                 {f.widget === 'password' ? (
                   <PasswordInput {...common} />
+                ) : field.type === 'date' || field.type === 'datetime' ? (
+                  <DateWidget field={field} value={values[f.name]} onChange={set} t={t} />
+                ) : field.type === 'boolean' ? (
+                  <BooleanWidget field={field} value={values[f.name]} onChange={set} t={t} />
                 ) : multiline ? (
                   <Textarea rows={3} {...common} />
                 ) : (
@@ -102,7 +117,7 @@ function ActionInputDialog({
           <Button
             disabled={missing}
             onClick={() => {
-              run(cap, record, label, values)
+              run(cap, record, label, dialogBody(fields, values))
               onOpenChange(false)
             }}
           >

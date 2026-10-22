@@ -205,7 +205,7 @@ function TextareaWidget({ field, value, onChange, disabled, t }: WidgetProps) {
   )
 }
 
-function BooleanWidget({ value, onChange, disabled }: WidgetProps) {
+export function BooleanWidget({ value, onChange, disabled }: WidgetProps) {
   return (
     <div className="flex h-9 items-center">
       <Switch checked={Boolean(value)} onCheckedChange={onChange} disabled={disabled} />
@@ -260,7 +260,7 @@ function EnumWidget({ field, value, onChange, disabled, t }: WidgetProps) {
   )
 }
 
-function DateWidget({ field, value, onChange, disabled }: WidgetProps) {
+export function DateWidget({ field, value, onChange, disabled }: WidgetProps) {
   if (field.type === 'datetime') {
     return (
       <Input
@@ -372,6 +372,29 @@ export function formFieldName(field: ResolvedField): string {
  */
 export function fieldSeed(field: ResolvedField): unknown {
   return field.default ?? (field.type === 'boolean' ? false : '')
+}
+
+/**
+ * An untouched/cleared select or date input holds `''`, which is a valid value for
+ * a text field ('' IS how you clear one) but not for these types: no enum admits
+ * '' and no date parses it, so the server rejects the whole save. Send `null`
+ * ("no value") instead. Text/number widgets are untouched (a number widget already
+ * emits null when emptied). The form and the action dialog both send through this.
+ *
+ * A MULTI-VALUED field is the exception to the exception: "no value" there is the
+ * empty ARRAY, never null. The Controller seeds every non-boolean field with `''`
+ * (see FieldInput), so a form saved without touching such a field used to submit
+ * `''` as `null`, and a server that coerces types turns that into `['']` (a phantom
+ * empty entry silently persisted) or rejects the whole save when the column is a
+ * constrained enum array. Normalizing to `[]` here fixes both for every consumer.
+ */
+export function emptyToNull(field: ResolvedField, value: unknown): unknown {
+  if (field.multiple) {
+    if (Array.isArray(value)) return value
+    return value === '' || value == null ? [] : [value]
+  }
+  if (value !== '') return value
+  return field.type === 'enum' || field.type === 'date' || field.type === 'datetime' ? null : value
 }
 
 export function FieldInput({ field, control, t }: FieldInputProps) {

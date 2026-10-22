@@ -205,11 +205,11 @@ export function createVolcanicDataProvider(opts: VolcanicDataProviderOptions): D
       const verb = (method ?? 'get').toUpperCase()
       // A GET or a HEAD may not carry a body, and the action runner always passes one, if only an
       // empty object: fetch refuses the request before it leaves the page, so every GET action
-      // (an export, a report) failed without ever reaching the backend.
-      // A FormData (an upload) goes as it is: it has no own keys to count, and JSON would empty it.
-      const multipart = payload instanceof FormData
-      const empty = !payload || (!multipart && typeof payload === 'object' && Object.keys(payload).length === 0)
-      const body = verb === 'GET' || verb === 'HEAD' || empty ? undefined : multipart ? payload : JSON.stringify(payload)
+      // (an export, a report) failed without ever reaching the backend. Any other verb sends even
+      // an empty object: a route with a body schema refuses a request with none ("body must be object").
+      // A FormData (an upload) goes as it is: JSON would empty it.
+      const bodyless = verb === 'GET' || verb === 'HEAD' || payload == null
+      const body = bodyless ? undefined : payload instanceof FormData ? payload : JSON.stringify(payload)
       const data = await json<any>(`${target}${qs}`, { method: verb, body, headers })
       return { data }
     }

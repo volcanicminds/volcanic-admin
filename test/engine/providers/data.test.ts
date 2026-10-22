@@ -169,3 +169,24 @@ describe('data provider: getList paged and errors', () => {
     await expect(getAll()).rejects.toMatchObject({ message: 'Bad Gateway', statusCode: 502 })
   })
 })
+
+describe('data provider: custom', () => {
+  const sent = async (method: 'get' | 'post' | 'put', payload: unknown) => {
+    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    await provider().custom!({ url: '/v1/admin/cars/1/renew', method, payload: payload as object })
+    return fetchMock.mock.calls[0]![1]?.body
+  }
+
+  it('sends an empty object to a write, which a route with a body schema needs, and no body to a read', async () => {
+    expect(await sent('post', {})).toBe('{}')
+    expect(await sent('put', { expiresAt: null })).toBe('{"expiresAt":null}')
+    expect(await sent('post', undefined)).toBeUndefined()
+    expect(await sent('get', {})).toBeUndefined()
+  })
+
+  it('sends a FormData as it is', async () => {
+    const form = new FormData()
+    expect(await sent('post', form)).toBe(form)
+  })
+})

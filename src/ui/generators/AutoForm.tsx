@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/car
 import { UnsavedChangesGuard } from '@/ui/components/UnsavedChangesGuard'
 import { useT, interpolatePath } from '@/engine'
 import type { ResourceModel, ResolvedField } from '@/engine'
-import { FieldInput, fieldSeed, formFieldName } from '@/ui/widgets/inputs'
+import { FieldInput, emptyToNull, fieldSeed, formFieldName } from '@/ui/widgets/inputs'
 import { uploadFiles, pendingFiles } from '@/ui/widgets/upload/rest'
 import { CLONE_STATE_KEY } from './cloneSeed'
 import { detailColumns, sectionGridClass, fieldSpanClass } from './layout'
@@ -40,29 +40,6 @@ function defaultsFor(fields: ResolvedField[]): Record<string, unknown> {
 /** A field shows in the current form mode unless restricted via `form.visibleOn`. */
 function visibleForAction(field: ResolvedField, action: 'create' | 'edit'): boolean {
   return !field.form?.visibleOn || field.form.visibleOn === action
-}
-
-/**
- * An untouched/cleared select or date input holds `''`, which is a valid value for
- * a text field ('' IS how you clear one) but not for these types: no enum admits
- * '' and no date parses it, so the server rejects the whole save. Send `null` —
- * "no value" — instead. Text/number widgets are untouched (a number widget already
- * emits null when emptied).
- *
- * A MULTI-VALUED field is the exception to the exception: "no value" there is the
- * empty ARRAY, never null. The Controller seeds every non-boolean field with `''`
- * (see FieldInput), so a form saved without touching such a field used to submit
- * `''` → `null`, and a server that coerces types turns that into `['']` — a phantom
- * empty entry silently persisted — or rejects the whole save when the column is a
- * constrained enum array. Normalizing to `[]` here fixes both for every consumer.
- */
-function emptyToNull(field: ResolvedField, value: unknown): unknown {
-  if (field.multiple) {
-    if (Array.isArray(value)) return value
-    return value === '' || value == null ? [] : [value]
-  }
-  if (value !== '') return value
-  return field.type === 'enum' || field.type === 'date' || field.type === 'datetime' ? null : value
 }
 
 export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFormProps) {
