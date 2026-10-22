@@ -22,6 +22,7 @@ import {
 } from '@/ui/components/ui/select'
 import { useRegistry } from '@/engine'
 import type { ResolvedField, ValidationSpec } from '@/engine'
+import { fromLocalInput, toLocalInput } from './datetime'
 import { ReferenceSelect } from './ReferenceSelect'
 import { TagsWidget } from './tags'
 import type { WidgetProps } from './types'
@@ -260,17 +261,18 @@ function EnumWidget({ field, value, onChange, disabled, t }: WidgetProps) {
 }
 
 function DateWidget({ field, value, onChange, disabled }: WidgetProps) {
-  const type = field.type === 'datetime' ? 'datetime-local' : 'date'
-  // Normalize ISO → input-local value.
-  const v =
-    value && typeof value === 'string'
-      ? type === 'datetime-local'
-        ? value.slice(0, 16)
-        : value.slice(0, 10)
-      : ''
-  return (
-    <Input type={type} value={v} disabled={disabled} onChange={(e) => onChange(e.target.value)} />
-  )
+  if (field.type === 'datetime') {
+    return (
+      <Input
+        type="datetime-local"
+        value={toLocalInput(value)}
+        disabled={disabled}
+        onChange={(e) => onChange(fromLocalInput(e.target.value))}
+      />
+    )
+  }
+  const v = value && typeof value === 'string' ? value.slice(0, 10) : ''
+  return <Input type="date" value={v} disabled={disabled} onChange={(e) => onChange(e.target.value)} />
 }
 
 function JsonWidget({ value, onChange, disabled }: WidgetProps) {
