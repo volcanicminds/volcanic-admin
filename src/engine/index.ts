@@ -7,7 +7,7 @@ export * from './types/manifest.js'
 export * from './types/model.js'
 
 export { interpretManifest, toRefineResources } from './interpreter.js'
-export { interpolatePath, matchVisibleWhen, actionsByTarget } from './actions.js'
+export { interpolatePath, fillsPath, canRunOn, matchVisibleWhen, actionsByTarget } from './actions.js'
 export { mergeManifest, deepMerge } from './merge.js'
 export type {
   ManifestOverrides,

@@ -3,13 +3,15 @@
  * provider's `custom` channel, with toast feedback, list invalidation on
  * `refresh`, and browser download when the action returns a file. Calls the
  * provider directly (not useCustomMutation) so GET actions (e.g. export) work.
+ * `runMany` runs it on a selection, one call per record, with a single toast.
  */
 import { useState } from 'react'
-import { useDataProvider, useInvalidate } from '@refinedev/core'
+import { useDataProvider, useInvalidate, type DataProvider } from '@refinedev/core'
 import { toast } from 'sonner'
-import { interpolatePath, type CapabilitySpec } from '@/engine'
+import { interpolatePath, translate, type CapabilitySpec } from '@/engine'
 
 type Rec = Record<string, any>
+type Custom = NonNullable<DataProvider['custom']>
 
 function toCsv(rows: Rec[]): string {
   if (!rows.length) return ''
@@ -37,25 +39,33 @@ export function useCapabilityRunner(resource: string) {
   const invalidate = useInvalidate()
   const [isRunning, setIsRunning] = useState(false)
 
+  const customChannel = () => {
+    const { custom } = dataProvider()
+    if (!custom) toast.error('Actions require a data provider with custom() support')
+    return custom
+  }
+
+  const call = (custom: Custom, cap: CapabilitySpec, record?: Rec, body?: Rec) =>
+    custom({
+      url: interpolatePath(cap.path, record),
+      method: cap.method.toLowerCase() as 'get' | 'post' | 'put' | 'patch' | 'delete',
+      payload: { ...(cap.payload ?? {}), ...(body ?? {}) }
+    })
+
+  // Invalidate → the affected list/detail refetch and re-bind (no full reload).
+  const refresh = (cap: CapabilitySpec) => {
+    if (cap.refresh !== false) invalidate({ resource, invalidates: ['list', 'many', 'detail'] })
+  }
+
   const run = async (cap: CapabilitySpec, record?: Rec, label?: string, body?: Rec) => {
-    const provider = dataProvider()
-    if (!provider.custom) {
-      toast.error('Actions require a data provider with custom() support')
-      return
-    }
+    const custom = customChannel()
+    if (!custom) return
     setIsRunning(true)
     try {
-      const { data } = await provider.custom({
-        url: interpolatePath(cap.path, record),
-        method: cap.method.toLowerCase() as 'get' | 'post' | 'put' | 'patch' | 'delete',
-        payload: { ...(cap.payload ?? {}), ...(body ?? {}) }
-      })
+      const { data } = await call(custom, cap, record, body)
       if (cap.download) download(data, cap, resource)
       else toast.success(label ?? cap.name)
-      // Invalidate → the affected list/detail refetch and re-bind (no full reload).
-      if (cap.refresh !== false) {
-        invalidate({ resource, invalidates: ['list', 'many', 'detail'] })
-      }
+      refresh(cap)
     } catch (err) {
       toast.error((err as { message?: string })?.message ?? `Action "${cap.name}" failed`)
     } finally {
@@ -63,5 +73,26 @@ export function useCapabilityRunner(resource: string) {
     }
   }
 
-  return { run, isRunning }
+  // One record at a time, as an operator clicking each row would send them: a backend that limits
+  // or locks per resource sees no burst, and a failure names how many of the selection it hit.
+  const runMany = async (cap: CapabilitySpec, records: Rec[], label?: string, body?: Rec) => {
+    const custom = customChannel()
+    if (!custom) return
+    setIsRunning(true)
+    const errors: string[] = []
+    for (const record of records) {
+      try {
+        await call(custom, cap, record, body)
+      } catch (err) {
+        errors.push((err as { message?: string })?.message ?? `Action "${cap.name}" failed`)
+      }
+    }
+    const vars = { label: label ?? cap.name, count: records.length, failed: errors.length }
+    if (errors.length) toast.error(`${translate('action.bulk.failed', vars)} ${errors[0]}`)
+    else toast.success(translate('action.bulk.done', vars))
+    refresh(cap)
+    setIsRunning(false)
+  }
+
+  return { run, runMany, isRunning }
 }

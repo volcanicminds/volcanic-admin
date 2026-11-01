@@ -25,6 +25,7 @@ import type {
   FormSection
 } from './types/model.js'
 import type { IResourceItem } from '@refinedev/core'
+import { actionsByTarget } from './actions.js'
 
 /** Types that don't belong in a table column / are non-tabular by default. */
 const HEAVY_TYPES = ['text', 'richtext', 'json', 'image', 'file']
@@ -197,6 +198,10 @@ function buildResourceModel(spec: ResourceSpec, manifest: Manifest): ResourceMod
     // The manifest is already role-filtered server-side; presence of the capability
     // signals the action is available to this user.
     hasAction: (action) => !!crud(action),
+    canDeleteAt: (target) => {
+      const del = crud('delete')
+      return !!del && actionsByTarget([del], target).length > 0
+    },
     hasShow: !!crud('read') || (!!spec.views?.show && spec.views.show !== 'auto'),
     roles: (action) => crud(action)?.roles,
     actions: caps.filter((c) => c.kind === 'action' && c.enabled !== false)

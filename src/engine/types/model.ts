@@ -96,6 +96,12 @@ export interface ResourceModel {
   /** True when an enabled CRUD capability of this kind exists (v2). */
   hasAction(action: CrudAction): boolean
   /**
+   * The delete capability surfaces at this target: one record (`row`, the default when it names
+   * no target) or the selection (`bulk`, one `deleteMany`). A backend with only the collection
+   * route declares `['bulk']`, and a per-row delete would call a route that does not exist.
+   */
+  canDeleteAt(target: Exclude<ActionKind, 'collection'>): boolean
+  /**
    * A detail page exists: a `read` capability loads the record, or the project draws the show
    * view itself. Without one a list row leads nowhere, and offers no detail.
    */

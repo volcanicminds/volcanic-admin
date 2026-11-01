@@ -300,7 +300,8 @@ shared by every view. Presentation and ordering are NOT here; they live in the
 ### 4.3 `ValidationSpec`
 
 `required`, `min`, `max`, `minLength`, `maxLength`, `pattern`, `step`. Turned into
-react-hook-form rules (`toRules`); messages fall back to `validation.required` etc.
+react-hook-form rules (`toRules`); the messages are `validation.required` and
+`validation.pattern`, the bounds show as `≥ n`, `≤ n`, `min n`, `max n`.
 
 ### 4.4 `EnumOption` + color palette
 
@@ -338,7 +339,7 @@ operation sections).
 | **action-only** | | |
 | `label` | i18n key | Button label. |
 | `icon` | `string` | Action icon (mapped set, see §8). |
-| `target` | `('row'\|'bulk'\|'collection')[]` | Where the button surfaces (row = compact icon; collection = labeled header button). |
+| `target` | `('row'\|'bulk'\|'collection')[]` | Where the button surfaces (row = compact icon, the default; bulk = the bar over the selected rows, run once per row the action accepts, never for a `download`; collection = labeled header button). Also read on `delete`: `row` offers it per row and on the detail screen, `bulk` on the selection through `deleteMany`. An action whose path has a `:param` the record cannot fill is not offered. |
 | `payload` | `Record<string, unknown>` | Static body merged into the request. |
 | `confirm` / `confirmText` | `boolean` / i18n key | Confirm dialog before running. |
 | `input` | `{ fields: ActionInputField[], submitLabel? }` | Prompt for fields in a dialog, send as body (e.g. set-password). A v5 backend emits it for its own actions, derived from the route's body schema plus the route's `config.manifest.input` hint (backend `docs/API_V5.md` §7.1). |
@@ -503,9 +504,10 @@ locales: `test/engine/i18n.test.ts` reads the sources and fails on a missing one
 - `meta.*`: `id`, `createdAt`, `updatedAt`.
 - `action.*`: `copy`, `clone`, `remove` (plus view-level `new`, `search`, `back`,
   `edit`, `save`, `cancel`, `delete`, `delete.confirmTitle`, `delete.confirmText`,
-  `confirm`).
-- `list.*` (`pageInfo`, `pageSize`, `prev`, `next`), `state.*` (`loading`,
-  `empty`), `form.saveError`, `nav.account`.
+  `confirm`; bulk `deleteMany.confirmTitle`, `bulk.done`, `bulk.failed`).
+- `list.*` (`pageInfo`, `pageSize`, `prev`, `next`; selection `selected`, `selectAll`,
+  `selectRow`, `clearSelection`), `state.*` (`loading`, `empty`), `form.saveError`,
+  `validation.*` (`required`, `pattern`), `nav.account`.
 - `badge.featured`, `upload.*`, `sort.*` (`by`, `asc`, `desc`, `clear`),
   `filter.*` (`title`, `clear`, `any`, `yes`, `no`, `min`, `max`).
 

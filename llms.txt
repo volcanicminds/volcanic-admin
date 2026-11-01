@@ -59,7 +59,7 @@ src/
     interpreter.ts        interpretManifest, toRefineResources
     merge.ts              mergeManifest, deepMerge, ManifestOverrides types
     magic-query.ts        buildMagicQuery, searchFilter, readTotal
-    actions.ts            interpolatePath, matchVisibleWhen, actionsByTarget
+    actions.ts            interpolatePath, fillsPath, canRunOn, matchVisibleWhen, actionsByTarget
     providers/            data, http, auth, accessControl, tenant, errors
     auth/                 client (login flow, renewal, account), endpoints, tokenStore, stepUp
     registry.tsx          override registry (widget, view, action)
@@ -457,6 +457,8 @@ Action-only: `label?`, `icon?`, `target?: ('row' | 'bulk' | 'collection')[]` (de
 `payload?` (static body merge), `confirm?`, `confirmText?`, `visibleWhen?`
 (`{ field: { operator: value } }`), `refresh?`, `download?` (mime), `component?: string | null`
 (registry `action` id; null or absent means the generic handler), `input?: ActionInput`.
+`delete` reads `target` too: `row` (the default) offers delete on each row and on the detail
+screen, `bulk` on the selection through `deleteMany`.
 
 `ActionInput`: `{ fields: ActionInputField[]; submitLabel?: I18nKey }`;
 `ActionInputField`: `{ name, label?, type?: FieldType, widget?, required?, placeholder? }`.
@@ -498,7 +500,7 @@ infers only `string`, `integer`, `number`, `boolean`, `date`, `datetime`, `enum`
 
 The engine interprets the manifest (`interpretManifest`) into an `AdminModel` of `ResourceModel`s
 (`src/engine/types/model.ts`): enums resolved, columns, card slots, form sections, sort and filter
-fields precomputed, `hasAction(verb)`, `roles(verb)` and `actions` derived from the capabilities
+fields precomputed, `hasAction(verb)`, `canDeleteAt('row' | 'bulk')`, `roles(verb)` and `actions` derived from the capabilities
 (an `enabled: false` capability does not count). `toRefineResources()` builds Refine's resource
 list, sorted by group order then resource order.
 
@@ -786,13 +788,28 @@ Sort: `list.sort` (or the sortable fields) drives a "sort by" select with an asc
 Capabilities of `kind: 'action'` render as buttons (`ActionButtons`) at their `target`: per row,
 on the selection (bulk) or in the list header (collection). `visibleWhen` hides a row action
 unless the record matches (operators `eq`, `neq`, `in`, `nin`, `gt`, `ge`, `lt`, `le`, `null`;
-`{ null: false }` means "is not null"). The generic runner (`useCapabilityRunner`) calls
+`{ null: false }` means "is not null"). An action whose path has a `:param` the record cannot
+fill is not offered (`fillsPath`; a collection action has no record, so any `:param` hides it):
+it would go out with the placeholder in the URL.
+
+When the resource has a bulk action or a bulk delete, the table and the cards get a checkbox per
+row; while rows are selected, the bottom bar of the list shows the count, the bulk actions, the
+bulk delete and a clear button in place of the page info, so the rows never move under the
+pointer. The selection covers the current page and clears on a change of page, page size, sort,
+filters or search. A bulk action runs once per selected row, one row at a time, on the rows its
+`visibleWhen` and its path accept (`canRunOn`; its button shows how many), then shows one toast
+and clears the selection. A `download` action is never offered in bulk: one file per row is not
+what the operator asked for. Bulk delete asks for confirmation and sends one `deleteMany`.
+
+The generic runner (`useCapabilityRunner`) calls
 `custom({ url: interpolatePath(path, record), method, payload: { ...payload, ...input } })`,
 asks for `input` fields in a dialog or a `confirm` first, shows a toast, invalidates the list when
 `refresh`, and with `download` saves the answer as `<resource>-<name>.csv` (CSV mime) or `.txt`.
 
 A `component` id replaces the generic button with a registered `action` component receiving
-`ActionComponentProps`: `{ capability, record?, model?, filters?, run(record?, body?), t }`. A
+`ActionComponentProps`: `{ capability, record?, records?, model?, filters?, run(record?, body?), t }`.
+On the bulk bar `records` holds the selected rows the action accepts, and `run` runs on all of
+them and clears the selection. A
 collection action in the list header receives the list's `filters` as the list applies them,
 search box included: its selection is the rows the operator sees, and
 `buildMagicQuery({ filters })` writes it as the backend reads it.
@@ -857,9 +874,10 @@ Default key families shipped in `defaultDictionaries` (override any of them): `e
 reference, required, forbidden, notFound, conflict, invalidQuery, tenantRequired,
 tenantNotFound, tenantDestroyed, unavailable, invalidCredentials, passwordExpired, generic),
 `meta.*` (id, createdAt, updatedAt), `docTitle.*`, `action.*` (new, search, back, edit, save,
-copy, clone, remove, delete, cancel, confirm, delete.confirmTitle, delete.confirmText),
-`list.*` (pageInfo, pageSize, prev, next), `state.*` (loading, empty), `form.saveError`,
-`nav.account`, `unsaved.*`, `badge.featured`,
+copy, clone, remove, delete, cancel, confirm, delete.confirmTitle, delete.confirmText,
+deleteMany.confirmTitle, bulk.done, bulk.failed), `list.*` (pageInfo, pageSize, prev, next,
+selected, selectAll, selectRow, clearSelection), `state.*` (loading, empty), `form.saveError`,
+`validation.*` (required, pattern), `nav.account`, `unsaved.*`, `badge.featured`,
 `upload.*`, `tags.*`, `sort.*`, `filter.*`, `stepUp.*`, `login.*` (screens, stages, methods and
 `login.error.*`, including `login.error.remaining`), `destroy.*`.
 
@@ -949,8 +967,8 @@ From `@volcanicminds/admin`:
   `toRefineResources`, `mergeManifest`, `deepMerge`, types `ManifestOverrides`, `ResourceOverride`,
   `FieldOverride`, `CapabilityOverride`, `FieldMap`; `ManifestProvider`, `useModel`,
   `useResourceModel`, types `ManifestSource`, `ManifestProviderProps`.
-- Query: `buildMagicQuery`, `searchFilter`, `readTotal`; actions `interpolatePath`,
-  `matchVisibleWhen`, `actionsByTarget`.
+- Query: `buildMagicQuery`, `searchFilter`, `readTotal`; actions `interpolatePath`, `fillsPath`,
+  `canRunOn`, `matchVisibleWhen`, `actionsByTarget`.
 - Providers: `createVolcanicDataProvider` (`VolcanicDataProviderOptions`, `AuthMode`),
   `createApiRequest` (`ApiRequest`, `ApiRequestOptions`), `createVolcanicAuthProvider`
   (`VolcanicAuthOptions`), `createVolcanicAccessControlProvider`, `rolesStore`,

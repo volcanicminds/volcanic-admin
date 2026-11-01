@@ -4,12 +4,27 @@
  */
 import type { ActionKind, CapabilitySpec } from './types/manifest.js'
 
+const PARAM = /:([A-Za-z_]\w*)/g
+
 /** Substitute `:param` segments in a capability path from a record (`:id` → record.id). */
 export function interpolatePath(path: string, record?: Record<string, unknown>): string {
-  return path.replace(/:([A-Za-z_]\w*)/g, (_m, key: string) => {
+  return path.replace(PARAM, (_m, key: string) => {
     const v = record?.[key]
     return v != null ? encodeURIComponent(String(v)) : `:${key}`
   })
+}
+
+/**
+ * The record carries a value for every `:param` of the path. A path it cannot fill would go out
+ * with the placeholder in the URL (`/vehicles/7/images/:imageId`), so its action is not offered.
+ */
+export function fillsPath(path: string, record?: Record<string, unknown>): boolean {
+  return [...path.matchAll(PARAM)].every(([, key]) => record?.[key] != null)
+}
+
+/** The action can run on this record: its `visibleWhen` holds and the record fills its path. */
+export function canRunOn(action: CapabilitySpec, record: Record<string, unknown>): boolean {
+  return matchVisibleWhen(record, action.visibleWhen) && fillsPath(action.path, record)
 }
 
 /** A boolean intent written as JSON `false` or as the query-string word `'false'`. */

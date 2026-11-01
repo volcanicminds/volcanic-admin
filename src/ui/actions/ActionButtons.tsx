@@ -1,9 +1,11 @@
 /**
  * Renders manifest action capabilities (kind:'action') as buttons. Row actions
- * are compact icon buttons honoring `visibleWhen`; collection actions are
- * labeled buttons in the list header. A `capability.component` resolves to a
- * custom component from the override registry; otherwise a generic button runs
- * the action via its real endpoint.
+ * are compact icon buttons honoring `visibleWhen`; bulk actions are labeled
+ * buttons in the selection bar, run on each selected row they accept;
+ * collection actions are labeled buttons in the list header. An action whose
+ * path has a `:param` its record cannot fill is not offered. A
+ * `capability.component` resolves to a custom component from the override
+ * registry; otherwise a generic button runs the action via its real endpoint.
  */
 import { useState, type ComponentType } from 'react'
 import {
@@ -33,7 +35,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/ui/components/ui/dialog'
-import { useRegistry, actionsByTarget, matchVisibleWhen } from '@/engine'
+import { useRegistry, actionsByTarget, canRunOn, fillsPath } from '@/engine'
 import type { CrudFilters } from '@refinedev/core'
 import type { ActionInputField, CapabilitySpec, ResolvedField, ResourceModel } from '@/engine'
 import { BooleanWidget, DateWidget, emptyToNull } from '@/ui/widgets/inputs'
@@ -149,6 +151,7 @@ const iconFor = (name?: string) => (name && ICONS[name]) || Zap
 function ActionButton({
   cap,
   record,
+  records,
   run,
   t,
   model,
@@ -160,6 +163,8 @@ function ActionButton({
 }: {
   cap: CapabilitySpec
   record?: Rec
+  /** A bulk action's rows: the selected ones it can run on, counted on the button. */
+  records?: Rec[]
   run: RunFn
   t: TFunc
   /** The resource the action belongs to, handed to a custom component: without it a component
@@ -186,6 +191,7 @@ function ActionButton({
       <Custom
         capability={cap}
         record={record}
+        records={records}
         model={model}
         filters={filters}
         run={(r?: Rec, body?: Rec) => run(cap, r ?? record, label, body)}
@@ -222,6 +228,7 @@ function ActionButton({
           onClick={onClick}
         >
           <Icon /> {label}
+          {records && ` (${records.length})`}
         </Button>
       )}
       {cap.input && (
@@ -281,7 +288,7 @@ export function RowActions({
   className?: string
 }) {
   const { run } = useCapabilityRunner(model.spec.name)
-  const actions = actionsByTarget(model.actions, 'row').filter((a) => matchVisibleWhen(record, a.visibleWhen))
+  const actions = actionsByTarget(model.actions, 'row').filter((a) => canRunOn(a, record))
   if (!actions.length) return null
   return (
     <>
@@ -303,10 +310,49 @@ export function RowActions({
   )
 }
 
+/**
+ * The bulk actions offered on a selection: no `download`, which saves what one call answers and
+ * on a selection would save one file per row (a collection action exports the filtered rows).
+ */
+export function bulkActionsOf(model: ResourceModel): CapabilitySpec[] {
+  return actionsByTarget(model.actions, 'bulk').filter((a) => !a.download)
+}
+
+/**
+ * Labeled buttons for bulk-target actions (selection bar). Each runs on the selected rows it can
+ * run on, counted on the button, and is absent when it can run on none; `onDone` follows a run.
+ */
+export function BulkActions({
+  model,
+  records,
+  t,
+  onDone
+}: {
+  model: ResourceModel
+  records: Rec[]
+  t: TFunc
+  onDone: () => void
+}) {
+  const { runMany } = useCapabilityRunner(model.spec.name)
+  return (
+    <>
+      {bulkActionsOf(model).map((a) => {
+        const rows = records.filter((r) => canRunOn(a, r))
+        if (!rows.length) return null
+        const runOnRows: RunFn = async (cap, _record, label, body) => {
+          await runMany(cap, rows, label, body)
+          onDone()
+        }
+        return <ActionButton key={a.name} cap={a} records={rows} run={runOnRows} t={t} model={model} size="sm" />
+      })}
+    </>
+  )
+}
+
 /** Labeled buttons for collection-target actions (list header). */
 export function CollectionActions({ model, t, filters }: { model: ResourceModel; t: TFunc; filters?: CrudFilters }) {
   const { run } = useCapabilityRunner(model.spec.name)
-  const actions = actionsByTarget(model.actions, 'collection')
+  const actions = actionsByTarget(model.actions, 'collection').filter((a) => fillsPath(a.path))
   if (!actions.length) return null
   return (
     <>

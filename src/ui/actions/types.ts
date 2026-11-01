@@ -22,7 +22,12 @@ export interface ActionComponentProps {
    * `buildMagicQuery({ filters })` writes them as the backend reads them.
    */
   filters?: CrudFilters
-  /** Runs THIS capability through the generic runner (toast, download, invalidation). */
+  /** A bulk action's selection: the selected rows its `visibleWhen` and path accept. */
+  records?: ActionRecord[]
+  /**
+   * Runs THIS capability through the generic runner (toast, download, invalidation). For a bulk
+   * action it runs on every row of `records`, one call each, and clears the selection.
+   */
   run: (record?: ActionRecord, body?: ActionRecord) => void
   t: TFunc
 }

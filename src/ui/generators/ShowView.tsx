@@ -107,7 +107,7 @@ export function ShowView({ model }: { model: ResourceModel }) {
   // Browser tab title: "<singular label> <record title>", e.g. "Veicolo BMW 320".
   useRecordDocumentTitle(model, record)
 
-  const canDelete = model.hasAction('delete')
+  const canDelete = model.canDeleteAt('row')
   const canClone = model.hasAction('create') && spec.clonable !== false
 
   // Clone: open the create form pre-seeded with this record's writable values

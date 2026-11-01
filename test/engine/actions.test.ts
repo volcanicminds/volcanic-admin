@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { actionsByTarget, interpolatePath, matchVisibleWhen } from '@/engine/actions'
+import { actionsByTarget, canRunOn, fillsPath, interpolatePath, matchVisibleWhen } from '@/engine/actions'
 import { cap } from '../helpers/manifest'
 
 describe('interpolatePath', () => {
@@ -20,6 +20,34 @@ describe('interpolatePath', () => {
 
   it('only treats a colon followed by an identifier as a param', () => {
     expect(interpolatePath('/at/10:30/:9x/:id', { id: 1 })).toBe('/at/10:30/:9x/1')
+  })
+})
+
+describe('fillsPath', () => {
+  it('holds when the record carries every param, falsy values included', () => {
+    expect(fillsPath('/vehicles/:id/status', { id: 7 })).toBe(true)
+    expect(fillsPath('/p/:n/:flag', { n: 0, flag: false })).toBe(true)
+    expect(fillsPath('/vehicles/export')).toBe(true)
+  })
+
+  it('fails on a param the record does not carry, so the placeholder never reaches the URL', () => {
+    expect(fillsPath('/vehicles/:id/images/:imageId', { id: 7 })).toBe(false)
+    expect(fillsPath('/vehicles/:id', { id: null })).toBe(false)
+    expect(fillsPath('/vehicles/:id')).toBe(false)
+  })
+
+  it('reads params as interpolatePath does', () => {
+    expect(fillsPath('/at/10:30/:9x/:id', { id: 1 })).toBe(true)
+  })
+})
+
+describe('canRunOn', () => {
+  const publish = cap('action', { path: '/vehicles/:id/status', visibleWhen: { status: { neq: 'published' } } })
+
+  it('needs both the condition and the path', () => {
+    expect(canRunOn(publish, { id: 1, status: 'draft' })).toBe(true)
+    expect(canRunOn(publish, { id: 1, status: 'published' })).toBe(false)
+    expect(canRunOn(publish, { status: 'draft' })).toBe(false)
   })
 })
 

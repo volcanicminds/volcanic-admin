@@ -1,6 +1,7 @@
 /** Table presentation for the generated list. */
 import { ArrowUp, ArrowDown, Pencil, Eye, Trash2 } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
+import { Checkbox } from '@/ui/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -24,16 +25,30 @@ export function ListTable({
   onShow,
   onEdit,
   onDelete,
+  selection,
   sorters,
   onToggleSort
 }: ListPresentationProps) {
   const { spec, columns } = model
+  const span = columns.length + (selection ? 2 : 1)
+  const allSelected = records.length > 0 && records.every((r: any) => selection?.selected.has(String(r.id)))
 
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
+            {selection && (
+              <TableHead className="w-[1%]">
+                <Checkbox
+                  checked={allSelected}
+                  disabled={records.length === 0}
+                  aria-label={t('list.selectAll')}
+                  title={t('list.selectAll')}
+                  onCheckedChange={selection.toggleAll}
+                />
+              </TableHead>
+            )}
             {columns.map((col) => {
               const f = col.field
               const sort = sorters?.find((s) => s.field === f.name)
@@ -66,13 +81,13 @@ export function ListTable({
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={columns.length + 1} className="text-center text-muted-foreground">
+              <TableCell colSpan={span} className="text-center text-muted-foreground">
                 {t('state.loading')}
               </TableCell>
             </TableRow>
           ) : records.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={columns.length + 1} className="text-center text-muted-foreground">
+              <TableCell colSpan={span} className="text-center text-muted-foreground">
                 {t('state.empty')}
               </TableCell>
             </TableRow>
@@ -82,7 +97,17 @@ export function ListTable({
                 key={record.id}
                 className={canShow ? 'cursor-pointer' : undefined}
                 onClick={canShow ? () => onShow(record.id) : undefined}
+                data-state={selection?.selected.has(String(record.id)) ? 'selected' : undefined}
               >
+                {selection && (
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selection.selected.has(String(record.id))}
+                      aria-label={t('list.selectRow')}
+                      onCheckedChange={() => selection.toggle(String(record.id))}
+                    />
+                  </TableCell>
+                )}
                 {columns.map((col) => (
                   <TableCell key={col.field.name} className={col.align === 'right' ? 'text-right' : undefined}>
                     <FieldCell record={record} field={col.field} t={t} />

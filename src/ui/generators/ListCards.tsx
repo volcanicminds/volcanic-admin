@@ -10,6 +10,7 @@ import { Pencil, Trash2, ImageOff, ChevronLeft, ChevronRight, Star } from 'lucid
 import { cn, absoluteUrl } from '@/lib/utils'
 import { Button } from '@/ui/components/ui/button'
 import { Card } from '@/ui/components/ui/card'
+import { Checkbox } from '@/ui/components/ui/checkbox'
 import { FieldCell } from '@/ui/widgets/display'
 import type { ResourceModel } from '@/engine'
 import type { ListPresentationProps } from './listShared'
@@ -120,7 +121,8 @@ export function ListCards({
   canShow,
   onShow,
   onEdit,
-  onDelete
+  onDelete,
+  selection
 }: ListPresentationProps) {
   const { spec, card } = model
   const apiUrl = useApiUrl()
@@ -158,6 +160,7 @@ export function ListCards({
       {records.map((record: any) => {
         const urls = hasImage ? imageUrls(record, imageField?.name).map((u) => absoluteUrl(apiUrl, u)) : []
         const featured = highlightField ? Boolean(record[highlightField]) : false
+        const selected = selection?.selected.has(String(record.id)) ?? false
         const hasRowActions = model.actions.some((a) => !a.target || a.target.includes('row'))
         const actions = (canEdit || canDelete || hasRowActions) && (
           <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
@@ -180,7 +183,8 @@ export function ListCards({
             className={cn(
               'group overflow-hidden transition-shadow',
               canShow && 'cursor-pointer hover:shadow-md',
-              featured && 'ring-2 ring-amber-400 ring-offset-1'
+              featured && 'ring-2 ring-amber-400 ring-offset-1',
+              selected && 'ring-2 ring-primary ring-offset-1'
             )}
             onClick={canShow ? () => onShow(record.id) : undefined}
           >
@@ -204,7 +208,16 @@ export function ListCards({
                 </div>
               )}
               <div className={cn('flex items-start gap-2', centered ? 'justify-center' : 'justify-between')}>
-                <div className="min-w-0">
+                {selection && (
+                  <Checkbox
+                    className="mt-0.5"
+                    checked={selected}
+                    aria-label={t('list.selectRow')}
+                    onClick={(e) => e.stopPropagation()}
+                    onCheckedChange={() => selection.toggle(String(record.id))}
+                  />
+                )}
+                <div className={cn('min-w-0', selection && !centered && 'flex-1')}>
                   <div className="truncate font-medium">{display(model, record, titleField) || '—'}</div>
                   {display(model, record, subtitleField) && (
                     <div className="truncate text-sm text-muted-foreground">

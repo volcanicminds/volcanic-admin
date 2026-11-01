@@ -352,6 +352,20 @@ describe('interpretManifest: capabilities', () => {
     expect(r.hasAction('update')).toBe(false)
     expect(r.actions.map((a) => a.name)).toEqual(['publish'])
   })
+
+  it('places the delete capability at its targets, one row when it names none', () => {
+    const at = (target?: Array<'row' | 'bulk'>) => {
+      const r = modelOf(resource({ name: 'r', capabilities: [cap('list'), cap('delete', { target })] }))
+      return { row: r.canDeleteAt('row'), bulk: r.canDeleteAt('bulk') }
+    }
+    expect(at()).toEqual({ row: true, bulk: false })
+    expect(at([])).toEqual({ row: true, bulk: false })
+    expect(at(['row', 'bulk'])).toEqual({ row: true, bulk: true })
+    // The backend declares only `bulk` when the resource has the collection route alone.
+    expect(at(['bulk'])).toEqual({ row: false, bulk: true })
+    const none = modelOf(resource({ name: 'r', capabilities: [cap('list'), cap('delete', { enabled: false })] }))
+    expect([none.canDeleteAt('row'), none.canDeleteAt('bulk')]).toEqual([false, false])
+  })
 })
 
 describe('toRefineResources', () => {

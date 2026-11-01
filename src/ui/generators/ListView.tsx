@@ -6,11 +6,15 @@
  *
  * Search / sort / filters / page live in `useListState`: per resource, restored
  * on return from a record (see listState.ts).
+ *
+ * With a bulk delete or a bulk action the rows can be selected, and the bottom bar
+ * offers what can run on them. The selection is the rows on screen: another
+ * page, page size, sort, filter or search clears it.
  */
 import { useEffect, useMemo, useState } from 'react'
-import { useList, useDelete, useNavigation } from '@refinedev/core'
+import { useList, useDelete, useDeleteMany, useNavigation } from '@refinedev/core'
 import type { CrudSorting } from '@refinedev/core'
-import { Plus, Search, LayoutGrid, Table as TableIcon, ArrowUp, ArrowDown, ArrowUpDown, X } from 'lucide-react'
+import { Plus, Search, LayoutGrid, Table as TableIcon, ArrowUp, ArrowDown, ArrowUpDown, X, Trash2 } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import { ConfirmDialog } from '@/ui/components/ConfirmDialog'
@@ -29,7 +33,7 @@ import { ListCards } from './ListCards'
 import { ListIO } from './ListIO'
 import { FilterBar, toCrudFilters } from './FilterBar'
 import { useListState } from './listState'
-import { CollectionActions } from '../actions/ActionButtons'
+import { BulkActions, CollectionActions, bulkActionsOf } from '../actions/ActionButtons'
 
 const layoutKey = (name: string) => `volcanic.admin.list.${name}.layout`
 const pageSizeKey = (name: string) => `volcanic.admin.list.${name}.pageSize`
@@ -40,6 +44,7 @@ export function ListView({ model }: { model: ResourceModel }) {
   const { spec } = model
   const { create, edit, show } = useNavigation()
   const { mutate: deleteOne } = useDelete()
+  const { mutate: deleteMany } = useDeleteMany()
 
   const layouts: ListLayout[] = model.list.layouts
   const [layout, setLayout] = useState<ListLayout>(() => {
@@ -129,7 +134,33 @@ export function ListView({ model }: { model: ResourceModel }) {
 
   const canCreate = model.hasAction('create')
   const canEdit = model.hasAction('update')
-  const canDelete = model.hasAction('delete')
+  const canDelete = model.canDeleteAt('row')
+  const canBulkDelete = model.canDeleteAt('bulk')
+  const selectable = canBulkDelete || bulkActionsOf(model).length > 0
+
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const clearSelection = () => setSelected(new Set())
+  useEffect(() => setSelected(new Set()), [page, pageSize, sorters, filters])
+  // Only the rows still listed: a row deleted or filtered out since it was ticked drops out.
+  const selectedRecords = records.filter((r) => selected.has(String(r.id)))
+  const selection = selectable
+    ? {
+        selected,
+        toggle: (id: string) =>
+          setSelected((prev) => {
+            const next = new Set(prev)
+            if (!next.delete(id)) next.add(id)
+            return next
+          }),
+        toggleAll: () =>
+          setSelected(
+            records.length && selectedRecords.length === records.length
+              ? new Set()
+              : new Set(records.map((r) => String(r.id)))
+          )
+      }
+    : undefined
 
   const presentation = {
     model,
@@ -141,7 +172,8 @@ export function ListView({ model }: { model: ResourceModel }) {
     canShow: model.hasShow,
     onShow: (id: string) => show(spec.name, id),
     onEdit: (id: string) => edit(spec.name, id),
-    onDelete: (id: string) => setToDelete(id)
+    onDelete: (id: string) => setToDelete(id),
+    selection
   }
 
   return (
@@ -265,28 +297,45 @@ export function ListView({ model }: { model: ResourceModel }) {
           off-screen, and un-sticks by itself once you reach the end, so no row is
           permanently covered. `-bottom-6` cancels the main's bottom padding (the
           `-top-6` above does the same at the other end); the opaque background is
-          load-bearing, not decoration — rows scroll underneath it. */}
-      <div className="sticky -bottom-6 z-20 -mx-6 flex items-center justify-between border-t bg-background px-6 py-4 text-sm text-muted-foreground">
-        <div className="flex items-center gap-3">
-          <span>
-            {t('list.pageInfo', { page, pageCount })} · {total}
-          </span>
-          <div className="flex items-center gap-2">
-            <span>{t('list.pageSize')}</span>
-            <Select value={String(pageSize)} onValueChange={(v) => choosePageSize(Number(v))}>
-              <SelectTrigger className="h-8 w-[4.5rem]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PAGE_SIZES.map((n) => (
-                  <SelectItem key={n} value={String(n)}>
-                    {n}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          load-bearing, not decoration: rows scroll underneath it.
+          With a selection its left side turns into the bulk bar, at the same height:
+          a bar appearing above the list would push the rows away from the pointer. */}
+      <div className="sticky -bottom-6 z-20 -mx-6 flex items-center justify-between gap-4 border-t bg-background px-6 py-4 text-sm text-muted-foreground">
+        {selectedRecords.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 text-foreground">
+            <span className="font-medium">{t('list.selected', { count: selectedRecords.length })}</span>
+            <BulkActions model={model} records={selectedRecords} t={t} onDone={clearSelection} />
+            {canBulkDelete && (
+              <Button variant="outline" size="sm" onClick={() => setBulkDeleting(true)}>
+                <Trash2 className="text-destructive" /> {t('action.delete')} ({selectedRecords.length})
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={clearSelection}>
+              <X /> {t('list.clearSelection')}
+            </Button>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <span>
+              {t('list.pageInfo', { page, pageCount })} · {total}
+            </span>
+            <div className="flex items-center gap-2">
+              <span>{t('list.pageSize')}</span>
+              <Select value={String(pageSize)} onValueChange={(v) => choosePageSize(Number(v))}>
+                <SelectTrigger className="h-8 w-[4.5rem]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZES.map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
         <div className="flex gap-2">
           <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
             {t('list.prev')}
@@ -313,6 +362,21 @@ export function ListView({ model }: { model: ResourceModel }) {
         onConfirm={() => {
           if (toDelete) deleteOne({ resource: spec.name, id: toDelete })
           setToDelete(null)
+        }}
+      />
+
+      <ConfirmDialog
+        open={bulkDeleting}
+        onOpenChange={setBulkDeleting}
+        title={t('action.deleteMany.confirmTitle', { count: selectedRecords.length })}
+        description={t('action.delete.confirmText')}
+        confirmLabel={t('action.delete')}
+        cancelLabel={t('action.cancel')}
+        destructive
+        onConfirm={() => {
+          const ids = selectedRecords.map((r) => String(r.id))
+          if (ids.length) deleteMany({ resource: spec.name, ids }, { onSuccess: clearSelection })
+          setBulkDeleting(false)
         }}
       />
     </div>

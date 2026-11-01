@@ -349,7 +349,7 @@ function toRules(field: ResolvedField) {
   if (v.max != null) rules.max = { value: v.max, message: `≤ ${v.max}` }
   if (v.minLength != null) rules.minLength = { value: v.minLength, message: `min ${v.minLength}` }
   if (v.maxLength != null) rules.maxLength = { value: v.maxLength, message: `max ${v.maxLength}` }
-  if (v.pattern) rules.pattern = { value: new RegExp(v.pattern), message: 'invalid format' }
+  if (v.pattern) rules.pattern = { value: new RegExp(v.pattern), message: 'validation.pattern' }
   return rules
 }
 

@@ -6,6 +6,8 @@ import { defaultDictionaries } from '@/engine/i18n'
 // Every literal key the engine and the ui translate, read from the sources: the mock app ships
 // its own dictionary, so a key missing from the defaults only shows up in a real project, as
 // the humanized key ("Page Info"). Resource labels (`res.*`) come from the project's manifest.
+// A key can travel as a value before `t()` reads it (a validation rule's message, a fallback
+// label), so every dotted string literal counts too, except the storage keys (`volcanic.*`).
 function sources(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const path = join(dir, e.name)
@@ -15,10 +17,14 @@ function sources(dir: string): string[] {
 }
 
 const KEY = /\bt\(\s*['"]([a-zA-Z][\w.-]*)['"]/g
+const DOTTED = /['"]([a-z][a-zA-Z0-9]*\.[a-zA-Z][\w.-]*)['"]/g
 const used = new Set(
   [...sources('src/engine'), ...sources('src/ui'), 'src/VolcanicAdmin.tsx']
-    .flatMap((file) => [...readFileSync(file, 'utf8').matchAll(KEY)].map((m) => m[1]))
-    .filter((key) => !key.startsWith('res.'))
+    .flatMap((file) => {
+      const text = readFileSync(file, 'utf8')
+      return [...text.matchAll(KEY), ...text.matchAll(DOTTED)].map((m) => m[1])
+    })
+    .filter((key) => !key.startsWith('res.') && !key.startsWith('volcanic.'))
 )
 
 describe('defaultDictionaries', () => {
