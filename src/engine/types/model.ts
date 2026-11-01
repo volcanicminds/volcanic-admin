@@ -95,6 +95,11 @@ export interface ResourceModel {
   field(name: string): ResolvedField | undefined
   /** True when an enabled CRUD capability of this kind exists (v2). */
   hasAction(action: CrudAction): boolean
+  /**
+   * A detail page exists: a `read` capability loads the record, or the project draws the show
+   * view itself. Without one a list row leads nowhere, and offers no detail.
+   */
+  hasShow: boolean
   /** Declared roles for a CRUD capability (v2), or undefined if absent. */
   roles(action: CrudAction): string[] | undefined
   /** Custom action capabilities (kind:'action'), enabled only. */

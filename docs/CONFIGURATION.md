@@ -122,7 +122,7 @@ settable from `resources[name]`.
 | `search` | `{ fields: string[], operator? }` | Presence enables the global search box (OR across `fields`, dot-notation allowed). |
 | `clonable` | `boolean` | Show a "Clone" button on the detail view (opens create pre-filled). Defaults **true** wherever the resource has `create`; set `false` to hide. |
 | `cloneReset` | `Record<string, unknown>` | Field values **forced** on a cloned record over the copied ones (e.g. `{ status: 'draft' }`). Keys are form field names — the *foreign key* for relations. |
-| `views` | `{ list?, create?, edit?, show? }` | Each is `'auto'` or a **componentId** registered via `overrides.view` / a plugin. Replaces the default generator for that screen. |
+| `views` | `{ list?, create?, edit?, show? }` | Each is `'auto'` or a **componentId** registered via `overrides.view` / a plugin. Replaces the default generator for that screen. A resource has a detail page only with a `read` capability or a `show` componentId: without one, its list rows open nothing and offer no detail button, and a save that would land on the detail goes back to the list. |
 
 **Clone behavior:** the seed copies every writable form field of the source record;
 it **skips** read-only fields and image/file fields with their own upload endpoints

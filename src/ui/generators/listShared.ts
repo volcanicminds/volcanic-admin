@@ -11,6 +11,8 @@ export interface ListPresentationProps {
   t: TFunc
   canEdit: boolean
   canDelete: boolean
+  /** The record has a detail page: the row opens it and offers it. */
+  canShow: boolean
   onShow: (id: string) => void
   onEdit: (id: string) => void
   onDelete: (id: string) => void

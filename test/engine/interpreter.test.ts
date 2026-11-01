@@ -401,11 +401,11 @@ describe('toRefineResources', () => {
     ])
   })
 
-  it('gives a collection list and show, and create/edit/delete only when the capability exists', () => {
+  it('gives a collection a list, and show/create/edit/delete only when the capability exists', () => {
     const model = interpretManifest(
       manifest({
         resources: [
-          resource({ name: 'full', path: 'admin/full', capabilities: [cap('list'), cap('create'), cap('update'), cap('delete')] }),
+          resource({ name: 'full', path: 'admin/full', capabilities: [cap('list'), cap('read'), cap('create'), cap('update'), cap('delete')] }),
           resource({ name: 'readOnly', path: 'ro', capabilities: [cap('list'), cap('update', { enabled: false })] })
         ]
       })
@@ -418,8 +418,28 @@ describe('toRefineResources', () => {
       show: '/admin/full/show/:id',
       meta: { canDelete: true }
     })
-    expect(ro).toMatchObject({ list: '/ro', show: '/ro/show/:id', meta: { canDelete: false } })
+    expect(ro).toMatchObject({ list: '/ro', meta: { canDelete: false } })
     expect(ro.create).toBeUndefined()
     expect(ro.edit).toBeUndefined()
+    expect(ro.show).toBeUndefined()
+  })
+
+  it('offers a detail page only when a read loads the record or the project draws the show view', () => {
+    const model = interpretManifest(
+      manifest({
+        resources: [
+          resource({ name: 'read', path: 'read', capabilities: [cap('list'), cap('read')] }),
+          resource({ name: 'drawn', path: 'drawn', capabilities: [cap('list')], views: { show: 'custom-detail' } }),
+          resource({ name: 'auto', path: 'auto', capabilities: [cap('list')], views: { show: 'auto' } }),
+          resource({ name: 'listOnly', path: 'list-only', capabilities: [cap('list'), cap('read', { enabled: false })] })
+        ]
+      })
+    )
+    expect(model.resources.map((r) => [r.spec.name, r.hasShow])).toEqual([
+      ['read', true],
+      ['drawn', true],
+      ['auto', false],
+      ['listOnly', false]
+    ])
   })
 })

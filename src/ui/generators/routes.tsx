@@ -91,13 +91,15 @@ export function resourceRouteElements(model: AdminModel): ReactNode[] {
         />
       )
     }
-    routes.push(
-      <Route
-        key={`${spec.name}-show`}
-        path={`${base}/show/:id`}
-        element={<ShowPage key={spec.name} model={res} />}
-      />
-    )
+    if (res.hasShow) {
+      routes.push(
+        <Route
+          key={`${spec.name}-show`}
+          path={`${base}/show/:id`}
+          element={<ShowPage key={spec.name} model={res} />}
+        />
+      )
+    }
   }
 
   return routes

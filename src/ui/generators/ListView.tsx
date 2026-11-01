@@ -138,6 +138,7 @@ export function ListView({ model }: { model: ResourceModel }) {
     t,
     canEdit,
     canDelete,
+    canShow: model.hasShow,
     onShow: (id: string) => show(spec.name, id),
     onEdit: (id: string) => edit(spec.name, id),
     onDelete: (id: string) => setToDelete(id)

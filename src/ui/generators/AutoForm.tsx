@@ -129,8 +129,9 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
   // Post-save navigation, honouring the configured redirect. With no redirect
   // target (singletons) it marks the form pristine so the guard disarms and stays.
   const navigateAfterSave = (savedId: unknown, values: Record<string, unknown>) => {
-    if (redirect === 'show' && savedId != null) show(model.spec.name, String(savedId))
-    else if (redirect === 'list') list(model.spec.name)
+    // A resource without a detail page goes back to its list instead.
+    if (redirect === 'show' && savedId != null && model.hasShow) show(model.spec.name, String(savedId))
+    else if (redirect === 'list' || redirect === 'show') list(model.spec.name)
     else reset(values)
   }
 

@@ -197,6 +197,7 @@ function buildResourceModel(spec: ResourceSpec, manifest: Manifest): ResourceMod
     // The manifest is already role-filtered server-side; presence of the capability
     // signals the action is available to this user.
     hasAction: (action) => !!crud(action),
+    hasShow: !!crud('read') || (!!spec.views?.show && spec.views.show !== 'auto'),
     roles: (action) => crud(action)?.roles,
     actions: caps.filter((c) => c.kind === 'action' && c.enabled !== false)
   }
@@ -255,7 +256,7 @@ export function toRefineResources(model: AdminModel): IResourceItem[] {
       list: `/${spec.path}`,
       create: r.hasAction('create') ? `/${spec.path}/create` : undefined,
       edit: r.hasAction('update') ? `/${spec.path}/edit/:id` : undefined,
-      show: `/${spec.path}/show/:id`,
+      show: r.hasShow ? `/${spec.path}/show/:id` : undefined,
       meta: {
         label: spec.label.plural,
         labelSingular: spec.label.singular,

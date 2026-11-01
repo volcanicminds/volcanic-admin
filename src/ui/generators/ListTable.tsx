@@ -20,6 +20,7 @@ export function ListTable({
   t,
   canEdit,
   canDelete,
+  canShow,
   onShow,
   onEdit,
   onDelete,
@@ -79,8 +80,8 @@ export function ListTable({
             records.map((record: any) => (
               <TableRow
                 key={record.id}
-                className="cursor-pointer"
-                onClick={() => onShow(record.id)}
+                className={canShow ? 'cursor-pointer' : undefined}
+                onClick={canShow ? () => onShow(record.id) : undefined}
               >
                 {columns.map((col) => (
                   <TableCell key={col.field.name} className={col.align === 'right' ? 'text-right' : undefined}>
@@ -90,9 +91,11 @@ export function ListTable({
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className="flex justify-end gap-1">
                     <RowActions model={model} record={record} t={t} />
-                    <Button size="icon" variant="ghost" onClick={() => onShow(record.id)}>
-                      <Eye />
-                    </Button>
+                    {canShow && (
+                      <Button size="icon" variant="ghost" onClick={() => onShow(record.id)}>
+                        <Eye />
+                      </Button>
+                    )}
                     {canEdit && (
                       <Button size="icon" variant="ghost" onClick={() => onEdit(record.id)}>
                         <Pencil />

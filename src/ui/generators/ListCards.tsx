@@ -117,6 +117,7 @@ export function ListCards({
   t,
   canEdit,
   canDelete,
+  canShow,
   onShow,
   onEdit,
   onDelete
@@ -177,10 +178,11 @@ export function ListCards({
           <Card
             key={record.id}
             className={cn(
-              'group cursor-pointer overflow-hidden transition-shadow hover:shadow-md',
+              'group overflow-hidden transition-shadow',
+              canShow && 'cursor-pointer hover:shadow-md',
               featured && 'ring-2 ring-amber-400 ring-offset-1'
             )}
-            onClick={() => onShow(record.id)}
+            onClick={canShow ? () => onShow(record.id) : undefined}
           >
             {hasImage && (
               <div className="relative">
