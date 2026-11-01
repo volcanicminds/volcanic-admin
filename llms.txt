@@ -229,8 +229,9 @@ export const themePlugin = defineAdminPlugin({
 2. The manifest source is chosen: `manifest` prop (no fetch), else `loadManifest`, else the
    default fetch. The default fetch authenticates exactly as a data request does: tenant header,
    bearer token or cookies, and one renewal on a 401.
-3. If the load fails with 401, `TENANT_REQUIRED`, `TENANT_NOT_FOUND` or `SCOPE_MISMATCH`, a
-   bootstrap login is drawn instead of an error (with the forgot and reset password screens on
+3. If the load fails with 401, `TENANT_REQUIRED`, `TENANT_NOT_FOUND`, `SCOPE_MISMATCH` or
+   `SUBJECT_NOT_FOUND` (a session whose user no longer exists; the backend clears its cookies with
+   that answer), a bootstrap login is drawn instead of an error (with the forgot and reset password screens on
    the tenant plane). A completed login loads the manifest again. Any other failure shows
    "Manifest error" with the status and backend `code`.
 4. Before a manifest, the mode is a guess. If the login answers with a token while the console

@@ -661,7 +661,7 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
 }
 
 /** A failed manifest load, with what the backend said: the status and the machine `code`. */
-interface LoadFailure extends Error {
+export interface LoadFailure extends Error {
   status?: number
   code?: string
 }
@@ -683,11 +683,12 @@ async function manifestLoadError(res: Response): Promise<LoadFailure> {
 /**
  * Whether a failed manifest load is a session to open rather than an error to show (T-10.12): no
  * session (401), no tenant declared yet (`TENANT_REQUIRED`), a remembered tenant that does not
- * exist (`TENANT_NOT_FOUND`), or a session of the other plane (`SCOPE_MISMATCH`). The login screen
- * answers all four, and the error page none.
+ * exist (`TENANT_NOT_FOUND`), a session of the other plane (`SCOPE_MISMATCH`), or a session whose
+ * user no longer exists (`SUBJECT_NOT_FOUND`, whose answer clears the session cookies). The login
+ * screen answers all five, and the error page none.
  */
-function needsLogin(error: LoadFailure): boolean {
-  return error.status === 401 || ['TENANT_REQUIRED', 'TENANT_NOT_FOUND', 'SCOPE_MISMATCH'].includes(error.code ?? '')
+export function needsLogin(error: LoadFailure): boolean {
+  return error.status === 401 || ['TENANT_REQUIRED', 'TENANT_NOT_FOUND', 'SCOPE_MISMATCH', 'SUBJECT_NOT_FOUND'].includes(error.code ?? '')
 }
 
 /**
