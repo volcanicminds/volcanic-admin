@@ -14,6 +14,8 @@ interface I18nContextValue {
   locales: string[]
   setLocale: (l: string) => void
   t: (key?: string, vars?: Record<string, string | number>) => string
+  /** Whether a dictionary of the locale or of the default one holds the key. */
+  has: (key: string) => boolean
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null)
@@ -72,7 +74,8 @@ export function I18nProvider({
         if (!key) return ''
         const raw = dict[key] ?? dictionaries[defaultLocale]?.[key]
         return interpolate(raw ?? humanize(key), vars)
-      }
+      },
+      has: (key) => dict[key] !== undefined || dictionaries[defaultLocale]?.[key] !== undefined
     }
   }, [dictionaries, locale, locales, defaultLocale])
 
@@ -126,6 +129,19 @@ export const defaultDictionaries: Dictionaries = {
     'docTitle.edit': 'Edit',
     'docTitle.clone': 'Clone',
     'nav.account': 'Account',
+    'nav.notices': 'Notices',
+    'notices.title': 'Notices',
+    'notices.dialog.title': 'New notices',
+    'notices.dialog.all': 'See all',
+    'notices.dialog.close': 'Close',
+    'notices.markAll': 'Mark all as seen',
+    'notices.new': 'New',
+    'notices.empty': 'No notices.',
+    'notices.failed': 'Some notices could not be read: {sources}.',
+    'notices.fallback': 'Notice from {source}: {kind}.',
+    'notices.level.info': 'Information',
+    'notices.level.warning': 'Warning',
+    'notices.error.seen': 'The notices could not be marked as seen.',
     'state.loading': 'Loading',
     'state.empty': 'No records',
     'list.pageInfo': 'Page {page} of {pageCount}',
@@ -285,6 +301,19 @@ export const defaultDictionaries: Dictionaries = {
     'docTitle.edit': 'Modifica',
     'docTitle.clone': 'Duplica',
     'nav.account': 'Account',
+    'nav.notices': 'Avvisi',
+    'notices.title': 'Avvisi',
+    'notices.dialog.title': 'Nuovi avvisi',
+    'notices.dialog.all': 'Vedi tutti',
+    'notices.dialog.close': 'Chiudi',
+    'notices.markAll': 'Segna tutti come visti',
+    'notices.new': 'Nuovo',
+    'notices.empty': 'Nessun avviso.',
+    'notices.failed': 'Alcuni avvisi non sono leggibili: {sources}.',
+    'notices.fallback': 'Avviso da {source}: {kind}.',
+    'notices.level.info': 'Informazione',
+    'notices.level.warning': 'Attenzione',
+    'notices.error.seen': 'Non è stato possibile segnare gli avvisi come visti.',
     'state.loading': 'Caricamento in corso',
     'state.empty': 'Nessun record',
     'list.pageInfo': 'Pagina {page} di {pageCount}',

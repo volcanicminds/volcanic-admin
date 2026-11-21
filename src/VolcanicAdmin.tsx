@@ -62,6 +62,9 @@ import {
   ForgotPasswordView,
   ResetPasswordView,
   AccountView,
+  NoticesProvider,
+  NoticesDialog,
+  NoticesView,
   StepUpDialog,
   resourceRouteElements,
   notificationProvider,
@@ -341,7 +344,10 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
                   <Route
                     element={
                       <Authenticated key="app" fallback={<CatchAllNavigate to="/login" />}>
-                        <AdminLayout />
+                        <NoticesProvider>
+                          <AdminLayout />
+                          <NoticesDialog />
+                        </NoticesProvider>
                         <StepUpDialog broker={stepUp} />
                       </Authenticated>
                     }
@@ -356,6 +362,8 @@ function AdminRuntime({ model, props }: { model: AdminModel; props: VolcanicAdmi
                     {customRoutes.map((r) => (
                       <Route key={r.path} path={r.path} element={r.element} />
                     ))}
+                    {/* After the project's routes, so one of its own at `/notices` wins. */}
+                    <Route path="/notices" element={<NoticesView />} />
                     {resourceRouteElements(model)}
                     <Route path="*" element={<NavigateToResource />} />
                   </Route>

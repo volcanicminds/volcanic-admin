@@ -7,11 +7,12 @@
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router'
 import { usePermissions } from '@refinedev/core'
-import { PanelLeftClose, PanelLeft, UserCog } from 'lucide-react'
+import { Bell, PanelLeftClose, PanelLeft, UserCog } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useModel, useT, canReachResource } from '@/engine'
 import { Icon } from './icons'
 import { useAdminConfig } from '@/ui/config'
+import { useNotices } from '@/ui/notices/NoticesProvider'
 
 const COLLAPSE_KEY = 'volcanic.admin.sidebar.collapsed'
 
@@ -19,6 +20,7 @@ export function Sidebar() {
   const model = useModel()
   const t = useT()
   const { navExtras, branding } = useAdminConfig()
+  const notices = useNotices()
   const appName = branding?.appName ?? 'Volcanic Admin'
 
   const [collapsed, setCollapsed] = useState<boolean>(
@@ -77,8 +79,39 @@ export function Sidebar() {
 
   const visibleGroups = groups.filter((g) => grouped.get(g.name)?.length)
 
-  const accountLink = (
+  const noticesLink = notices.available && (
     <NavLink
+      to="/notices"
+      title={collapsed ? t('nav.notices') : undefined}
+      className={({ isActive }) =>
+        cn(
+          'flex items-center gap-2 rounded-md py-2 text-sm transition-colors',
+          collapsed ? 'justify-center px-0' : 'px-3',
+          isActive
+            ? 'bg-primary/10 font-medium text-primary'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+        )
+      }
+    >
+      <span className="relative shrink-0">
+        <Bell className="h-4 w-4" />
+        {collapsed && notices.unseen > 0 && (
+          <span className="absolute -right-1 -top-1 size-2 rounded-full bg-primary" aria-hidden />
+        )}
+      </span>
+      {!collapsed && <span className="truncate">{t('nav.notices')}</span>}
+      {!collapsed && notices.unseen > 0 && (
+        <span className="ml-auto rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
+          {notices.unseen}
+        </span>
+      )}
+    </NavLink>
+  )
+
+  const personalLinks = (
+    <>
+      {noticesLink}
+      <NavLink
       to="/account"
       title={collapsed ? t('nav.account') : undefined}
       className={({ isActive }) =>
@@ -93,7 +126,8 @@ export function Sidebar() {
     >
       <UserCog className="h-4 w-4 shrink-0" />
       {!collapsed && <span className="truncate">{t('nav.account')}</span>}
-    </NavLink>
+      </NavLink>
+    </>
   )
 
   return (
@@ -197,19 +231,19 @@ export function Sidebar() {
               </div>
             )}
             {sortRes(grouped.get(group.name)!).map(renderItem)}
-            {/* Account joins the last group so it sits directly under its last item. */}
-            {i === visibleGroups.length - 1 && ungrouped.length === 0 && accountLink}
+            {/* Notices and account join the last group so they sit directly under its last item. */}
+            {i === visibleGroups.length - 1 && ungrouped.length === 0 && personalLinks}
           </div>
         ))}
         {ungrouped.length > 0 && (
           <div className="space-y-1">
             {collapsed && <div className="mx-2 border-t" />}
             {sortRes(ungrouped).map(renderItem)}
-            {accountLink}
+            {personalLinks}
           </div>
         )}
         {visibleGroups.length === 0 && ungrouped.length === 0 && (
-          <div className="space-y-1">{accountLink}</div>
+          <div className="space-y-1">{personalLinks}</div>
         )}
       </nav>
 

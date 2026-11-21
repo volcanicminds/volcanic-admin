@@ -427,6 +427,33 @@ import { plugins } from './plugins'
 
 Now dropping a new `*.plugin.ts(x)` under `src/plugins/` registers it automatically.
 
+### 3.7 Notices of your backend packages
+
+A backend package that registers a notice source (`start({ noticeSources })`) sends its notices
+with no text: a `source`, a `kind` and `data`. The console reads them for anyone holding the
+`notices` capability, pops up the unseen ones once and lists them all at `/notices`; you only
+supply the sentences, under `notice.<source>.<kind>`, with `{field}` taken from `data`:
+
+```ts
+defineAdminPlugin({
+  name: 'billing',
+  dictionaries: {
+    en: {
+      'notice.billing.overdue.one': 'One invoice is overdue since {since}.',
+      'notice.billing.overdue.other': '{count} invoices are overdue since {since}.'
+    },
+    it: {
+      'notice.billing.overdue.one': 'Una fattura è scaduta dal {since}.',
+      'notice.billing.overdue.other': '{count} fatture sono scadute dal {since}.'
+    }
+  }
+})
+```
+
+The `.one` and `.other` forms apply when `data.count` is a number; a plain
+`notice.<source>.<kind>` works too. Instants in `data` are shown in the reader's locale. A notice
+with no sentence still shows, as "Notice from billing: overdue".
+
 ---
 
 ## 4. `<VolcanicAdmin>` props (reference)

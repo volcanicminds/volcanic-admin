@@ -64,6 +64,19 @@ export type { OverrideRegistry, OverrideKind } from './registry.js'
 export { I18nProvider, useI18n, useT, translate, defaultDictionaries } from './i18n.js'
 export type { Dictionary, Dictionaries } from './i18n.js'
 
+export {
+  NOTICES_PATH,
+  SEEN_BATCH,
+  composeNotice,
+  formatNoticeValue,
+  isNoticeList,
+  loadNotices,
+  markNoticesSeen,
+  noticeVars,
+  sortNotices
+} from './notices.js'
+export type { Notice, NoticeLevel, NoticeList, NoticeRequest, NoticeTranslator } from './notices.js'
+
 export { classifyBackendError } from './providers/errors.js'
 export type { ClassifiedError } from './providers/errors.js'
 

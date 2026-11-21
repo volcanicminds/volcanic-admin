@@ -64,6 +64,7 @@ src/
     auth/                 client (login flow, renewal, account), endpoints, tokenStore, stepUp
     registry.tsx          override registry (widget, view, action)
     i18n.tsx              key resolution, defaultDictionaries
+    notices.ts            notices: read, mark seen, compose the sentence
     manifest.tsx          ManifestProvider, useModel, useResourceModel
   ui/       shadcn implementation; consumes the engine and is replaceable
     components/           primitives, ConfirmDialog, StepUpDialog, UnsavedChangesGuard
@@ -72,6 +73,7 @@ src/
     actions/              ActionButtons, capability runner, TenantDestroy
     layout/               AdminLayout, Sidebar, TenantSwitcher, icons
     views/                LoginView, ForgotPasswordView, ResetPasswordView, AccountView
+    notices/              NoticesProvider, NoticesDialog, NoticesView
   mock/     in-memory backend (Acme Corp sample), dev only
   VolcanicAdmin.tsx       the public root component
   index.ts                library entry: engine plus ui plus <VolcanicAdmin>
@@ -245,7 +247,8 @@ export const themePlugin = defineAdminPlugin({
 7. The runtime mounts Refine with `syncWithLocation`, `mutationMode: 'optimistic'`,
    `disableTelemetry`, and `warnWhenUnsavedChanges: false` (unsaved changes are handled by the
    form's own `UnsavedChangesGuard` modal). Routes: `/login`, `/forgot-password`,
-   `/reset-password`, `/account`, the custom routes, and per resource `<path>`, `<path>/create`
+   `/reset-password`, `/account`, the custom routes, `/notices` (a custom route at the same path
+   wins), and per resource `<path>`, `<path>/create`
    (with `create`), `<path>/edit/:id` (with `update`), `<path>/show/:id`; a singleton gets only
    `<path>`. Unauthenticated users are redirected to `/login`.
 
@@ -385,6 +388,30 @@ in "sign in again".
 enables MFA (QR plus TOTP) or disables it (tenant plane), and lists the caller's sessions from
 `auth.endpoints.sessions` with a button to close one (`DELETE <sessions>/<sid>`). When the answer
 is not a list (a build without a session registry), the section hides.
+
+### Notices
+
+Source: `src/engine/notices.ts`, `src/ui/notices/`. On entering the authenticated shell, and again
+on a tenant switch, `NoticesProvider` reads `GET /notices` (tenant plane) or `GET /system/notices`
+(control plane) through the data provider's `custom`. The answer is `{ notices, failed }`; each
+notice carries `source`, `id` (`<source>:<id>`), `kind`, `level` (`info` or `warning`), an
+optional `at` (ISO instant), `data` and `seen`, and no text. An answer that is not a list (403
+without the `notices` capability, a backend without the route) hides everything: no nav entry, no
+page (`/notices` redirects), no pop-up, no error.
+
+- `NoticesDialog` opens once per page load with the unseen notices; closing it, or "See all",
+  posts their ids to `.../seen` (batches of 100, `SEEN_BATCH`), so they do not pop up again on
+  any device of the same person. A refused mark shows a toast and the dialog stays closed.
+- `NoticesView` (`/notices`, sidebar entry with a bell and the unseen count) lists every current
+  notice, unseen first, then warnings, then the newest (`sortNotices`), with a mark-all action;
+  `failed` sources are named in one line.
+- `composeNotice(notice, { t, has, locale })`: dictionary key `notice.<source>.<kind>`, `{field}`
+  filled from `data`. When `data.count` is a number, `notice.<source>.<kind>.<one|other|...>`
+  (`Intl.PluralRules` of the locale) wins over the plain key. ISO instants become date and time in
+  the UI locale, a calendar date (`YYYY-MM-DD`) stays that day, numbers take the locale's
+  grouping, arrays are joined with `, `, an object leaves its placeholder as written. A key no
+  dictionary holds gives `notices.fallback` with `{source}` and `{kind}`. The sentences of a
+  source ship with the console that knows it (a plugin's or the project's `dictionaries`).
 
 ### Custom auth client
 
@@ -865,7 +892,8 @@ Source: `src/engine/i18n.tsx`. The manifest carries keys only; the project suppl
 `it`). A missing key is humanized (its last segment, `snake_case`, `kebab-case` and `camelCase`
 spaced, first letter upper-cased; for `res.<name>.singular|plural` the `<name>` segment), so a raw
 key never reaches the screen. Interpolation is `{var}` (`t(key, vars)`); an unknown var stays
-literal. `translate(key, vars)` works outside React.
+literal. `has(key)` (from `useI18n`) tells whether the locale's or the default locale's dictionary
+holds the key. `translate(key, vars)` works outside React.
 
 Keys the backend emits: `res.<name>.singular|plural`, `group.<name>`. Keys the engine derives:
 `field.<resource>.<field>`, `enum.<EnumName>.<value>`, `action.<resource>.<action>`.
@@ -877,7 +905,9 @@ tenantNotFound, tenantDestroyed, unavailable, invalidCredentials, passwordExpire
 copy, clone, remove, delete, cancel, confirm, delete.confirmTitle, delete.confirmText,
 deleteMany.confirmTitle, bulk.done, bulk.failed), `list.*` (pageInfo, pageSize, prev, next,
 selected, selectAll, selectRow, clearSelection), `state.*` (loading, empty), `form.saveError`,
-`validation.*` (required, pattern), `nav.account`, `unsaved.*`, `badge.featured`,
+`validation.*` (required, pattern), `nav.account`, `nav.notices`, `notices.*` (title,
+dialog.title, dialog.all, dialog.close, markAll, new, empty, failed, fallback, level.info,
+level.warning, error.seen), `unsaved.*`, `badge.featured`,
 `upload.*`, `tags.*`, `sort.*`, `filter.*`, `stepUp.*`, `login.*` (screens, stages, methods and
 `login.error.*`, including `login.error.remaining`), `destroy.*`.
 
@@ -982,8 +1012,12 @@ From `@volcanicminds/admin`:
 - Registry and i18n: `createOverrideRegistry`, `RegistryProvider`, `useRegistry`
   (`OverrideRegistry`, `OverrideKind`); `I18nProvider`, `useI18n`, `useT`, `translate`,
   `defaultDictionaries` (`Dictionary`, `Dictionaries`).
+- Notices: `NOTICES_PATH`, `SEEN_BATCH`, `loadNotices`, `markNoticesSeen`, `isNoticeList`,
+  `sortNotices`, `composeNotice`, `noticeVars`, `formatNoticeValue`; types `Notice`,
+  `NoticeLevel`, `NoticeList`, `NoticeRequest`, `NoticeTranslator`.
 - UI: `AdminLayout`, `Sidebar`, `TenantSwitcher`, `LoginView`, `ForgotPasswordView`,
-  `ResetPasswordView`, `AccountView`, `resourceRouteElements`, `ListView`, `ListTable`,
+  `ResetPasswordView`, `AccountView`, `NoticesProvider`, `useNotices`, `NoticesDialog`,
+  `NoticesView`, `resourceRouteElements`, `ListView`, `ListTable`,
   `ListCards`, `ListIO`, `ShowView`, `AutoForm`, `SingletonView`, `FieldInput`, `formFieldName`,
   `FieldCell`, `FieldValue`, `ReferenceSelect`, `ImageSingle`, `GalleryReorder`,
   `RichTextWidget`, `TagsWidget`, `TagsMenu`, `defaultWidgets`, `defaultActions`, `TenantDestroy`,
