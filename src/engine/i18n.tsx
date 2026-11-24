@@ -4,7 +4,7 @@
  * back to a humanized last segment (the resource name, for resource labels) so
  * the UI never shows a raw key.
  */
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 export type Dictionary = Record<string, string>
 export type Dictionaries = Record<string, Dictionary>
@@ -56,13 +56,41 @@ export interface I18nProviderProps {
   children: ReactNode
 }
 
+// The language chosen on this device, as the theme is: a device preference, not a user setting.
+const LOCALE_KEY = 'volcanic.admin.locale'
+
+/** The locale to open with: the one chosen on this device while the app still offers it, else the default. */
+export function initialLocale(stored: string | null, locales: readonly string[], defaultLocale: string): string {
+  return stored !== null && locales.includes(stored) ? stored : defaultLocale
+}
+
+function readStoredLocale(): string | null {
+  return typeof localStorage === 'undefined' ? null : localStorage.getItem(LOCALE_KEY)
+}
+
 export function I18nProvider({
   dictionaries,
   defaultLocale,
   locales,
   children
 }: I18nProviderProps) {
-  const [locale, setLocale] = useState(defaultLocale)
+  const [chosen, choose] = useState(() => initialLocale(readStoredLocale(), locales, defaultLocale))
+  // A list that drops the chosen language falls back to the default, without forgetting the choice.
+  const locale = locales.includes(chosen) ? chosen : defaultLocale
+
+  const setLocale = useCallback(
+    (next: string) => {
+      if (!locales.includes(next)) return
+      choose(next)
+      if (typeof localStorage !== 'undefined') localStorage.setItem(LOCALE_KEY, next)
+    },
+    [locales]
+  )
+
+  // Screen readers and the browser's hyphenation read the page's language from <html lang>.
+  useEffect(() => {
+    if (typeof document !== 'undefined') document.documentElement.lang = locale
+  }, [locale])
 
   const value = useMemo<I18nContextValue>(() => {
     const dict = dictionaries[locale] ?? {}
@@ -77,7 +105,7 @@ export function I18nProvider({
       },
       has: (key) => dict[key] !== undefined || dictionaries[defaultLocale]?.[key] !== undefined
     }
-  }, [dictionaries, locale, locales, defaultLocale])
+  }, [dictionaries, locale, locales, defaultLocale, setLocale])
 
   // Mirror the active translate fn for non-React consumers (see `translate`).
   useEffect(() => {
@@ -130,6 +158,9 @@ export const defaultDictionaries: Dictionaries = {
     'docTitle.clone': 'Clone',
     'nav.account': 'Account',
     'nav.notices': 'Notices',
+    'nav.menu': 'Menu',
+    'nav.openMenu': 'Open the menu',
+    'nav.closeMenu': 'Close the menu',
     'notices.title': 'Notices',
     'notices.dialog.title': 'New notices',
     'notices.dialog.all': 'See all',
@@ -302,6 +333,9 @@ export const defaultDictionaries: Dictionaries = {
     'docTitle.clone': 'Duplica',
     'nav.account': 'Account',
     'nav.notices': 'Avvisi',
+    'nav.menu': 'Menu',
+    'nav.openMenu': 'Apri il menu',
+    'nav.closeMenu': 'Chiudi il menu',
     'notices.title': 'Avvisi',
     'notices.dialog.title': 'Nuovi avvisi',
     'notices.dialog.all': 'Vedi tutti',

@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { defaultDictionaries } from '@/engine/i18n'
+import { defaultDictionaries, initialLocale } from '@/engine/i18n'
 
 // Every literal key the engine and the ui translate, read from the sources: the mock app ships
 // its own dictionary, so a key missing from the defaults only shows up in a real project, as
@@ -41,5 +41,16 @@ describe('defaultDictionaries', () => {
   it('gives both locales the same keys', () => {
     const en = Object.keys(defaultDictionaries.en).sort()
     expect(Object.keys(defaultDictionaries.it).sort()).toEqual(en)
+  })
+})
+
+describe('initialLocale', () => {
+  it('opens in the language chosen on this device while the app still offers it', () => {
+    expect(initialLocale('it', ['en', 'it'], 'en')).toBe('it')
+  })
+
+  it('opens in the default with no choice stored, or with one the app no longer offers', () => {
+    expect(initialLocale(null, ['en', 'it'], 'en')).toBe('en')
+    expect(initialLocale('fr', ['en', 'it'], 'en')).toBe('en')
   })
 })

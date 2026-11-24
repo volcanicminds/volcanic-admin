@@ -895,6 +895,10 @@ key never reaches the screen. Interpolation is `{var}` (`t(key, vars)`); an unkn
 literal. `has(key)` (from `useI18n`) tells whether the locale's or the default locale's dictionary
 holds the key. `translate(key, vars)` works outside React.
 
+The language picked in the topbar is stored per device (`localStorage` key `volcanic.admin.locale`)
+and opens the next session while `locales` still lists it; otherwise the default wins, without
+the stored choice being dropped. `<html lang>` follows the active locale.
+
 Keys the backend emits: `res.<name>.singular|plural`, `group.<name>`. Keys the engine derives:
 `field.<resource>.<field>`, `enum.<EnumName>.<value>`, `action.<resource>.<action>`.
 
@@ -921,7 +925,13 @@ Theme (`AdminTheme`): tokens injected as CSS variables at `:root`; colors are HS
 `primaryForeground`, `secondary`, `secondaryForeground`, `muted`, `mutedForeground`, `accent`,
 `accentForeground`, `destructive`, `destructiveForeground`, `border`, `input`, `ring`, `radius`.
 The light, dark or system preference is stored per device (`localStorage` key
-`volcanic.admin.theme`) by `ThemeProvider`, which toggles `.dark` on `<html>`.
+`volcanic.admin.theme`) by `ThemeProvider`, which toggles `.dark` on `<html>`. The default
+`primary` is deeper in light (`22 92% 36%`, white text on it) than in dark (`24 95% 53%`, dark
+text on it): both keep 4.5:1 for the button label and for `primary` used as text.
+
+Below 768 px the sidebar column is hidden and a menu button in the topbar opens it as a drawer
+(focus trapped, Escape and a link close it). The layout's breakpoints sit on wrappers with no
+other display class, so a project's own Tailwind sheet, loaded after `styles.css`, cannot undo them.
 
 Branding (`AdminBranding`, `src/ui/config.tsx`), all optional: `appName` (default
 `'Volcanic Admin'`), `logo`, `logoDark`, `logoCollapsed`, `logoCollapsedDark`, `logoHeight` (28),

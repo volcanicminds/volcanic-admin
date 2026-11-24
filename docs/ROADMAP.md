@@ -15,7 +15,6 @@ Done items are removed rather than checked off (git history is the record).
   view: `…/edit/:id` is the only detail screen.
 - **Per-field help tooltip** — an info icon next to a field/label that reveals the field's
   explanation on click/hover, complementing the current inline `help` text.
-- **Mobile-responsive sidebar**: collapse to a hamburger drawer on small viewports.
 - **Translated screens**: the account, forgot-password and reset-password views and the
   fallback toasts of a failed action are English literals, and a field with no widget shows an
   English message meant for developers. Refine's own notifications are English too ("Successfully
