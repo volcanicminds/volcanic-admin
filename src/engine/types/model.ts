@@ -31,7 +31,7 @@ export interface ColumnModel {
   label?: I18nKey
   align?: 'left' | 'center' | 'right'
   width?: number
-  /** The whole value, where an `id` column would show its last 8 characters. */
+  /** The whole value, where an id column (`id`, `*Id`) would show its last 8 characters. */
   full?: boolean
 }
 

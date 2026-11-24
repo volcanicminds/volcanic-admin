@@ -76,7 +76,7 @@ export function TenantDestroy({ capability, record, model, t }: ActionComponentP
 
   const call = async (path: string, method: 'post' | 'delete', payload?: ActionRecord) => {
     const provider = dataProvider()
-    if (!provider.custom) throw new Error('Actions require a data provider with custom() support')
+    if (!provider.custom) throw new Error(t('error.actionsUnsupported'))
     const { data } = await provider.custom({ url: interpolatePath(path, record), method, payload })
     return data as ActionRecord
   }

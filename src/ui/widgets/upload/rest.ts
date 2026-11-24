@@ -5,6 +5,7 @@
  * `freshAuth` opens the step-up dialog and is sent again, instead of failing with a 403.
  */
 import type { DataProvider } from '@refinedev/core'
+import { translate } from '@/engine'
 
 export { absoluteUrl } from '@/lib/utils'
 
@@ -32,7 +33,7 @@ export function imagesFromClipboard(data: DataTransfer | null): File[] {
 }
 
 function custom(provider: DataProvider) {
-  if (!provider.custom) throw new Error('Uploads require a data provider with custom() support')
+  if (!provider.custom) throw new Error(translate('error.uploadsUnsupported'))
   return provider.custom
 }
 

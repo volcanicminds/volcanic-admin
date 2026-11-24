@@ -163,7 +163,7 @@ function ComboboxWidget({ field, value, onChange, disabled, t }: WidgetProps) {
             type="button"
             tabIndex={-1}
             disabled={disabled}
-            aria-label="options"
+            aria-label={t('input.options')}
             className="absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground hover:text-foreground disabled:opacity-50"
             onClick={() => setOpen((o) => !o)}
           >
@@ -327,6 +327,9 @@ function pickWidget(field: ResolvedField): (props: WidgetProps) => JSX.Element {
     case 'boolean':
       return BooleanWidget
     case 'enum':
+      // Several values: a closed option set picks from a list, an open one (a list of strings
+      // with no options, as the backend describes `roles`) takes values typed one by one.
+      if (field.multiple) return field.options?.length ? MultiSelectWidget : TagsWidget
       return EnumWidget
     case 'date':
     case 'datetime':

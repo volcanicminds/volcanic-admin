@@ -503,10 +503,10 @@ screen, `bulk` on the selection through `deleteMany`.
 |---|---|---|
 | `name`, `type` | `string`, `FieldType` | |
 | `label`, `help` | `I18nKey` | Default label key `field.<resource>.<field>`. |
-| `required`, `readOnly`, `writeOnly`, `nullable` | `boolean` | `readOnly` fields render disabled and are not submitted; `writeOnly` (a password) is never read or listed and is excluded from columns and XLS. |
+| `required`, `readOnly`, `writeOnly`, `nullable` | `boolean` | `readOnly` fields render disabled on edit, are absent from the create form and are not submitted; `writeOnly` (a password) is never read or listed and is excluded from columns and XLS. |
 | `default` | `unknown` | Form seed. |
 | `enum`, `enumRef` | `EnumOption[]`, `string` | Inline options or a reference into `Manifest.enums`. |
-| `multiple` | `boolean` | The value holds several enum values (Postgres `text[]`): one badge per value, filtered with `arrayOverlaps`. Pair with the `multiselect` or `tags` widget. |
+| `multiple` | `boolean` | The value holds several enum values (Postgres `text[]`, or any list of strings the backend describes): one badge per value, filtered with `arrayOverlaps`. With no `form.widget` the form uses `multiselect` when there are options and `tags` when there are none; an open list has no filter facet. |
 | `relation` | `RelationSpec` | `{ resource, kind?: 'many-to-one' \| 'one-to-many' \| 'many-to-many', titleField?, foreignKey?, inverse? }`. The relation object is output-only; the form binds to `foreignKey`. |
 | `image` | `ImageSpec` | See below. |
 | `validation` | `ValidationSpec` | `{ required?, min?, max?, minLength?, maxLength?, pattern?, step? }`. |
@@ -614,7 +614,7 @@ sortable fields except `json`, `image`, `file`.
 - `defaultLayout?` (default the first of `layouts`).
 - `sort?: F[]`: fields of the "sort by" control; a relation tie-breaks by the row title.
 - `table?: { columns?: ColumnSpec<F>[] }`, `ColumnSpec = { field, label?, align?: 'left' | 'center' | 'right', width?: number, full?: boolean }`.
-  The `id` column shows the last 8 characters of an id longer than 12 (whole value on hover, a copy
+  An id column (`id`, any `uuid` field, or a `string` field named `*Id` that is not a relation) shows the last 8 characters of an id longer than 12 (whole value on hover, a copy
   button) unless `full: true`. A `json` value reads as `key: value` pairs and comma-joined lists,
   one pair per line on the detail page; a false boolean is a grey cross, not a red one.
 - `card?: CardViewSpec<F>`: grid `minWidth`/`maxWidth` (setting `maxWidth` enables fluid
@@ -675,7 +675,7 @@ Selection order in `FieldInput`:
 1. A registered `widget` component whose id is `field.form.widget`.
 2. A built-in by name: `multiselect`, `combobox`, `tags`.
 3. For `richtext` with no explicit widget, the registered `rich-text` editor.
-4. The type default.
+4. The type default (a multiple `enum`: `multiselect` with options, `tags` without).
 
 Registered by default (`defaultWidgets`, replaceable by registering the same id):
 
@@ -888,7 +888,11 @@ route enforces its own gate.
   Empty fields (no value, empty string, list or map; a false boolean and a zero are values) are
   hidden behind a "Show empty fields (n)" toggle in the strip.
 - Saving a create or edit form redirects to the record's show view; singletons stay on their path.
-- `readOnly` fields render disabled and are never submitted; image and file fields with their own
+- With no form groups, the default section keeps declaration order but puts the tall controls
+  (`text`, `textarea`, `richtext`, `json`, `image`, `file`) after the short ones.
+- A page that throws while rendering shows `error.page` in the main area; menu and header stay
+  usable, and another page clears it.
+- `readOnly` fields render disabled on edit, are left off the create form and are never submitted; image and file fields with their own
   `endpoints` are managed out of band and left out of the body. A relation inherits writability
   and `required` from its `foreignKey`, which is what gets submitted.
 - Server errors keep the user on the form with a banner; an invalid submit scrolls to the first error.
@@ -914,7 +918,14 @@ holds the key. `translate(key, vars)` works outside React.
 
 The language picked in the topbar is stored per device (`localStorage` key `volcanic.admin.locale`)
 and opens the next session while `locales` still lists it; otherwise the default wins, without
-the stored choice being dropped. `<html lang>` follows the active locale.
+the stored choice being dropped. `<html lang>` follows the active locale. The login screen, drawn
+before the manifest names the locales, offers the dictionaries' locales and opens on the stored
+choice, else the browser's language when a dictionary has it.
+
+The backend's own resources (`user`, `token`, `governanceLog`, `accessLog`, `systemUser`,
+`systemToken`, `systemAccessLog`, `tenant`) are labelled by `systemDictionaries` (en and it:
+`res.*`, `field.*`, `enum.*`, `action.*`), merged after `defaultDictionaries` and before the
+project's own `dictionaries`, which override them.
 
 Keys the backend emits: `res.<name>.singular|plural`, `group.<name>`. Keys the engine derives:
 `field.<resource>.<field>`, `enum.<EnumName>.<value>`, `action.<resource>.<action>`.

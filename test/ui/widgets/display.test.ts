@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { ShortId, isEmptyValue, readableJson } from '@/ui/widgets/display'
+import { ShortId, isEmptyValue, isIdField, readableJson } from '@/ui/widgets/display'
 import type { ResolvedField } from '@/engine'
 
 const t = (key?: string) => key ?? ''
@@ -62,5 +62,18 @@ describe('isEmptyValue', () => {
   it('counts an image field without images as empty', () => {
     expect(isEmptyValue({ cover: '' }, field('cover', 'image'))).toBe(true)
     expect(isEmptyValue({ cover: '/a.png' }, field('cover', 'image'))).toBe(false)
+  })
+})
+
+describe('isIdField', () => {
+  it('takes id, any uuid and a plain string named *Id, never a relation or a word ending in id', () => {
+    expect(isIdField({ name: 'id', type: 'uuid' })).toBe(true)
+    expect(isIdField({ name: 'sid', type: 'uuid' })).toBe(true)
+    expect(isIdField({ name: 'sid', type: 'string' })).toBe(false)
+    expect(isIdField({ name: 'subjectId', type: 'string' })).toBe(true)
+    expect(isIdField({ name: 'grantId', type: 'uuid' })).toBe(true)
+    expect(isIdField({ name: 'ownerId', type: 'relation' })).toBe(false)
+    expect(isIdField({ name: 'paid', type: 'string' })).toBe(false)
+    expect(isIdField({ name: 'Id', type: 'string' })).toBe(false)
   })
 })

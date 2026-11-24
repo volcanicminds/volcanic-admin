@@ -30,6 +30,9 @@ import { actionsByTarget } from './actions.js'
 /** Types that don't belong in a table column / are non-tabular by default. */
 const HEAVY_TYPES = ['text', 'richtext', 'json', 'image', 'file']
 
+/** Types whose form control is taller than one line. */
+const TALL_FORM_TYPES = ['text', 'textarea', 'richtext', 'json', 'image', 'file']
+
 function clampColumns(n: number | undefined): number {
   const v = Math.round(n ?? 2)
   return Math.min(4, Math.max(1, Number.isFinite(v) ? v : 2))
@@ -101,8 +104,12 @@ function buildCard(
 function buildFormSections(spec: ResourceSpec, byName: Map<string, ResolvedField>): FormSection[] {
   const groups = spec.form?.groups
   if (!groups) {
-    // No explicit form: every field in one headerless section, declaration order.
-    return [{ group: 'default', fields: [...byName.values()] }]
+    // No explicit form: every field in one headerless section, declaration order, except that
+    // the tall ones go last. A tall control in a two-column grid stretches its row and pushes
+    // the next short field into a misaligned cell; at the end it breaks no pair.
+    const all = [...byName.values()]
+    const tall = (f: ResolvedField) => TALL_FORM_TYPES.includes(f.type)
+    return [{ group: 'default', fields: [...all.filter((f) => !tall(f)), ...all.filter(tall)] }]
   }
   return groups.map((g) => ({
     group: g.name,

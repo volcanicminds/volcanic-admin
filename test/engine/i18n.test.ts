@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { defaultDictionaries, initialLocale } from '@/engine/i18n'
+import { systemDictionaries } from '@/engine/systemDictionaries'
 
 // Every literal key the engine and the ui translate, read from the sources: the mock app ships
 // its own dictionary, so a key missing from the defaults only shows up in a real project, as
@@ -33,8 +34,10 @@ describe('defaultDictionaries', () => {
   })
 
   for (const locale of ['en', 'it']) {
+    // The labels of the backend's own resources ship in systemDictionaries, merged after these.
     it(`translates in '${locale}' every key the engine and the ui use`, () => {
-      expect([...used].filter((key) => !(key in defaultDictionaries[locale]))).toEqual([])
+      const known = { ...defaultDictionaries[locale], ...systemDictionaries[locale] }
+      expect([...used].filter((key) => !(key in known))).toEqual([])
     })
   }
 

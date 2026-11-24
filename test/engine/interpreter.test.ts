@@ -236,6 +236,18 @@ describe('interpretManifest: form sections', () => {
     expect(names(r.formSections[0].fields)).toEqual(['name', 'category', 'tags', 'password'])
   })
 
+  it('puts the tall fields of the default section after the short ones, each in declaration order', () => {
+    const mixed: FieldSpec[] = [
+      { name: 'meta', type: 'json' },
+      { name: 'name', type: 'string' },
+      { name: 'notes', type: 'textarea' },
+      { name: 'roles', type: 'enum', multiple: true },
+      { name: 'photo', type: 'image' }
+    ]
+    const r = modelOf(resource({ name: 'r', fields: mixed }))
+    expect(names(r.formSections[0].fields)).toEqual(['name', 'roles', 'meta', 'notes', 'photo'])
+  })
+
   it('builds ordered sections, overlays per-entry presentation and skips unknown refs', () => {
     const r = modelOf(
       resource({

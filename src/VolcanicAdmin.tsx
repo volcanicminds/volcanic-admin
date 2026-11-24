@@ -41,6 +41,7 @@ import {
   rolesStore,
   toRefineResources,
   defaultDictionaries,
+  systemDictionaries,
   deepMerge,
   useT
 } from './engine'
@@ -548,6 +549,7 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
       routes: [...plugins.flatMap((p) => p.routes ?? []), ...(props.routes ?? [])],
       dictionaries: mergeDictionaries([
         defaultDictionaries,
+        systemDictionaries,
         ...plugins.map((p) => p.dictionaries),
         props.dictionaries
       ]),
@@ -640,8 +642,8 @@ export function VolcanicAdmin(props: VolcanicAdminProps) {
                 plane={plane}
                 branding={effective.branding}
                 dictionaries={effective.dictionaries ?? {}}
-                defaultLocale={effective.defaultLocale ?? BOOT_LOCALE}
-                locales={effective.locales ?? [BOOT_LOCALE]}
+                defaultLocale={effective.defaultLocale ?? bootLocale(effective.dictionaries)}
+                locales={effective.locales ?? Object.keys(effective.dictionaries ?? { [BOOT_LOCALE]: {} })}
                 tenancy={bootTenancy(plane, error, props.tenantHeader)}
                 fixedTenant={plane === 'tenant' ? props.tenant : undefined}
                 onAuthenticated={retry}
@@ -716,6 +718,15 @@ function runtimeTenancy(tenancy: Manifest['tenancy'], plane: Plane): Manifest['t
 
 /** The language of the login a console draws before a manifest names one. */
 const BOOT_LOCALE = 'en'
+
+/**
+ * Before the manifest (it needs a session) the login offers the languages the console has
+ * dictionaries for: a choice stored on the device wins, then the browser's language.
+ */
+function bootLocale(dictionaries: Dictionaries | undefined): string {
+  const browser = typeof navigator === 'undefined' ? undefined : navigator.language?.split('-')[0]
+  return browser && dictionaries?.[browser] ? browser : BOOT_LOCALE
+}
 
 function ManifestFailure({ message }: { message: string }) {
   return (

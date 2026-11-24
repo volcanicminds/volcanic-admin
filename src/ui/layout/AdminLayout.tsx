@@ -3,7 +3,7 @@
  * outlet. Consumes engine hooks only; no manifest knowledge beyond what the
  * Sidebar reads.
  */
-import { Outlet, useNavigate } from 'react-router'
+import { Outlet, useLocation, useNavigate } from 'react-router'
 import { useGetIdentity, useLogout } from '@refinedev/core'
 import { LogOut, Globe, UserCog, Building2 } from 'lucide-react'
 import { useI18n } from '@/engine'
@@ -18,6 +18,7 @@ import {
 } from '@/ui/components/ui/dropdown-menu'
 import { MobileNav, Sidebar } from './Sidebar'
 import { TenantSwitcher } from './TenantSwitcher'
+import { PageErrorBoundary } from './PageErrorBoundary'
 
 interface Identity {
   firstName?: string
@@ -30,13 +31,14 @@ export function AdminLayout() {
   const { data: identity } = useGetIdentity<Identity>()
   const { mutate: logout } = useLogout()
   const { locale, locales, setLocale, t } = useI18n()
+  const { pathname } = useLocation()
   const navigate = useNavigate()
 
   const name =
     [identity?.firstName, identity?.lastName].filter(Boolean).join(' ') ||
     identity?.username ||
     identity?.email ||
-    'User'
+    t('nav.user')
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -73,20 +75,22 @@ export function AdminLayout() {
                 <DropdownMenuLabel className="truncate">{identity?.email ?? name}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate('/account')}>
-                  <UserCog className="h-4 w-4" /> Account
+                  <UserCog className="h-4 w-4" /> {t('nav.account')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/company')}>
                   <Building2 className="h-4 w-4" /> {t('res.company.plural')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => logout()}>
-                  <LogOut className="h-4 w-4" /> Logout
+                  <LogOut className="h-4 w-4" /> {t('nav.logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </header>
         <main className="relative min-h-0 flex-1 overflow-y-auto p-[var(--page-padding)]">
-          <Outlet />
+          <PageErrorBoundary key={pathname} t={t}>
+            <Outlet />
+          </PageErrorBoundary>
         </main>
       </div>
     </div>

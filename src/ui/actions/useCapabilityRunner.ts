@@ -41,7 +41,7 @@ export function useCapabilityRunner(resource: string) {
 
   const customChannel = () => {
     const { custom } = dataProvider()
-    if (!custom) toast.error('Actions require a data provider with custom() support')
+    if (!custom) toast.error(translate('error.actionsUnsupported'))
     return custom
   }
 

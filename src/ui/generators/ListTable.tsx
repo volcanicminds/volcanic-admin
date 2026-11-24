@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow
 } from '@/ui/components/ui/table'
-import { FieldCell, ShortId } from '@/ui/widgets/display'
+import { FieldCell, ShortId, isIdField } from '@/ui/widgets/display'
 import type { ListPresentationProps } from './listShared'
 import { RowActions } from '../actions/ActionButtons'
 
@@ -110,8 +110,8 @@ export function ListTable({
                 )}
                 {columns.map((col) => (
                   <TableCell key={col.field.name} className={col.align === 'right' ? 'text-right' : undefined}>
-                    {col.field.name === 'id' && !col.full ? (
-                      <ShortId value={record.id} t={t} />
+                    {isIdField(col.field) && !col.full ? (
+                      <ShortId value={record[col.field.name]} t={t} />
                     ) : (
                       <FieldCell record={record} field={col.field} t={t} />
                     )}

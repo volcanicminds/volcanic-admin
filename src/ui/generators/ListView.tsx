@@ -192,7 +192,8 @@ export function ListView({ model }: { model: ResourceModel }) {
                 size="icon"
                 variant="ghost"
                 className={cn('h-7 w-7', layout === 'table' && 'bg-accent text-foreground')}
-                title="Table"
+                title={t('list.layout.table')}
+                aria-label={t('list.layout.table')}
                 onClick={() => chooseLayout('table')}
               >
                 <TableIcon />
@@ -201,7 +202,8 @@ export function ListView({ model }: { model: ResourceModel }) {
                 size="icon"
                 variant="ghost"
                 className={cn('h-7 w-7', layout === 'card' && 'bg-accent text-foreground')}
-                title="Cards"
+                title={t('list.layout.card')}
+                aria-label={t('list.layout.card')}
                 onClick={() => chooseLayout('card')}
               >
                 <LayoutGrid />

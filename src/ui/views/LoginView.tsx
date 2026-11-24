@@ -525,7 +525,7 @@ export function LoginView() {
           href="https://volcanicminds.com"
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="Powered by Volcanic Minds"
+          aria-label={t('login.poweredBy')}
           className="absolute bottom-6 left-1/2 -translate-x-1/2 opacity-80 transition-opacity hover:opacity-100 md:left-auto md:right-8 md:translate-x-0"
         >
           {/* Light/dark variants swapped by the .dark class (CSS-only). */}

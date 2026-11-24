@@ -604,10 +604,11 @@ export interface FieldSpec {
   enum?: EnumOption[]
   /** Reference to a shared enum in Manifest.enums. */
   enumRef?: string
-  /** The value holds several enum values, not one — a native array column (e.g.
-   *  Postgres `text[]`). Renders one badge per value and filters with `overlap`
-   *  ("tagged with ANY of") instead of `in`. Pair with the `multiselect` form
-   *  widget to edit it. */
+  /** The value holds several enum values, not one: a native array column (e.g.
+   *  Postgres `text[]`), or any list of strings the backend describes. Renders one
+   *  badge per value and filters with `overlap` ("tagged with ANY of") instead of `in`.
+   *  With no `form.widget`, the form edits it with `multiselect` when there are
+   *  options and with `tags` (free text) when there are none. */
   multiple?: boolean
   relation?: RelationSpec
   image?: ImageSpec

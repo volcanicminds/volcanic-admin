@@ -1,6 +1,6 @@
 /** Tenant switcher — visible only in multi-tenant, switchable mode. */
 import { Building2, ChevronsUpDown } from 'lucide-react'
-import { useTenant } from '@/engine'
+import { useT, useTenant } from '@/engine'
 import { Button } from '@/ui/components/ui/button'
 import {
   DropdownMenu,
@@ -12,6 +12,7 @@ import {
 } from '@/ui/components/ui/dropdown-menu'
 
 export function TenantSwitcher() {
+  const t = useT()
   const { switchable, tenants, currentTenantId, setTenant } = useTenant()
   if (!switchable) return null
 
@@ -27,7 +28,7 @@ export function TenantSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuLabel>Tenant</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('nav.tenant')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {tenants.map((tn) => (
           <DropdownMenuItem key={tn.id} onClick={() => setTenant(tn.id)}>

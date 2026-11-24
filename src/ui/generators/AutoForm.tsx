@@ -39,6 +39,9 @@ function defaultsFor(fields: ResolvedField[]): Record<string, unknown> {
 
 /** A field shows in the current form mode unless restricted via `form.visibleOn`. */
 function visibleForAction(field: ResolvedField, action: 'create' | 'edit'): boolean {
+  // A read-only field has no value before the record exists: on create it is an empty box
+  // nobody can fill. On edit it stays, showing what the server wrote.
+  if (field.readOnly && action === 'create') return false
   return !field.form?.visibleOn || field.form.visibleOn === action
 }
 

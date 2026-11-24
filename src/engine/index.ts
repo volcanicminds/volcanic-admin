@@ -62,6 +62,7 @@ export {
 export type { OverrideRegistry, OverrideKind } from './registry.js'
 
 export { I18nProvider, useI18n, useT, translate, defaultDictionaries } from './i18n.js'
+export { systemDictionaries } from './systemDictionaries.js'
 export type { Dictionary, Dictionaries } from './i18n.js'
 
 export {

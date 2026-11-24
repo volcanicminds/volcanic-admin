@@ -6,7 +6,7 @@
  * as a drawer from the header's menu button (`MobileNav`), so the page keeps the full width.
  */
 import { useEffect, useState } from 'react'
-import { NavLink } from 'react-router'
+import { NavLink, useLocation } from 'react-router'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { usePermissions } from '@refinedev/core'
 import { Bell, Menu, PanelLeftClose, PanelLeft, UserCog, X } from 'lucide-react'
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { useModel, useT, canReachResource } from '@/engine'
 import { Button } from '@/ui/components/ui/button'
 import { Icon } from './icons'
+import { activeNavPath } from './activeNav'
 import { useAdminConfig } from '@/ui/config'
 import { useNotices } from '@/ui/notices/NoticesProvider'
 
@@ -22,6 +23,7 @@ const COLLAPSE_KEY = 'volcanic.admin.sidebar.collapsed'
 const DESKTOP = '(min-width: 768px)'
 
 export function Sidebar() {
+  const t = useT()
   const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem(COLLAPSE_KEY) === '1')
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
-          title={collapsed ? 'Expand' : 'Collapse'}
+          title={collapsed ? t('nav.expand') : t('nav.collapse')}
           className={cn(
             'flex w-full items-center gap-2 rounded-md py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
             collapsed ? 'justify-center px-0' : 'px-3'
@@ -51,7 +53,7 @@ export function Sidebar() {
           ) : (
             <>
               <PanelLeftClose className="h-4 w-4 shrink-0" />
-              <span>Collapse</span>
+              <span>{t('nav.collapse')}</span>
             </>
           )}
         </button>
@@ -116,6 +118,7 @@ function SidebarBody({ collapsed }: { collapsed: boolean }) {
   const { navExtras, branding } = useAdminConfig()
   const notices = useNotices()
   const appName = branding?.appName ?? 'Volcanic Admin'
+  const { pathname } = useLocation()
 
   // Hide resources the current user cannot reach (defense-in-depth; the API also enforces).
   // Until permissions resolve, show everything to avoid a flash of an empty menu.
@@ -139,6 +142,8 @@ function SidebarBody({ collapsed }: { collapsed: boolean }) {
 
   const sortRes = (list: typeof model.resources) => [...list].sort((a, b) => (a.spec.order ?? 0) - (b.spec.order ?? 0))
 
+  const activePath = activeNavPath(pathname, visibleResources.map((res) => res.spec.path))
+
   const renderItem = (res: (typeof model.resources)[number]) => {
     const label = t(res.spec.label.plural)
     return (
@@ -146,11 +151,12 @@ function SidebarBody({ collapsed }: { collapsed: boolean }) {
         key={res.spec.name}
         to={`/${res.spec.path}`}
         title={collapsed ? label : undefined}
-        className={({ isActive }) =>
+        aria-current={res.spec.path === activePath ? 'page' : undefined}
+        className={() =>
           cn(
             'flex items-center gap-2 rounded-md py-2 text-sm transition-colors',
             collapsed ? 'justify-center px-0' : 'px-3',
-            isActive
+            res.spec.path === activePath
               ? 'bg-primary/10 font-medium text-primary'
               : 'text-muted-foreground hover:bg-accent hover:text-foreground'
           )

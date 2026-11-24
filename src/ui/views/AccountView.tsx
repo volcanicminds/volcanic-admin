@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useDataProvider, useGetIdentity, useUpdatePassword } from '@refinedev/core'
 import { toast } from 'sonner'
 import { ShieldCheck, ShieldOff, Sun, Moon, Monitor } from 'lucide-react'
-import { useAuthClient, useModel } from '@/engine'
+import { useAuthClient, useModel, useT } from '@/engine'
 import type { MfaSetup } from '@/engine'
 import { ConfirmDialog } from '@/ui/components/ConfirmDialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/ui/table'
@@ -49,6 +49,7 @@ interface SessionRow {
 }
 
 export function AccountView() {
+  const t = useT()
   const { data: identity } = useGetIdentity<Identity>()
   const { mode, setMode } = useTheme()
   const { mutate: updatePassword, isLoading: pwLoading } = useUpdatePassword<{
@@ -91,7 +92,7 @@ export function AccountView() {
   const submitPassword = (e: React.FormEvent) => {
     e.preventDefault()
     if (password !== confirm) {
-      toast.error('Passwords do not match')
+      toast.error(t('password.mismatch'))
       return
     }
     updatePassword(
@@ -113,7 +114,7 @@ export function AccountView() {
     try {
       setSetup(await client.setupMfa())
     } catch (e: any) {
-      toast.error(e?.message ?? 'Failed to start MFA setup')
+      toast.error(e?.message ?? t('account.mfa.error.start'))
     } finally {
       setMfaBusy(false)
     }
@@ -127,9 +128,9 @@ export function AccountView() {
       setMfaEnabled(true)
       setSetup(null)
       setCode('')
-      toast.success('Two-factor enabled')
+      toast.success(t('account.mfa.enabledToast'))
     } catch (e: any) {
-      toast.error(e?.message ?? 'Invalid code')
+      toast.error(e?.message ?? t('account.mfa.error.code'))
     } finally {
       setMfaBusy(false)
     }
@@ -140,9 +141,9 @@ export function AccountView() {
     try {
       await client.disableMfa()
       setMfaEnabled(false)
-      toast.success('Two-factor disabled')
+      toast.success(t('account.mfa.disabledToast'))
     } catch (e: any) {
-      toast.error(e?.message ?? 'Failed to disable MFA')
+      toast.error(e?.message ?? t('account.mfa.error.disable'))
     } finally {
       setMfaBusy(false)
     }
@@ -194,10 +195,10 @@ export function AccountView() {
         window.location.reload()
         return
       }
-      toast.success('Session closed')
+      toast.success(t('account.sessions.closed'))
       await loadSessions()
     } catch (e: any) {
-      toast.error(e?.message ?? 'Failed to close the session')
+      toast.error(e?.message ?? t('account.sessions.error.close'))
     } finally {
       setClosing(null)
       setPendingClose(null)
@@ -206,18 +207,18 @@ export function AccountView() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-semibold">Account</h1>
+      <h1 className="text-2xl font-semibold">{t('nav.account')}</h1>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Profile</CardTitle>
+          <CardTitle className="text-base">{t('account.profile')}</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Name" value={name} />
-          <Field label="Email" value={identity?.email ?? '—'} />
-          <Field label="Username" value={identity?.username ?? '—'} />
+          <Field label={t('account.name')} value={name} />
+          <Field label={t('login.email')} value={identity?.email ?? '—'} />
+          <Field label={t('account.username')} value={identity?.username ?? '—'} />
           <div className="space-y-1">
-            <div className="text-xs font-medium text-muted-foreground">Roles</div>
+            <div className="text-xs font-medium text-muted-foreground">{t('account.roles')}</div>
             <div className="flex flex-wrap gap-1">
               {(identity?.roles ?? []).map((r) => (
                 <Badge key={r} variant="secondary">
@@ -231,10 +232,10 @@ export function AccountView() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Appearance</CardTitle>
+          <CardTitle className="text-base">{t('account.appearance')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <div className="text-xs font-medium text-muted-foreground">Theme</div>
+          <div className="text-xs font-medium text-muted-foreground">{t('account.theme')}</div>
           <div className="inline-flex rounded-md border p-0.5">
             {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
               <Button
@@ -244,7 +245,7 @@ export function AccountView() {
                 className={cn('gap-2', mode === value && 'bg-accent text-foreground')}
                 onClick={() => setMode(value)}
               >
-                <Icon className="h-4 w-4" /> {label}
+                <Icon className="h-4 w-4" /> {t(label)}
               </Button>
             ))}
           </div>
@@ -254,12 +255,12 @@ export function AccountView() {
       {selfService && (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Change password</CardTitle>
+          <CardTitle className="text-base">{t('account.password.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="grid grid-cols-1 gap-4 sm:grid-cols-2" onSubmit={submitPassword}>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="old">Current password</Label>
+              <Label htmlFor="old">{t('account.password.current')}</Label>
               <PasswordInput
                 id="old"
                 autoComplete="current-password"
@@ -268,7 +269,7 @@ export function AccountView() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="new">New password</Label>
+              <Label htmlFor="new">{t('password.new')}</Label>
               <PasswordInput
                 id="new"
                 autoComplete="new-password"
@@ -277,7 +278,7 @@ export function AccountView() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="confirm">Confirm</Label>
+              <Label htmlFor="confirm">{t('password.confirm')}</Label>
               <PasswordInput
                 id="confirm"
                 autoComplete="new-password"
@@ -287,7 +288,7 @@ export function AccountView() {
             </div>
             <div className="sm:col-span-2">
               <Button type="submit" disabled={pwLoading || !oldPassword || !password}>
-                {pwLoading ? '…' : 'Update password'}
+                {pwLoading ? '…' : t('password.update')}
               </Button>
             </div>
           </form>
@@ -298,14 +299,14 @@ export function AccountView() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            Two-factor authentication
+            {t('account.mfa.title')}
             {mfaEnabled ? (
               <Badge className="gap-1">
-                <ShieldCheck className="h-3 w-3" /> Enabled
+                <ShieldCheck className="h-3 w-3" /> {t('account.mfa.enabled')}
               </Badge>
             ) : (
               <Badge variant="secondary" className="gap-1">
-                <ShieldOff className="h-3 w-3" /> Disabled
+                <ShieldOff className="h-3 w-3" /> {t('account.mfa.disabled')}
               </Badge>
             )}
           </CardTitle>
@@ -314,10 +315,10 @@ export function AccountView() {
           {mfaEnabled ? (
             selfService ? (
               <Button variant="destructive" disabled={mfaBusy} onClick={disable}>
-                {mfaBusy ? '…' : 'Disable two-factor'}
+                {mfaBusy ? '…' : t('account.mfa.disable')}
               </Button>
             ) : (
-              <p className="text-sm text-muted-foreground">Another administrator can reset it.</p>
+              <p className="text-sm text-muted-foreground">{t('account.mfa.resetByAdmin')}</p>
             )
           ) : setup ? (
             <div className="space-y-4">
@@ -328,7 +329,7 @@ export function AccountView() {
                 </code>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="enable-code">Authentication code</Label>
+                <Label htmlFor="enable-code">{t('account.mfa.code')}</Label>
                 <Input
                   id="enable-code"
                   inputMode="numeric"
@@ -341,7 +342,7 @@ export function AccountView() {
               </div>
               <div className="flex gap-2">
                 <Button disabled={mfaBusy || code.length < 6} onClick={confirmEnable}>
-                  {mfaBusy ? '…' : 'Confirm & enable'}
+                  {mfaBusy ? '…' : t('account.mfa.confirm')}
                 </Button>
                 <Button
                   variant="outline"
@@ -350,17 +351,17 @@ export function AccountView() {
                     setCode('')
                   }}
                 >
-                  Cancel
+                  {t('action.cancel')}
                 </Button>
               </div>
             </div>
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Add an extra layer of security with a TOTP authenticator app.
+                {t('account.mfa.intro')}
               </p>
               <Button disabled={mfaBusy} onClick={startEnable}>
-                {mfaBusy ? '…' : 'Enable two-factor'}
+                {mfaBusy ? '…' : t('account.mfa.enable')}
               </Button>
             </div>
           )}
@@ -370,23 +371,23 @@ export function AccountView() {
       {sessionsAvailable && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Active sessions</CardTitle>
+            <CardTitle className="text-base">{t('account.sessions.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Every device signed in with this account. Closing one stops it renewing straight away.
+              {t('account.sessions.intro')}
             </p>
             {sessions === null ? (
               <p className="text-sm text-muted-foreground">…</p>
             ) : sessions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No session is open.</p>
+              <p className="text-sm text-muted-foreground">{t('account.sessions.none')}</p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Device</TableHead>
-                    <TableHead>Address</TableHead>
-                    <TableHead>Last used</TableHead>
+                    <TableHead>{t('account.sessions.device')}</TableHead>
+                    <TableHead>{t('account.sessions.address')}</TableHead>
+                    <TableHead>{t('account.sessions.lastUsed')}</TableHead>
                     <TableHead className="w-0" />
                   </TableRow>
                 </TableHeader>
@@ -394,10 +395,10 @@ export function AccountView() {
                   {sessions.map((row) => (
                     <TableRow key={row.sid}>
                       <TableCell className="max-w-64 truncate">
-                        {describeDevice(row.userAgent)}
+                        {describeDevice(row.userAgent, t)}
                         {row.current && (
                           <Badge variant="secondary" className="ml-2">
-                            This device
+                            {t('account.sessions.thisDevice')}
                           </Badge>
                         )}
                       </TableCell>
@@ -410,7 +411,7 @@ export function AccountView() {
                           disabled={closing === row.sid}
                           onClick={() => setPendingClose(row)}
                         >
-                          {closing === row.sid ? '…' : 'Close'}
+                          {closing === row.sid ? '…' : t('account.sessions.close')}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -427,14 +428,16 @@ export function AccountView() {
         onOpenChange={(open) => {
           if (!open) setPendingClose(null)
         }}
-        title={pendingClose?.current ? 'Sign out on this device?' : 'Close this session?'}
+        title={
+          pendingClose?.current ? t('account.sessions.confirmCurrent') : t('account.sessions.confirmOther')
+        }
         description={
           pendingClose?.current
-            ? 'You will be signed out here and will have to log in again.'
-            : 'That device will have to log in again. Anything it holds stops working at once.'
+            ? t('account.sessions.confirmCurrentText')
+            : t('account.sessions.confirmOtherText')
         }
-        confirmLabel="Close session"
-        cancelLabel="Cancel"
+        confirmLabel={t('account.sessions.confirm')}
+        cancelLabel={t('action.cancel')}
         destructive
         busy={closing !== null}
         onConfirm={() => {
@@ -445,10 +448,11 @@ export function AccountView() {
   )
 }
 
+/** `label` is a dictionary key. */
 const THEME_OPTIONS: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
-  { value: 'light', label: 'Light', icon: Sun },
-  { value: 'dark', label: 'Dark', icon: Moon },
-  { value: 'system', label: 'System', icon: Monitor }
+  { value: 'light', label: 'account.theme.light', icon: Sun },
+  { value: 'dark', label: 'account.theme.dark', icon: Moon },
+  { value: 'system', label: 'account.theme.system', icon: Monitor }
 ]
 
 /**
@@ -458,8 +462,8 @@ const THEME_OPTIONS: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
  * let someone recognise "the laptop at the office" among three rows, so it says browser and system
  * and stops there.
  */
-function describeDevice(userAgent: string | null): string {
-  if (!userAgent) return 'Unknown device'
+function describeDevice(userAgent: string | null, t: ReturnType<typeof useT>): string {
+  if (!userAgent) return t('account.device.unknown')
   const browser = /Edg\//.test(userAgent)
     ? 'Edge'
     : /Chrome\//.test(userAgent)
@@ -480,7 +484,7 @@ function describeDevice(userAgent: string | null): string {
           : /Linux/.test(userAgent)
             ? 'Linux'
             : ''
-  return system ? `${browser} on ${system}` : browser
+  return system ? t('account.device.on', { browser, system }) : browser
 }
 
 function formatWhen(value: string): string {

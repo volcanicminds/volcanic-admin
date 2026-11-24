@@ -80,13 +80,13 @@ function EnumBadge({
   const palette = opt?.color ? ENUM_BADGE[opt.color] : undefined
   if (palette) {
     return (
-      <Badge variant="outline" className={cn('font-medium', palette)}>
+      <Badge variant="outline" className={cn('whitespace-nowrap font-medium', palette)}>
         {opt ? t(opt.label) : String(value)}
       </Badge>
     )
   }
   return (
-    <Badge variant="secondary" className="gap-1.5">
+    <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
       {opt?.color && (
         <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: opt.color }} />
       )}
@@ -174,6 +174,15 @@ export function readableJson(value: unknown, pairs: string): string {
 
 /** Ids at or under this length stay whole: a progressive number or a short code reads as it is. */
 const SHORT_ID_MAX = 12
+
+/**
+ * A field holding an opaque identifier: `id`, any `uuid`, or a plain string whose name ends in
+ * `Id` (`subjectId`, `grantId`). A relation is not one: it draws the related record's title.
+ */
+export function isIdField(field: Pick<ResolvedField, 'name' | 'type'>): boolean {
+  if (field.name === 'id' || field.type === 'uuid') return true
+  return /[a-z0-9]Id$/.test(field.name) && field.type === 'string'
+}
 
 /**
  * An opaque id in a list: its last 8 characters, the whole value on hover and a copy button. The

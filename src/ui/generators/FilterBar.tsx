@@ -29,7 +29,8 @@ export type FilterDraft = Record<string, unknown>
 
 function kindOf(f: ResolvedField): 'multi' | 'relation' | 'bool' | 'range' | null {
   if (f.type === 'relation') return 'relation'
-  if (f.type === 'enum') return 'multi'
+  // An open list of strings has no options to tick: no facet.
+  if (f.type === 'enum') return f.options?.length ? 'multi' : null
   if (f.type === 'boolean') return 'bool'
   if (['integer', 'number', 'date', 'datetime'].includes(f.type)) return 'range'
   return null

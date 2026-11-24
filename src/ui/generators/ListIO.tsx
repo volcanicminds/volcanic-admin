@@ -15,6 +15,7 @@ import type { CrudFilters, CrudSorting } from '@refinedev/core'
 import { Download, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/ui/components/ui/button'
+import { useT } from '@/engine'
 import type { ResourceModel, ResolvedField } from '@/engine'
 
 /** Fields excluded from bulk edit (binary/asset, non-tabular, or write-only). */
@@ -61,6 +62,7 @@ export interface ListIOProps {
 
 export function ListIO({ model, filters, sorters, canWrite }: ListIOProps) {
   const { spec } = model
+  const t = useT()
   const getDataProvider = useDataProvider()
   const invalidate = useInvalidate()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -92,7 +94,7 @@ export function ListIO({ model, filters, sorters, canWrite }: ListIOProps) {
       XLSX.utils.book_append_sheet(wb, ws, spec.name)
       XLSX.writeFile(wb, `${spec.path}.xlsx`)
     } catch (e: any) {
-      toast.error(e?.message ?? 'Export failed')
+      toast.error(e?.message ?? t('io.exportFailed'))
     } finally {
       setBusy(false)
     }
@@ -153,12 +155,15 @@ export function ListIO({ model, filters, sorters, canWrite }: ListIOProps) {
       }
 
       invalidate({ resource: spec.name, invalidates: ['list', 'many'] })
-      toast.success(
-        `Import done — ${created} created, ${updated} updated` +
-          `${failed ? `, ${failed} failed` : ''}${skipped ? `, ${skipped} skipped` : ''}`
-      )
+      const parts = [
+        t('io.created', { count: created }),
+        t('io.updated', { count: updated }),
+        ...(failed ? [t('io.failed', { count: failed })] : []),
+        ...(skipped ? [t('io.skipped', { count: skipped })] : [])
+      ]
+      toast.success(t('io.importDone', { parts: parts.join(', ') }))
     } catch (e: any) {
-      toast.error(e?.message ?? 'Import failed')
+      toast.error(e?.message ?? t('io.importFailed'))
     } finally {
       setBusy(false)
       if (inputRef.current) inputRef.current.value = ''

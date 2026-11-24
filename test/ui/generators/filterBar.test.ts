@@ -66,3 +66,21 @@ describe('list filters on dates', () => {
     expect(toCrudFilters(model, type(0, ''))).toEqual([])
   })
 })
+
+describe('list filters on lists of values', () => {
+  const lists: ResolvedField[] = [
+    { name: 'roles', type: 'enum', multiple: true },
+    { name: 'channels', type: 'enum', multiple: true, options: [{ value: 'mail', label: 'enum.channels.mail' }] }
+  ]
+  const listModel = {
+    spec: { name: 'users' },
+    filterFields: lists,
+    field: (name: string) => lists.find((f) => f.name === name)
+  } as unknown as ResourceModel
+
+  it('asks for an overlap on a closed list and offers no facet on an open one, which has nothing to tick', () => {
+    expect(toCrudFilters(listModel, { roles: ['admin'], channels: ['mail'] })).toEqual([
+      { field: 'channels', operator: 'overlap', value: ['mail'] }
+    ])
+  })
+})

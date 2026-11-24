@@ -12,6 +12,7 @@ import { Button } from '@/ui/components/ui/button'
 import { Card } from '@/ui/components/ui/card'
 import { Checkbox } from '@/ui/components/ui/checkbox'
 import { FieldCell } from '@/ui/widgets/display'
+import { useT } from '@/engine'
 import type { ResourceModel } from '@/engine'
 import type { ListPresentationProps } from './listShared'
 import { RowActions } from '../actions/ActionButtons'
@@ -57,6 +58,7 @@ function imageUrls(record: any, imageFieldName?: string): string[] {
 }
 
 function CardCarousel({ urls, fit = 'cover' }: { urls: string[]; fit?: 'cover' | 'contain' }) {
+  const t = useT()
   const [i, setI] = useState(0)
   const multi = urls.length > 1
   const go = (e: React.MouseEvent, dir: number) => {
@@ -82,7 +84,7 @@ function CardCarousel({ urls, fit = 'cover' }: { urls: string[]; fit?: 'cover' |
             type="button"
             onClick={(e) => go(e, -1)}
             className="absolute left-1 top-1/2 -translate-y-1/2 rounded-full bg-background/70 p-1 opacity-0 transition-opacity hover:bg-background group-hover:opacity-100"
-            aria-label="Previous image"
+            aria-label={t('list.prevImage')}
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -90,7 +92,7 @@ function CardCarousel({ urls, fit = 'cover' }: { urls: string[]; fit?: 'cover' |
             type="button"
             onClick={(e) => go(e, 1)}
             className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full bg-background/70 p-1 opacity-0 transition-opacity hover:bg-background group-hover:opacity-100"
-            aria-label="Next image"
+            aria-label={t('list.nextImage')}
           >
             <ChevronRight className="h-4 w-4" />
           </button>

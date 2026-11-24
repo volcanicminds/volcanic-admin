@@ -91,6 +91,7 @@ const ACTIONS: Record<
   RichTextAction,
   {
     icon: LucideIcon
+    /** Dictionary key of the button's name. */
     label: string
     isActive?: (e: Editor) => boolean
     isDisabled?: (e: Editor) => boolean
@@ -99,61 +100,61 @@ const ACTIONS: Record<
 > = {
   bold: {
     icon: Bold,
-    label: 'Bold',
+    label: 'richtext.bold',
     isActive: (e) => e.isActive('bold'),
     run: (e) => e.chain().focus().toggleBold().run()
   },
   italic: {
     icon: Italic,
-    label: 'Italic',
+    label: 'richtext.italic',
     isActive: (e) => e.isActive('italic'),
     run: (e) => e.chain().focus().toggleItalic().run()
   },
   underline: {
     icon: UnderlineIcon,
-    label: 'Underline',
+    label: 'richtext.underline',
     isActive: (e) => e.isActive('underline'),
     run: (e) => e.chain().focus().toggleUnderline().run()
   },
   strike: {
     icon: Strikethrough,
-    label: 'Strikethrough',
+    label: 'richtext.strike',
     isActive: (e) => e.isActive('strike'),
     run: (e) => e.chain().focus().toggleStrike().run()
   },
   h2: {
     icon: Heading2,
-    label: 'Heading 2',
+    label: 'richtext.h2',
     isActive: (e) => e.isActive('heading', { level: 2 }),
     run: (e) => e.chain().focus().toggleHeading({ level: 2 }).run()
   },
   h3: {
     icon: Heading3,
-    label: 'Heading 3',
+    label: 'richtext.h3',
     isActive: (e) => e.isActive('heading', { level: 3 }),
     run: (e) => e.chain().focus().toggleHeading({ level: 3 }).run()
   },
   bulletList: {
     icon: List,
-    label: 'Bullet list',
+    label: 'richtext.bulletList',
     isActive: (e) => e.isActive('bulletList'),
     run: (e) => e.chain().focus().toggleBulletList().run()
   },
   orderedList: {
     icon: ListOrdered,
-    label: 'Numbered list',
+    label: 'richtext.orderedList',
     isActive: (e) => e.isActive('orderedList'),
     run: (e) => e.chain().focus().toggleOrderedList().run()
   },
   blockquote: {
     icon: Quote,
-    label: 'Quote',
+    label: 'richtext.blockquote',
     isActive: (e) => e.isActive('blockquote'),
     run: (e) => e.chain().focus().toggleBlockquote().run()
   },
   link: {
     icon: LinkIcon,
-    label: 'Link',
+    label: 'richtext.link',
     isActive: (e) => e.isActive('link'),
     run: promptLink
   },
@@ -161,18 +162,18 @@ const ACTIONS: Record<
   // Word" escape hatch. Produces no markup of its own, so it is always safe.
   clearFormat: {
     icon: RemoveFormatting,
-    label: 'Clear formatting',
+    label: 'richtext.clearFormat',
     run: (e) => e.chain().focus().unsetAllMarks().clearNodes().run()
   },
   undo: {
     icon: Undo,
-    label: 'Undo',
+    label: 'richtext.undo',
     isDisabled: (e) => !e.can().undo(),
     run: (e) => e.chain().focus().undo().run()
   },
   redo: {
     icon: Redo,
-    label: 'Redo',
+    label: 'richtext.redo',
     isDisabled: (e) => !e.can().redo(),
     run: (e) => e.chain().focus().redo().run()
   }
@@ -193,7 +194,7 @@ const GROUPS: RichTextAction[][] = [
 /** Toolbar action ids, in default order — the default when `form.toolbar` is unset. */
 export const RICHTEXT_ACTIONS: RichTextAction[] = GROUPS.flat()
 
-function Toolbar({ editor, actions }: { editor: Editor; actions: RichTextAction[] }) {
+function Toolbar({ editor, actions, t }: { editor: Editor; actions: RichTextAction[]; t: WidgetProps['t'] }) {
   const enabled = new Set(actions)
   const groups = GROUPS.map((g) => g.filter((id) => enabled.has(id) && ACTIONS[id])).filter(
     (g) => g.length > 0
@@ -227,7 +228,7 @@ function Toolbar({ editor, actions }: { editor: Editor; actions: RichTextAction[
               <ToolbarButton
                 key={id}
                 icon={a.icon}
-                label={a.label}
+                label={t(a.label)}
                 active={state[id]?.active}
                 disabled={state[id]?.disabled}
                 onClick={() => a.run(editor)}
@@ -316,7 +317,7 @@ export default function RichTextEditor({ field, value, onChange, disabled, t }: 
         disabled && 'opacity-60'
       )}
     >
-      {!disabled && <Toolbar editor={editor} actions={actions} />}
+      {!disabled && <Toolbar editor={editor} actions={actions} t={t} />}
       <EditorContent
         editor={editor}
         placeholder={field.form?.placeholder ? t(field.form.placeholder) : undefined}

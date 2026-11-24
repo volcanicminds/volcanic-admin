@@ -155,7 +155,7 @@ presentation:
 | `label` | i18n key | Per-view header override (falls back to the field label / `field.<res>.<name>`). |
 | `align` | `'left' \| 'center' \| 'right'` | Column alignment. |
 | `width` | `number` | Column width px. |
-| `full` | `boolean` | The whole value. By default the `id` column shows the last 8 characters of an id longer than 12, with the whole value on hover and a copy button. |
+| `full` | `boolean` | The whole value. By default an id column (`id`, any `uuid` field, or a `string` field named `*Id` that is not a relation) shows the last 8 characters of an id longer than 12, with the whole value on hover and a copy button. |
 
 > `columns` present → **only** the listed columns show, in that order (allowlist).
 > Absent → derived: non-heavy, non-write-only fields in declaration order. A column
@@ -222,14 +222,20 @@ form: {
 
 > `groups` present → **only** the listed fields show, grouped and ordered as
 > written (allowlist). Absent → a single headerless `default` section with all
-> fields in declaration order.
+> fields in declaration order, except that the tall controls (`text`, `textarea`,
+> `richtext`, `json`, `image`, `file`) follow the short ones, so they never break a
+> pair of one-line fields.
 
 **Runtime behavior (not configurable).** The create/edit form and the show view
 share a **sticky title + actions toolbar** that stays pinned flush under the app
 topbar while the record scrolls, so Save / Edit / Delete stay reachable on long
 forms. Saving an **edit** redirects to the record's **detail (show)** view (not
 the list), keeping context. `readOnly` fields (including output-only fields the
-BE marks read-only) render disabled and are never submitted.
+BE marks read-only) render disabled on edit, are left off the create form (they
+have no value before the record exists) and are never submitted. A page that
+throws while rendering shows a translated error inside the main area
+(`error.page`, `error.pageHint`); the menu and the header keep working, and
+moving to another page clears it.
 
 The show view lays the same groups and columns out as a description list: each
 label beside its value, except prose, images and a filled JSON map, which keep
@@ -258,17 +264,17 @@ shared by every view. Presentation and ordering are NOT here; they live in the
 
 | Key | Type | Notes |
 |---|---|---|
-| `type` | `FieldType` | `string`, `text`, `textarea`, `richtext`, `integer`, `number`, `boolean`, `date`, `datetime`, `enum`, `relation`, `email`, `url`, `uuid`, `json`, `image`, `file`. `textarea` = plain multi-line; `richtext` = HTML rich-text editor. The backend infers only `string`, `integer`, `number`, `boolean`, `date`, `datetime`, `enum`, `email`, `url`, `uuid`, `json` from the JSON Schema; `text`, `textarea`, `richtext`, `relation`, `image` and `file` come from overrides alone, because a schema cannot tell them from a string or an object. The same 17 members in the backend generator and in `manifest.v2.schema.json`. |
+| `type` | `FieldType` | `string`, `text`, `textarea`, `richtext`, `integer`, `number`, `boolean`, `date`, `datetime`, `enum`, `relation`, `email`, `url`, `uuid`, `json`, `image`, `file`. `textarea` = plain multi-line; `richtext` = HTML rich-text editor. The backend infers only `string`, `integer`, `number`, `boolean`, `date`, `datetime`, `enum`, `email`, `url`, `uuid`, `json` from the JSON Schema (a list of strings is an `enum` with `multiple`, any other list or object is `json`); `text`, `textarea`, `richtext`, `relation`, `image` and `file` come from overrides alone, because a schema cannot tell them from a string or an object. The same 17 members in the backend generator and in `manifest.v2.schema.json`. |
 | `label` | i18n key | Default label for all views (a view entry may override it). |
 | `required` | `boolean` | Client `required` rule + `*` marker. |
-| `readOnly` | `boolean` | Excluded from the write payload; shown read-only. |
+| `readOnly` | `boolean` | Excluded from the write payload; shown read-only on edit, absent from the create form. |
 | `writeOnly` | `boolean` | Present in the write body, never read/listed (e.g. password). Excluded from table columns and bulk export/import. |
 | `nullable` | `boolean` | |
 | `default` | `unknown` | Create-form default value. |
 | `help` | i18n key | Helper text under the input. |
 | `enum` | `EnumOption[]` | Inline options (alternative to `enumRef`). |
 | `enumRef` | `string` | Reference a shared enum in `Manifest.enums`. |
-| `multiple` | `boolean` | The value holds several enum values (an array column such as Postgres `text[]`): one badge per value, filtered with `overlap` instead of `in`. See §7.1. |
+| `multiple` | `boolean` | The value holds several enum values (an array column such as Postgres `text[]`): one badge per value, filtered with `overlap` instead of `in`. The backend describes every list of strings this way, with options only when its items declare an `enum`. With no `form.widget`, the form uses `multiselect` when there are options and `tags` (values typed one by one) when there are none; an open list has no filter facet, since it has nothing to tick. See §7.1. |
 | `relation` | `RelationSpec` | See §4.1. |
 | `image` | `ImageSpec` | See §4.2. |
 | `validation` | `ValidationSpec` | See §4.3. |
@@ -502,6 +508,12 @@ The manifest emits **keys only** (`res.*`, `field.*`, `enum.*`, `action.*`,
 `group.*`, `meta.*`). The project supplies dictionaries (`dictionaries` prop /
 plugin). A **missing key is humanized** (last segment title-cased; for
 `res.<name>.singular|plural` the `<name>` segment) rather than shown raw.
+
+**Labels of the backend's own resources** ship in `systemDictionaries` (en/it,
+`src/engine/systemDictionaries.ts`), merged right after `defaultDictionaries`:
+`res.*`, `field.<resource>.<field>`, `enum.*` and `action.*` for `user`, `token`,
+`governanceLog`, `accessLog`, `systemUser`, `systemToken`, `systemAccessLog` and
+`tenant`. A project's `dictionaries` override any of them.
 
 **Reserved default keys** shipped in `defaultDictionaries` (en/it), override as
 needed. Every literal key the engine and the ui translate is among them, in both
