@@ -42,9 +42,7 @@ export function AdminLayout() {
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        {/* `max-md:` and not `md:`: a project's own `.px-4` loading later would beat `md:px-6`
-            on the desktop, while a project's `.px-6` beating `max-md:px-4` only costs the phone space. */}
-        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b px-6 max-md:gap-2 max-md:px-4">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b px-[var(--page-padding)] md:gap-4">
           <MobileNav />
           <TenantSwitcher />
           <div className="ml-auto flex items-center gap-2">
@@ -87,7 +85,7 @@ export function AdminLayout() {
             </DropdownMenu>
           </div>
         </header>
-        <main className="relative min-h-0 flex-1 overflow-y-auto p-6 max-md:p-4">
+        <main className="relative min-h-0 flex-1 overflow-y-auto p-[var(--page-padding)]">
           <Outlet />
         </main>
       </div>

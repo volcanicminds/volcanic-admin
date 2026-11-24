@@ -231,6 +231,13 @@ forms. Saving an **edit** redirects to the record's **detail (show)** view (not
 the list), keeping context. `readOnly` fields (including output-only fields the
 BE marks read-only) render disabled and are never submitted.
 
+The show view lays the same groups and columns out as a description list: each
+label beside its value, except prose, images and a filled JSON map, which keep
+the label above. `id`, `createdAt` and `updatedAt` appear in the meta strip
+above the fields, `writeOnly` fields not at all, and empty fields stay hidden
+behind a "Show empty fields (n)" toggle (a false boolean or a zero is a value).
+Past the first three custom row actions, the rest go into an "Actions" menu.
+
 ### 3.4 Fields & capabilities (patch helpers)
 
 | Key | Type | Notes |

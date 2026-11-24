@@ -18,7 +18,7 @@ import type { ResourceModel, ResolvedField } from '@/engine'
 import { FieldInput, emptyToNull, fieldSeed, formFieldName } from '@/ui/widgets/inputs'
 import { uploadFiles, pendingFiles } from '@/ui/widgets/upload/rest'
 import { CLONE_STATE_KEY } from './cloneSeed'
-import { detailColumns, sectionGridClass, fieldSpanClass } from './layout'
+import { detailColumns, sectionGridClass, fieldSpanClass, PAGE_BAR } from './layout'
 import { useRecordDocumentTitle } from './documentTitle'
 
 interface AutoFormProps {
@@ -226,10 +226,8 @@ export function AutoForm({ model, action, id, redirect = 'list', title }: AutoFo
           instead of the browser's native prompt. */}
       <UnsavedChangesGuard shouldBlock={shouldBlock} />
 
-      {/* Title + Cancel/Save pinned while the form scrolls (flush under the app
-          topbar); mirrors the show view. `-mx-6 px-6` = full-width toolbar,
-          `-top-6` cancels the main's top padding. */}
-      <div className="sticky -top-6 z-20 -mx-6 flex items-center justify-between gap-4 border-b bg-background px-6 py-4">
+      {/* Title + Cancel/Save pinned while the form scrolls; mirrors the show view. */}
+      <div className={`${PAGE_BAR.top} flex items-center justify-between gap-4`}>
         <h1 className="text-2xl font-semibold">{title}</h1>
         <div className="flex flex-wrap justify-end gap-2">
           {/* Cancel: discards the in-progress edit and returns where we came from.

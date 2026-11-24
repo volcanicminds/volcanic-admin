@@ -20,8 +20,15 @@ import {
   Ban,
   Unlock,
   KeyRound,
+  MoreHorizontal,
   Trash2
 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/ui/components/ui/dropdown-menu'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import { PasswordInput } from '@/ui/components/ui/password-input'
@@ -244,38 +251,160 @@ function ActionButton({
         />
       )}
       {cap.confirm && (
-        <Dialog open={confirming} onOpenChange={setConfirming}>
-          <DialogContent onClick={(e) => e.stopPropagation()}>
-            <DialogHeader>
-              <DialogTitle>{label}</DialogTitle>
-              <DialogDescription>{t(cap.confirmText ?? 'action.confirm')}</DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setConfirming(false)}>
-                {t('action.cancel')}
-              </Button>
-              <Button
-                onClick={() => {
-                  fire()
-                  setConfirming(false)
-                }}
-              >
-                {label}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <ActionConfirmDialog
+          cap={cap}
+          label={label}
+          open={confirming}
+          onOpenChange={setConfirming}
+          onConfirm={fire}
+          t={t}
+        />
       )}
     </>
   )
 }
 
-/** Row-target action buttons, filtered by `visibleWhen`. Compact (icon-only) by default. */
+/** The question asked before an action with `confirm`, its button labeled as the action. */
+function ActionConfirmDialog({
+  cap,
+  label,
+  open,
+  onOpenChange,
+  onConfirm,
+  t
+}: {
+  cap: CapabilitySpec
+  label: string
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  onConfirm: () => void
+  t: TFunc
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent onClick={(e) => e.stopPropagation()}>
+        <DialogHeader>
+          <DialogTitle>{label}</DialogTitle>
+          <DialogDescription>{t(cap.confirmText ?? 'action.confirm')}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t('action.cancel')}
+          </Button>
+          <Button
+            onClick={() => {
+              onConfirm()
+              onOpenChange(false)
+            }}
+          >
+            {label}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/**
+ * The actions past a bar's inline ones, as items of an "Actions" menu. An item that asks for
+ * input or confirmation opens its dialog after the menu closes: the dialogs are rendered beside
+ * the menu, not inside it, since the menu's content unmounts on close.
+ */
+function ActionMenu({
+  actions,
+  record,
+  run,
+  t,
+  compact,
+  variant,
+  className
+}: {
+  actions: CapabilitySpec[]
+  record: Rec
+  run: RunFn
+  t: TFunc
+  /** An icon trigger named by its label, as the row's other compact buttons. */
+  compact?: boolean
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost'
+  className?: string
+}) {
+  const [open, setOpen] = useState<{ cap: CapabilitySpec; mode: 'input' | 'confirm' } | null>(null)
+  const labelOf = (cap: CapabilitySpec) => t(cap.label ?? `action.${cap.name}`)
+  return (
+    <>
+      {/* Not modal: a modal menu handing focus to a dialog it just opened leaves the page inert. */}
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          {compact ? (
+            <Button
+              size="icon"
+              variant={variant ?? 'ghost'}
+              className={className}
+              title={t('action.menu')}
+              aria-label={t('action.menu')}
+            >
+              <MoreHorizontal />
+            </Button>
+          ) : (
+            <Button variant="outline">
+              <MoreHorizontal /> {t('action.menu')}
+            </Button>
+          )}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {actions.map((cap) => {
+            const Icon = iconFor(cap.icon)
+            return (
+              <DropdownMenuItem
+                key={cap.name}
+                onSelect={() => {
+                  if (cap.input) setOpen({ cap, mode: 'input' })
+                  else if (cap.confirm) setOpen({ cap, mode: 'confirm' })
+                  else run(cap, record, labelOf(cap))
+                }}
+              >
+                <Icon className="mr-2 h-4 w-4" /> {labelOf(cap)}
+              </DropdownMenuItem>
+            )
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {open?.mode === 'input' && (
+        <ActionInputDialog
+          cap={open.cap}
+          record={record}
+          run={run}
+          label={labelOf(open.cap)}
+          open
+          onOpenChange={(v) => !v && setOpen(null)}
+          t={t}
+        />
+      )}
+      {open?.mode === 'confirm' && (
+        <ActionConfirmDialog
+          cap={open.cap}
+          label={labelOf(open.cap)}
+          open
+          onOpenChange={(v) => !v && setOpen(null)}
+          onConfirm={() => run(open.cap, record, labelOf(open.cap))}
+          t={t}
+        />
+      )}
+    </>
+  )
+}
+
+/**
+ * Row-target action buttons, filtered by `visibleWhen`. Compact (icon-only) by default. With
+ * `inline`, the actions past that many go into an "Actions" menu; an action drawn by its own
+ * component stays a button, since a menu item cannot host it.
+ */
 export function RowActions({
   model,
   record,
   t,
   compact = true,
+  inline,
   variant,
   size,
   className
@@ -284,16 +413,24 @@ export function RowActions({
   record: Rec
   t: TFunc
   compact?: boolean
+  /** How many actions stay buttons before the rest go into a menu; all of them when unset. */
+  inline?: number
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost'
   size?: 'default' | 'sm' | 'lg' | 'icon'
   className?: string
 }) {
+  const registry = useRegistry()
   const { run } = useCapabilityRunner(model.spec.name)
   const actions = actionsByTarget(model.actions, 'row').filter((a) => canRunOn(a, record))
   if (!actions.length) return null
+  const custom = (a: CapabilitySpec) => Boolean(registry.resolve('action', a.component))
+  const menuable = actions.filter((a) => !custom(a))
+  // A menu holding a single action saves no room over its button.
+  const overflow = inline != null && menuable.length - inline > 1 ? menuable.slice(inline) : []
+  const buttons = actions.filter((a) => !overflow.includes(a))
   return (
     <>
-      {actions.map((a) => (
+      {buttons.map((a) => (
         <ActionButton
           key={a.name}
           cap={a}
@@ -307,6 +444,17 @@ export function RowActions({
           className={className}
         />
       ))}
+      {overflow.length > 0 && (
+        <ActionMenu
+          actions={overflow}
+          record={record}
+          run={run}
+          t={t}
+          compact={compact}
+          variant={variant}
+          className={className}
+        />
+      )}
     </>
   )
 }

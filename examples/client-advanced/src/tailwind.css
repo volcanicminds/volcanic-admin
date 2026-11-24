@@ -1,4 +1,5 @@
-/* Utilities for this project's own components/pages.
-   Base/preflight + the theme tokens come from '@volcanicminds/admin/styles.css'. */
+/* The one sheet of the app: the engine's classes, theme tokens and base rules (through the
+   preset) and this project's own. It replaces '@volcanicminds/admin/styles.css'. */
+@tailwind base;
 @tailwind components;
 @tailwind utilities;

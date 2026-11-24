@@ -23,6 +23,19 @@ function getValue(record: Record<string, any>, field: ResolvedField): any {
   return record[field.name]
 }
 
+/**
+ * Whether a field has nothing to show: no value, an empty string, list or map, an image field
+ * without images. A false boolean and a zero are values.
+ */
+export function isEmptyValue(record: Record<string, any>, field: ResolvedField): boolean {
+  if (field.type === 'image' || field.type === 'file') return imageItems(record, field).length === 0
+  const v = getValue(record, field)
+  if (v == null || v === '') return true
+  if (Array.isArray(v)) return v.length === 0
+  if (typeof v === 'object' && !(v instanceof Date)) return Object.keys(v).length === 0
+  return false
+}
+
 // Soft colored badge per enum option (EnumOption.color). Named palette → literal
 // Tailwind classes (so they survive the build); any other value falls back to the
 // neutral badge + a color dot. Each entry carries its dark variant: the light

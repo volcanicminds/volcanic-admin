@@ -10,9 +10,9 @@ There are three distribution models; pick per client:
 
 | Model | When | Per-client repo? |
 |---|---|---|
-| **A — config only** | Standard backoffice, no custom React | No — one deployment, point env at each backend |
-| **B — npm + thin app** | Some custom widgets/pages, own branding | Yes — a tiny Vite app (this guide) |
-| **C — scaffold/fork** | Heavily bespoke | Yes — a full copy |
+| **A: config only** | Standard backoffice, no custom React | No: one deployment, point env at each backend |
+| **B: npm + thin app** | Some custom widgets/pages, own branding | Yes: a tiny Vite app (this guide) |
+| **C: scaffold/fork** | Heavily bespoke | Yes: a full copy |
 
 **B is the default.** A client app is usually one `main.tsx` plus two manifest files.
 
@@ -27,8 +27,8 @@ that generated description; it only adds a thin **overrides** layer for presenta
 
 | File | Owner | Edited by hand? |
 |---|---|---|
-| `manifest.generated.ts` | the backend | **never** — overwritten on every refresh |
-| `manifest.overrides.ts` | the client | yes — your only manifest source-of-truth |
+| `manifest.generated.ts` | the backend | **never**: overwritten on every refresh |
+| `manifest.overrides.ts` | the client | yes: your only manifest source-of-truth |
 
 The engine merges them by canonical identity `(resource, field)` / capability name:
 `merge(generated, overrides)`. The overrides survive every regeneration, so backend drift
@@ -37,13 +37,13 @@ The engine merges them by canonical identity `(resource, field)` / capability na
 ### 1.1 Build-time pull (recommended)
 
 Pull the manifest into the repo at build time. It is **pinned, reviewable in a PR, and the
-build works offline** — no live backend needed to compile.
+build works offline**: no live backend needed to compile.
 
 ```bash
 # fetch GET <url>/admin/manifest, validate against the v2 JSON Schema, and write
-#   src/manifest.generated.ts  (always — AUTO-GENERATED header; also emits the
+#   src/manifest.generated.ts  (always; AUTO-GENERATED header; also emits the
 #                               `GeneratedFieldMap` type for typed field names)
-#   src/manifest.overrides.ts  (scaffolded once, only if absent — yours thereafter;
+#   src/manifest.overrides.ts  (scaffolded once, only if absent, yours thereafter;
 #                               scaffold is `ManifestOverrides<GeneratedFieldMap>`)
 npx volcanic-admin-pull --url https://api.acme.example --out src
 # or from a snapshot file instead of a live backend:
@@ -64,7 +64,7 @@ Wire both files into the app:
 ```tsx
 import { VolcanicAdmin } from '@volcanicminds/admin'
 import '@volcanicminds/admin/styles.css'
-import { generatedManifest } from './manifest.generated' // pulled — never edit
+import { generatedManifest } from './manifest.generated' // pulled, never edit
 import { overrides } from './manifest.overrides'         // yours
 import { dictionaries } from './i18n'
 
@@ -81,7 +81,7 @@ createRoot(document.getElementById('root')!).render(
 )
 ```
 
-`manifest.overrides.ts` is plain typed data — fill what the schema-only generator can't
+`manifest.overrides.ts` is plain typed data: fill what the schema-only generator can't
 infer and trim noise (see §3 for the override surface):
 
 Type it against the pulled `GeneratedFieldMap` (see below) so every field reference is
@@ -130,7 +130,7 @@ export const overrides: ManifestOverrides<GeneratedFieldMap> = {
 
 ### 1.2 Runtime fetch (no pull step)
 
-Skip the pull and let the engine fetch `GET ${apiUrl}/admin/manifest` at boot — drop the
+Skip the pull and let the engine fetch `GET ${apiUrl}/admin/manifest` at boot: drop the
 `manifest` prop and pass only `apiUrl`. Simplest to wire, but the build depends on a live
 backend and the manifest isn't pinned in the repo. Overrides still apply: pass
 `manifestOverrides` and they merge onto the fetched manifest.
@@ -143,7 +143,7 @@ backend and the manifest isn't pinned in the repo. Overrides still apply: pass
 />
 ```
 
-> **Model A (no repo):** the runtime-fetch build can serve many clients — deploy once and
+> **Model A (no repo):** the runtime-fetch build can serve many clients: deploy once and
 > set `VITE_API_BASE_URL` per environment/subdomain.
 
 ---
@@ -167,7 +167,7 @@ npx volcanic-admin-pull --url https://api.acme.example --out src   # §1.1
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { VolcanicAdmin } from '@volcanicminds/admin'
-import '@volcanicminds/admin/styles.css' // prebuilt theme — no Tailwind needed
+import '@volcanicminds/admin/styles.css' // prebuilt theme, no Tailwind needed
 import { generatedManifest } from './manifest.generated'
 import { overrides } from './manifest.overrides'
 import { dictionaries } from './i18n'
@@ -196,26 +196,26 @@ filters, omni-search, pagination, XLS import/export, **row/bulk/collection actio
 MFA, multi-tenant. `dictionaries` translate the manifest keys (`res.*`, `field.*`, `enum.*`,
 `group.*`, `action.*`); missing keys fall back to a humanized label.
 
-> **Need custom React?** Stay on B — add **plugins** (§3) for theme, components, and pages.
+> **Need custom React?** Stay on B and add **plugins** (§3) for theme, components, and pages.
 > Customization is injected, and shared customizations can be their own npm package reused
-> across clients — no fork, no monorepo.
+> across clients, with no fork and no monorepo.
 
 ---
 
-## 3. Complex case — plugins (theme, components, pages)
+## 3. Complex case: plugins (theme, components, pages)
 
 Customization is **injected**, never forked or monkey-patched. The manifest references your
 components by **id**; the engine resolves them. You can pass customization inline as props
-(`overrides`, `routes`, `theme`, `dictionaries`) — but the clean way to keep `main.tsx` tiny
+(`overrides`, `routes`, `theme`, `dictionaries`), but the clean way to keep `main.tsx` tiny
 and customization modular is a **plugin**.
 
 A plugin is a plain object that contributes any of: `widgets`, `views`, `actions`, `routes`,
 `dictionaries`, `theme`, `branding`. Plugins **compose** (later wins on key collisions; direct props win
-over plugins). Put one plugin per concern in its own file — or publish it as its own npm
+over plugins). Put one plugin per concern in its own file, or publish it as its own npm
 package and **share it across client repos** (no fork, no monorepo).
 
 ```tsx
-// main.tsx stays tiny — concerns live in plugin files
+// main.tsx stays tiny: concerns live in plugin files
 import { VolcanicAdmin } from '@volcanicminds/admin'
 import '@volcanicminds/admin/styles.css'
 import { generatedManifest } from './manifest.generated'
@@ -276,15 +276,15 @@ export function RatingWidget({ value, onChange, disabled }: WidgetProps) {
 
 Override (`manifest.overrides.ts`): declare the field's intrinsics in `fields`
 (`vehicle.fields.score = { type: 'integer' }`) and reference the widget from the form view
-entry — `vehicle.form.groups[0].fields` includes `{ field: 'score', widget: 'rating' }`.
+entry: `vehicle.form.groups[0].fields` includes `{ field: 'score', widget: 'rating' }`.
 The same `WidgetProps` shape is reused for read-only display if you also register a display
 variant.
 
 **Built-in extras** (no custom code needed):
-- **`multiselect`** widget — checkbox group for an array field; options come from the field's
+- **`multiselect`** widget: a checkbox group for an array field; options come from the field's
   `enum`. Declare the enum on the field (`user.fields.roles = { type: 'enum', enum: [{value:'admin',label:'role.admin'}] }`)
   and pick the widget in the form entry: `{ field: 'roles', widget: 'multiselect' }`.
-- **`visibleOn`** — a form-entry prop, `'create' | 'edit'`, restricts a field to one form mode
+- **`visibleOn`**: a form-entry prop, `'create' | 'edit'`, restricts a field to one form mode
   (omitted = both). e.g. `{ field: 'password', visibleOn: 'create' }` hides it when editing.
 
 ### 3.2 Custom view
@@ -308,7 +308,7 @@ import type { ResourceModel } from '@volcanicminds/admin'
 export function VehicleShow({ model, id }: { model: ResourceModel; id?: string }) {
   const t = useT()
   // …custom layout using model.fields / Refine's useOne(id)…
-  return <div>{t(model.spec.label.singular)} — custom screen for {id}</div>
+  return <div>{t(model.spec.label.singular)}: custom screen for {id}</div>
 }
 ```
 
@@ -317,7 +317,7 @@ screen is used.
 
 ### 3.3 Theming / graphical style
 
-Pass theme tokens as **data** (a `theme` prop or `plugin.theme`) — injected as CSS variables
+Pass theme tokens as **data** (a `theme` prop or `plugin.theme`), injected as CSS variables
 at runtime, no CSS file or rebuild. Colors are HSL channels.
 
 ```ts
@@ -343,7 +343,7 @@ override the CSS variables in a stylesheet if you prefer; both work.
 `plugin.branding`): `logo` (image src for the expanded sidebar), `logoCollapsed` (small
 mark for the collapsed rail), and `appName` (label + the fallback badge initial). Without
 it the engine shows a neutral badge + "Volcanic Admin". For a logo that is unreadable on a
-dark background, add the `*Dark` variants — they swap by the `.dark` class (CSS-only, no
+dark background, add the `*Dark` variants: they swap by the `.dark` class (CSS-only, no
 JS); set only the light one and it is used in both themes. See `CONFIGURATION.md` §11 for
 the full field list (`loginLogo*`, `logoHeight`, `poweredBy`, …).
 
@@ -351,9 +351,15 @@ the full field list (`loginLogo*`, `logoHeight`, `poweredBy`, …).
 <VolcanicAdmin branding={{ appName: 'Acme', logo: '/logo.svg', logoDark: '/logo-dark.svg' }} … />
 ```
 
-If you build your **own** components with Tailwind and want the same tokens/utilities, extend
-the shipped preset. It loads two Tailwind plugins, optional peers of the package that the
-project installs next to `tailwindcss` 3: `npm i -D tailwindcss-animate @tailwindcss/typography`.
+If you build your **own** components with Tailwind, apply the shipped preset, add the engine's
+build to `content` and drop the `styles.css` import: your one sheet then holds the engine's
+classes, its theme tokens and base rules (the preset emits them) and your own classes, in
+Tailwind's order. Do not load `styles.css` next to it: in a second sheet loaded later, your
+base utilities (`.flex`, `.grid-cols-1`, `.px-6`) override the engine's responsive variants
+(`md:flex`, `md:grid-cols-2`), so the sidebar shows on a phone and the detail falls to one
+column. The preset loads two Tailwind plugins, optional peers of the package that the project
+installs next to `tailwindcss` 3: `npm i -D tailwindcss-animate @tailwindcss/typography`. Keep
+Tailwind's `prefix` unset: the engine's classes have none.
 
 ```js
 // tailwind.config.js
@@ -361,8 +367,15 @@ import volcanicPreset from '@volcanicminds/admin/tailwind-preset'
 
 export default {
   presets: [volcanicPreset],
-  content: ['./index.html', './src/**/*.{ts,tsx}']
+  content: ['./index.html', './src/**/*.{ts,tsx}', './node_modules/@volcanicminds/admin/dist/**/*.js']
 }
+```
+
+```css
+/* src/tailwind.css, imported once in main.tsx in place of '@volcanicminds/admin/styles.css' */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 ```
 
 ### 3.4 Custom pages & dashboards
@@ -530,7 +543,7 @@ runtime needs `authMode="bearer"`.
 
 > **`manifest` vs `manifestOverrides`.** `manifest` is the generated description (don't edit);
 > `manifestOverrides` is your `ManifestOverrides` layer merged on top. `overrides` is a
-> *different* prop — the React component registry that backs the `widget` ids used in
+> *different* prop: the React component registry that backs the `widget` ids used in
 > `form` view entries / the `views` ids.
 
 ## 5. Dev without a backend
@@ -544,7 +557,7 @@ provider (see this repo's `src/mock/*` and the demo `src/App.tsx`). Pass `manife
 `@volcanicminds/admin` is a scoped package. Publish to npm (public) or a private registry
 (GitHub Packages / private npm org). Peers (`react`, `react-dom`, `react-router`,
 `@refinedev/*`, `react-hook-form`) are provided by the client app so there is a single
-shared copy — required for Refine's React context to work.
+shared copy, which Refine's React context requires.
 
 ## 7. The client `index.html` (robots + attribution)
 

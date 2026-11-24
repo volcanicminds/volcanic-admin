@@ -119,7 +119,7 @@ export function ListTable({
                 ))}
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className="flex justify-end gap-1">
-                    <RowActions model={model} record={record} t={t} />
+                    <RowActions model={model} record={record} t={t} inline={3} />
                     {canShow && (
                       <Button
                         size="icon"

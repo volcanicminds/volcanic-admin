@@ -28,40 +28,35 @@ export function Sidebar() {
     localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0')
   }, [collapsed])
 
-  // The breakpoint sits on a wrapper that carries no other display class: a project's own utility
-  // CSS loads after the admin's, so its `.flex` or `.hidden` would beat a `md:` variant written
-  // next to them on the same element.
   return (
-    <div className="h-full shrink-0 max-md:hidden">
-      <aside
-        className={cn(
-          'flex h-full flex-col border-r bg-card transition-[width] duration-200',
-          collapsed ? 'w-16' : 'w-60'
-        )}
-      >
-        <SidebarBody collapsed={collapsed} />
-        <div className="border-t p-2">
-          <button
-            type="button"
-            onClick={() => setCollapsed((c) => !c)}
-            title={collapsed ? 'Expand' : 'Collapse'}
-            className={cn(
-              'flex w-full items-center gap-2 rounded-md py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
-              collapsed ? 'justify-center px-0' : 'px-3'
-            )}
-          >
-            {collapsed ? (
-              <PanelLeft className="h-4 w-4 shrink-0" />
-            ) : (
-              <>
-                <PanelLeftClose className="h-4 w-4 shrink-0" />
-                <span>Collapse</span>
-              </>
-            )}
-          </button>
-        </div>
-      </aside>
-    </div>
+    <aside
+      className={cn(
+        'hidden h-full shrink-0 flex-col border-r bg-card transition-[width] duration-200 md:flex',
+        collapsed ? 'w-16' : 'w-60'
+      )}
+    >
+      <SidebarBody collapsed={collapsed} />
+      <div className="border-t p-2">
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          title={collapsed ? 'Expand' : 'Collapse'}
+          className={cn(
+            'flex w-full items-center gap-2 rounded-md py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+            collapsed ? 'justify-center px-0' : 'px-3'
+          )}
+        >
+          {collapsed ? (
+            <PanelLeft className="h-4 w-4 shrink-0" />
+          ) : (
+            <>
+              <PanelLeftClose className="h-4 w-4 shrink-0" />
+              <span>Collapse</span>
+            </>
+          )}
+        </button>
+      </div>
+    </aside>
   )
 }
 
@@ -85,7 +80,6 @@ export function MobileNav() {
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
-      {/* On a wrapper of its own, as the column's breakpoint: the button's `inline-flex` would win. */}
       <div className="-ml-2 shrink-0 md:hidden">
         <DialogPrimitive.Trigger asChild>
           <Button variant="ghost" size="icon" aria-label={t('nav.openMenu')}>

@@ -33,6 +33,7 @@ import { ListCards } from './ListCards'
 import { ListIO } from './ListIO'
 import { FilterBar, toCrudFilters } from './FilterBar'
 import { useListState } from './listState'
+import { PAGE_BAR } from './layout'
 import { BulkActions, CollectionActions, bulkActionsOf } from '../actions/ActionButtons'
 
 const layoutKey = (name: string) => `volcanic.admin.list.${name}.layout`
@@ -178,13 +179,11 @@ export function ListView({ model }: { model: ResourceModel }) {
 
   return (
     <div className="space-y-4">
-      {/* Sticky toolbar: title + actions + search/filter/sort, pinned while the
-          list scrolls (flush under the app topbar), mirroring the form header.
-          `-mx-6 px-6` = full-width bar, `-top-6` cancels the main's top padding. */}
-      <div className="sticky -top-6 z-20 -mx-6 space-y-3 border-b bg-background px-6 py-4">
+      {/* Title + actions + search/filter/sort, pinned while the list scrolls. */}
+      <div className={`${PAGE_BAR.top} space-y-3`}>
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">{t(spec.label.plural)}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <ListIO model={model} filters={filters} sorters={sorters} canWrite={canCreate || canEdit} />
           <CollectionActions model={model} t={t} filters={filters} />
           {layouts.length > 1 && (
@@ -290,17 +289,15 @@ export function ListView({ model }: { model: ResourceModel }) {
         <ListTable {...presentation} sorters={sorters} onToggleSort={toggleSort} />
       )}
 
-      {/* Pagination bar, mirroring the toolbar above. `sticky bottom` is asymmetric —
-          it only ever shifts a box UP — so it gives both regimes for free: with a
+      {/* Pagination bar, mirroring the toolbar above. `sticky bottom` is asymmetric
+          (it only ever shifts a box UP), so it gives both regimes for free: with a
           short list nothing overflows and the bar stays in flow right under the
           results; with a long one it rides the bottom edge instead of sitting
           off-screen, and un-sticks by itself once you reach the end, so no row is
-          permanently covered. `-bottom-6` cancels the main's bottom padding (the
-          `-top-6` above does the same at the other end); the opaque background is
-          load-bearing, not decoration: rows scroll underneath it.
+          permanently covered.
           With a selection its left side turns into the bulk bar, at the same height:
           a bar appearing above the list would push the rows away from the pointer. */}
-      <div className="sticky -bottom-6 z-20 -mx-6 flex items-center justify-between gap-4 border-t bg-background px-6 py-4 text-sm text-muted-foreground">
+      <div className={`${PAGE_BAR.bottom} flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm text-muted-foreground`}>
         {selectedRecords.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2 text-foreground">
             <span className="font-medium">{t('list.selected', { count: selectedRecords.length })}</span>

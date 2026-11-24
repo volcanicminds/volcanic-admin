@@ -35,6 +35,18 @@ const ROW_SPAN: Record<number, string> = {
   4: 'md:row-span-4'
 }
 
+/**
+ * A page bar pinned to the top or bottom edge of the main area (list toolbar and footer, detail
+ * and form headers). It bleeds into the main's padding with negative margins read from the
+ * `--page-padding` token, so it spans the full width and sits flush under the app topbar at
+ * every breakpoint; the opaque background is load-bearing, content scrolls underneath it.
+ */
+export const PAGE_BAR = {
+  top: 'sticky -top-[var(--page-padding)] z-20 -mx-[var(--page-padding)] border-b bg-background px-[var(--page-padding)] py-4',
+  bottom:
+    'sticky -bottom-[var(--page-padding)] z-20 -mx-[var(--page-padding)] border-t bg-background px-[var(--page-padding)] py-4'
+} as const
+
 /** Clamp the configured column count to a supported value (1–4, default 2). */
 export function detailColumns(cols: number | undefined): number {
   const n = Math.round(cols ?? 2)
@@ -44,6 +56,11 @@ export function detailColumns(cols: number | undefined): number {
 /** Grid class for a section body: single column on mobile, `cols` from md up. */
 export function sectionGridClass(cols: number): string {
   return `grid grid-cols-1 gap-4 ${GRID_COLS[cols] ?? GRID_COLS[2]}`
+}
+
+/** Grid class for a detail section: the form's columns, tighter rows (a value is one line, not a control). */
+export function detailGridClass(cols: number): string {
+  return `grid grid-cols-1 gap-x-8 gap-y-2 ${GRID_COLS[cols] ?? GRID_COLS[2]}`
 }
 
 /**

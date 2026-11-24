@@ -1,8 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { VolcanicAdmin } from '@volcanicminds/admin'
-import '@volcanicminds/admin/styles.css' // engine theme + base
-import './tailwind.css' // utilities for our own components
+import './tailwind.css' // the one sheet: engine classes and theme (via the preset) plus our own
 import { overrides } from './manifest.overrides'
 import { dictionaries } from './i18n'
 import { themePlugin } from './plugins/theme.plugin'

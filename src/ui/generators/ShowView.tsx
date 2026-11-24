@@ -2,7 +2,7 @@
  * Generated detail (show) view. Renders the record as grouped read-only fields,
  * reusing the form sections for layout coherence with edit.
  */
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useOne, useNavigation, useDelete } from '@refinedev/core'
 import { useParams, useNavigate } from 'react-router'
 import { Pencil, ArrowLeft, Trash2, CopyPlus } from 'lucide-react'
@@ -10,12 +10,13 @@ import { Button } from '@/ui/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { ConfirmDialog } from '@/ui/components/ConfirmDialog'
 import { useT } from '@/engine'
-import type { ResourceModel } from '@/engine'
-import { CopyButton, FieldValue } from '@/ui/widgets/display'
+import type { ResolvedField, ResourceModel } from '@/engine'
+import { cn } from '@/lib/utils'
+import { CopyButton, FieldValue, isEmptyValue } from '@/ui/widgets/display'
 import { formFieldName } from '@/ui/widgets/inputs'
 import { RowActions } from '@/ui/actions/ActionButtons'
 import { CLONE_STATE_KEY } from './cloneSeed'
-import { detailColumns, sectionGridClass, fieldSpanClass } from './layout'
+import { detailColumns, detailGridClass, fieldSpanClass, PAGE_BAR } from './layout'
 import { useRecordDocumentTitle, resolveFields } from './documentTitle'
 
 /** Writable form values to carry into a pre-filled create form. Mirrors the
@@ -38,13 +39,28 @@ function buildCloneSeed(model: ResourceModel, record: Record<string, any>): Reco
 
 type Translate = (key?: string, vars?: Record<string, string | number>) => string
 
+/** Fields the meta strip draws when the record has them, so the sections skip them. */
+const META_FIELDS = new Set(['id', 'createdAt', 'updatedAt'])
+
+/**
+ * Values that need the room of their cell, so their label sits above them, not beside: prose,
+ * images, and a filled JSON map, drawn one `key: value` per line (a JSON list reads as one line).
+ */
+function stacked(field: ResolvedField, value: unknown): boolean {
+  if (field.type === 'json') {
+    return value != null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0
+  }
+  return ['text', 'richtext', 'image', 'file'].includes(field.type)
+}
+
 /** Compact meta strip for the read-only system fields (id + timestamps). The id
- * carries a copy-to-clipboard button; created/updated are shown when present. */
-function RecordMeta({ record, t }: { record: Record<string, any>; t: Translate }) {
+ * carries a copy-to-clipboard button; created/updated are shown when present;
+ * `extra` closes the strip on its right. */
+function RecordMeta({ record, t, extra }: { record: Record<string, any>; t: Translate; extra?: ReactNode }) {
   const id = record.id
   const created = record.createdAt
   const updated = record.updatedAt
-  if (id == null && created == null && updated == null) return null
+  if (id == null && created == null && updated == null && !extra) return null
 
   const fmt = (v: unknown) => {
     const d = new Date(v as string)
@@ -69,6 +85,7 @@ function RecordMeta({ record, t }: { record: Record<string, any>; t: Translate }
           <span className="font-medium">{t('meta.updatedAt')}</span> {fmt(updated)}
         </div>
       )}
+      {extra && <div className="ml-auto">{extra}</div>}
     </div>
   )
 }
@@ -81,6 +98,7 @@ export function ShowView({ model }: { model: ResourceModel }) {
   const { list, edit } = useNavigation()
   const { mutate: deleteOne } = useDelete()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [showEmpty, setShowEmpty] = useState(false)
 
   const { data, isLoading } = useOne({ resource: spec.name, id })
   const record = data?.data
@@ -102,10 +120,15 @@ export function ShowView({ model }: { model: ResourceModel }) {
     navigate(`${base}/create`, { state: { [CLONE_STATE_KEY]: buildCloneSeed(model, record) } })
   }
 
-  const sections =
-    model.formSections.length > 0
-      ? model.formSections
-      : [{ group: 'default', fields: model.fields }]
+  // A write-only field has no value to read back, and a meta field already sits in the strip.
+  const shown = (field: ResolvedField) =>
+    !field.writeOnly && !(META_FIELDS.has(field.name) && record?.[field.name] != null)
+  const sections = (
+    model.formSections.length > 0 ? model.formSections : [{ group: 'default', fields: model.fields }]
+  ).map((section) => ({ ...section, fields: section.fields.filter(shown) }))
+  const emptyCount = record
+    ? sections.reduce((n, s) => n + s.fields.filter((f) => isEmptyValue(record, f)).length, 0)
+    : 0
 
   // Relation-aware: a relation in titleField resolves to its titleField (e.g.
   // brand → "BMW"), never "[object Object]" or the raw foreign key.
@@ -114,17 +137,14 @@ export function ShowView({ model }: { model: ResourceModel }) {
 
   return (
     <div className="space-y-6">
-      {/* Title + actions stay pinned while the record scrolls. `-mx-6 px-6` spans
-          the main content padding so it reads as a full-width toolbar. `-top-6`
-          cancels the main's top padding so it sticks flush under the app topbar
-          (main is the scroll container). */}
-      <div className="sticky -top-6 z-20 -mx-6 flex items-center justify-between gap-4 border-b bg-background px-6 py-4">
+      {/* Title + actions stay pinned while the record scrolls. */}
+      <div className={`${PAGE_BAR.top} flex items-center justify-between gap-4`}>
         <h1 className="text-2xl font-semibold">{isLoading ? '…' : title}</h1>
         <div className="flex flex-wrap justify-end gap-2">
           <Button variant="outline" onClick={() => list(spec.name)}>
             <ArrowLeft /> {t('action.back')}
           </Button>
-          {record && <RowActions model={model} record={record} t={t} compact={false} />}
+          {record && <RowActions model={model} record={record} t={t} compact={false} inline={3} />}
           {canClone && (
             <Button variant="outline" onClick={clone}>
               <CopyPlus /> {t('action.clone')}
@@ -143,7 +163,25 @@ export function ShowView({ model }: { model: ResourceModel }) {
         </div>
       </div>
 
-      {record && <RecordMeta record={record} t={t} />}
+      {record && (
+        <RecordMeta
+          record={record}
+          t={t}
+          extra={
+            emptyCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                aria-pressed={showEmpty}
+                onClick={() => setShowEmpty((v) => !v)}
+              >
+                {showEmpty ? t('detail.hideEmpty') : t('detail.showEmpty', { count: emptyCount })}
+              </Button>
+            )
+          }
+        />
+      )}
 
       <ConfirmDialog
         open={confirmDelete}
@@ -162,29 +200,38 @@ export function ShowView({ model }: { model: ResourceModel }) {
       {record &&
         sections.map((section) => {
           const cols = detailColumns(section.columns ?? model.formColumns)
+          const fields = showEmpty ? section.fields : section.fields.filter((f) => !isEmptyValue(record, f))
+          if (!fields.length) return null
           return (
-          <Card key={section.group}>
-            {section.group !== 'default' && (
-              <CardHeader>
-                <CardTitle className="text-base">{t(section.label ?? `group.${section.group}`)}</CardTitle>
-              </CardHeader>
-            )}
-            <CardContent className={`${sectionGridClass(cols)} pt-6`}>
-              {section.fields.map((field) => (
-                <div
-                  key={field.name}
-                  className={['space-y-1', fieldSpanClass(field, cols)].filter(Boolean).join(' ')}
-                >
-                  <div className="text-xs font-medium text-muted-foreground">
-                    {t(field.label ?? `field.${spec.name}.${field.name}`)}
-                  </div>
-                  <div className="text-sm">
-                    <FieldValue record={record} field={field} t={t} />
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+            <Card key={section.group}>
+              {section.group !== 'default' && (
+                <CardHeader>
+                  <CardTitle className="text-base">{t(section.label ?? `group.${section.group}`)}</CardTitle>
+                </CardHeader>
+              )}
+              <CardContent className="pt-6">
+                <dl className={detailGridClass(cols)}>
+                  {fields.map((field) => (
+                    <div
+                      key={field.name}
+                      className={cn(
+                        stacked(field, record[field.name])
+                          ? 'space-y-1'
+                          : 'grid grid-cols-[minmax(0,min(10rem,40%))_minmax(0,1fr)] items-baseline gap-x-3',
+                        fieldSpanClass(field, cols)
+                      )}
+                    >
+                      <dt className="text-sm text-muted-foreground">
+                        {t(field.label ?? `field.${spec.name}.${field.name}`)}
+                      </dt>
+                      <dd className="min-w-0 break-words text-sm">
+                        <FieldValue record={record} field={field} t={t} />
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </CardContent>
+            </Card>
           )
         })}
     </div>

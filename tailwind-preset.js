@@ -55,15 +55,94 @@ const PROSE_RULES = {
   'pre code': { backgroundColor: 'transparent', padding: '0', fontWeight: '400' }
 }
 
+/** The light theme's tokens, HSL triplets read through `hsl(var(--token))`. */
+const LIGHT = {
+  '--background': '0 0% 100%',
+  '--foreground': '240 10% 3.9%',
+  '--card': '0 0% 100%',
+  '--card-foreground': '240 10% 3.9%',
+  '--popover': '0 0% 100%',
+  '--popover-foreground': '240 10% 3.9%',
+  // Volcanic accent, ember. Deeper here than in .dark: white on it and it as text on white both
+  // need 4.5:1 (5.66, and 4.7 on hover's /90); the bright 53% gives 2.85.
+  '--primary': '22 92% 36%',
+  '--primary-foreground': '0 0% 100%',
+  '--secondary': '240 4.8% 95.9%',
+  '--secondary-foreground': '240 5.9% 10%',
+  '--muted': '240 4.8% 95.9%',
+  // 44% keeps 4.5:1 on --muted and --accent too (4.74, 5.21 on white): the menu's initials and
+  // a hovered nav item sit on them, where 46.1% gives 4.39.
+  '--muted-foreground': '240 3.8% 44%',
+  '--accent': '240 4.8% 95.9%',
+  '--accent-foreground': '240 5.9% 10%',
+  '--destructive': '0 72% 51%',
+  '--destructive-foreground': '0 0% 98%',
+  '--border': '240 5.9% 90%',
+  '--input': '240 5.9% 90%',
+  '--ring': '22 92% 36%',
+  '--radius': '0.5rem',
+  // The main area's padding. The sticky bars of the list, detail and form pages bleed into it
+  // with negative margins, so they read it from here instead of repeating the breakpoint.
+  '--page-padding': '1rem'
+}
+
+const DARK = {
+  '--background': '240 10% 3.9%',
+  '--foreground': '0 0% 98%',
+  '--card': '240 10% 5.9%',
+  '--card-foreground': '0 0% 98%',
+  '--popover': '240 10% 3.9%',
+  '--popover-foreground': '0 0% 98%',
+  // The bright ember carries dark text: 6.99:1, where white on it gives 2.85.
+  '--primary': '24 95% 53%',
+  '--primary-foreground': '240 10% 3.9%',
+  '--secondary': '240 3.7% 15.9%',
+  '--secondary-foreground': '0 0% 98%',
+  '--muted': '240 3.7% 15.9%',
+  '--muted-foreground': '240 5% 64.9%',
+  '--accent': '240 3.7% 15.9%',
+  '--accent-foreground': '0 0% 98%',
+  '--destructive': '0 62.8% 45%',
+  '--destructive-foreground': '0 0% 98%',
+  '--border': '240 3.7% 15.9%',
+  '--input': '240 3.7% 15.9%',
+  '--ring': '24 95% 53%'
+}
+
 /**
- * Shared Tailwind preset for the Volcanic Admin theme. Consumer projects that
- * write their own components/overrides with Tailwind can apply it:
+ * The theme tokens and the element rules every admin screen assumes, emitted in the base layer
+ * of whichever sheet applies the preset: the admin's prebuilt `styles.css`, or a project's own
+ * sheet, which then replaces `styles.css` instead of loading after it.
+ */
+function themeBase({ addBase, theme }) {
+  addBase({
+    ':root': LIGHT,
+    [`@media (min-width: ${theme('screens.md')})`]: { ':root': { '--page-padding': '1.5rem' } },
+    '.dark': DARK,
+    '*': { borderColor: 'hsl(var(--border))' },
+    'html, body, #root': { height: '100%' },
+    body: {
+      backgroundColor: 'hsl(var(--background))',
+      color: 'hsl(var(--foreground))',
+      fontFeatureSettings: "'rlig' 1, 'calt' 1"
+    }
+  })
+}
+
+/**
+ * Shared Tailwind preset for the Volcanic Admin theme. A project with its own
+ * Tailwind applies it and scans the engine's build, so one sheet holds the
+ * engine's classes and the project's, in Tailwind's order:
  *
  *   import volcanicPreset from '@volcanicminds/admin/tailwind-preset'
- *   export default { presets: [volcanicPreset], content: [...] }
+ *   export default {
+ *     presets: [volcanicPreset],
+ *     content: ['./src/**\/*.{ts,tsx}', './node_modules/@volcanicminds/admin/dist/**\/*.js']
+ *   }
  *
- * Projects that only use the prebuilt components can skip Tailwind entirely and
- * just import '@volcanicminds/admin/styles.css'.
+ * Such a project does not import '@volcanicminds/admin/styles.css': a second
+ * sheet loaded after it would override the engine's responsive variants with
+ * its own base utilities. A project without Tailwind imports only that sheet.
  *
  * @type {import('tailwindcss').Config}
  */
@@ -117,5 +196,5 @@ export default {
       }
     }
   },
-  plugins: [tailwindcssAnimate, typography]
+  plugins: [themeBase, tailwindcssAnimate, typography]
 }

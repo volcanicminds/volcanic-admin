@@ -96,8 +96,8 @@ npm i @volcanicminds/admin \
 |---|---|
 | Module format | ESM only (`"type": "module"`), Node >= 26 for tooling |
 | Export `.` | `dist/index.js` plus `dist/index.d.ts`: engine, ui and `<VolcanicAdmin>` |
-| Export `./styles.css` | `dist/style.css`, the prebuilt theme; import it once, no Tailwind needed |
-| Export `./tailwind-preset` | `tailwind-preset.js`, for projects that write their own Tailwind components |
+| Export `./styles.css` | `dist/style.css`, the prebuilt sheet; import it once in a project without Tailwind |
+| Export `./tailwind-preset` | `tailwind-preset.js`, theme tokens included; a project with Tailwind uses it instead of `styles.css` |
 | Bin | `volcanic-admin-pull` (`scripts/pull-manifest.mjs`), see section 22 |
 | Shipped files | `dist`, `tailwind-preset.js`, `scripts`, `manifest.v2.schema.json`, `README.md` |
 
@@ -109,12 +109,19 @@ Tailwind preset only: `tailwindcss` ^3.4.17, `tailwindcss-animate` ^1.0.7,
 Radix primitives, TipTap (rich text, lazy-loaded), `xlsx` (lazy-loaded), `sonner`, `lucide-react`
 and `ajv`.
 
-A project that writes its own Tailwind components applies the preset:
+A project that writes its own Tailwind components applies the preset, scans the engine's build
+and imports its own sheet (`@tailwind base; @tailwind components; @tailwind utilities;`) in
+place of `styles.css`. The preset emits the theme tokens and the base element rules, so that one
+sheet holds everything. Never both sheets: the project's base utilities, loaded later, override
+the engine's `md:` variants (sidebar on a phone, detail on one column). No Tailwind `prefix`.
 
 ```js
 // tailwind.config.js
 import volcanicPreset from '@volcanicminds/admin/tailwind-preset'
-export default { presets: [volcanicPreset], content: ['./src/**/*.{ts,tsx}'] }
+export default {
+  presets: [volcanicPreset],
+  content: ['./src/**/*.{ts,tsx}', './node_modules/@volcanicminds/admin/dist/**/*.js']
+}
 ```
 
 ---
@@ -872,7 +879,14 @@ route enforces its own gate.
 
 ## 18. Runtime behaviors
 
-- Sticky toolbars: form and show views pin the title and action bar under the top bar.
+- Sticky toolbars: form and show views pin the title and action bar under the top bar. On the
+  show view the first three custom row actions are buttons and the rest go into an "Actions"
+  menu (`RowActions` prop `inline`); an action drawn by its own component stays a button.
+- Show view layout: each field is a `<dl>` row with its label beside the value, in the form's
+  columns; prose, images and a filled JSON map keep the label above. `id`, `createdAt` and
+  `updatedAt` sit in the meta strip, not among the fields; `writeOnly` fields are not shown.
+  Empty fields (no value, empty string, list or map; a false boolean and a zero are values) are
+  hidden behind a "Show empty fields (n)" toggle in the strip.
 - Saving a create or edit form redirects to the record's show view; singletons stay on their path.
 - `readOnly` fields render disabled and are never submitted; image and file fields with their own
   `endpoints` are managed out of band and left out of the body. A relation inherits writability
@@ -933,8 +947,9 @@ The light, dark or system preference is stored per device (`localStorage` key
 text on it): both keep 4.5:1 for the button label and for `primary` used as text.
 
 Below 768 px the sidebar column is hidden and a menu button in the topbar opens it as a drawer
-(focus trapped, Escape and a link close it). The layout's breakpoints sit on wrappers with no
-other display class, so a project's own Tailwind sheet, loaded after `styles.css`, cannot undo them.
+(focus trapped, Escape and a link close it). The main area's padding is the `--page-padding`
+token (1rem, 1.5rem from 768 px); the sticky bars of the list, detail and form pages bleed into
+it through the same token (`PAGE_BAR` in `src/ui/generators/layout.ts`).
 
 Branding (`AdminBranding`, `src/ui/config.tsx`), all optional: `appName` (default
 `'Volcanic Admin'`), `logo`, `logoDark`, `logoCollapsed`, `logoCollapsedDark`, `logoHeight` (28),
@@ -1044,7 +1059,8 @@ From `@volcanicminds/admin`:
 
 ## 24. Gotchas
 
-- Import `@volcanicminds/admin/styles.css` once: the built JavaScript does not import it.
+- Import `@volcanicminds/admin/styles.css` once: the built JavaScript does not import it. A
+  project with its own Tailwind imports its own sheet instead (section 3), never both.
 - Rich text stores HTML from a constrained schema (no `<script>`). Against an untrusted backend
   still sanitize server-side; offer only toolbar actions the server sanitizer keeps.
 - Do not create a second React Query client inside overrides: Refine v4 owns its QueryClient.
