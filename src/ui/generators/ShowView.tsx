@@ -5,13 +5,13 @@
 import { useState } from 'react'
 import { useOne, useNavigation, useDelete } from '@refinedev/core'
 import { useParams, useNavigate } from 'react-router'
-import { Pencil, ArrowLeft, Trash2, Copy, Check, CopyPlus } from 'lucide-react'
+import { Pencil, ArrowLeft, Trash2, CopyPlus } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { ConfirmDialog } from '@/ui/components/ConfirmDialog'
 import { useT } from '@/engine'
 import type { ResourceModel } from '@/engine'
-import { FieldValue } from '@/ui/widgets/display'
+import { CopyButton, FieldValue } from '@/ui/widgets/display'
 import { formFieldName } from '@/ui/widgets/inputs'
 import { RowActions } from '@/ui/actions/ActionButtons'
 import { CLONE_STATE_KEY } from './cloneSeed'
@@ -41,7 +41,6 @@ type Translate = (key?: string, vars?: Record<string, string | number>) => strin
 /** Compact meta strip for the read-only system fields (id + timestamps). The id
  * carries a copy-to-clipboard button; created/updated are shown when present. */
 function RecordMeta({ record, t }: { record: Record<string, any>; t: Translate }) {
-  const [copied, setCopied] = useState(false)
   const id = record.id
   const created = record.createdAt
   const updated = record.updatedAt
@@ -51,31 +50,13 @@ function RecordMeta({ record, t }: { record: Record<string, any>; t: Translate }
     const d = new Date(v as string)
     return isNaN(d.getTime()) ? String(v) : d.toLocaleString()
   }
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(String(id))
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {
-      /* clipboard unavailable */
-    }
-  }
-
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
       {id != null && (
         <div className="flex items-center gap-1.5">
           <span className="font-medium">{t('meta.id')}</span>
           <code className="font-mono text-[11px]">{String(id)}</code>
-          <button
-            type="button"
-            onClick={copy}
-            title={t('action.copy')}
-            aria-label={t('action.copy')}
-            className="inline-flex transition-colors hover:text-foreground"
-          >
-            {copied ? <Check className="size-3.5 text-green-600 dark:text-green-500" /> : <Copy className="size-3.5" />}
-          </button>
+          <CopyButton value={String(id)} t={t} />
         </div>
       )}
       {created != null && (

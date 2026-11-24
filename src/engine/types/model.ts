@@ -31,6 +31,8 @@ export interface ColumnModel {
   label?: I18nKey
   align?: 'left' | 'center' | 'right'
   width?: number
+  /** The whole value, where an `id` column would show its last 8 characters. */
+  full?: boolean
 }
 
 /** A labeled key/value row in the card body. */

@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow
 } from '@/ui/components/ui/table'
-import { FieldCell } from '@/ui/widgets/display'
+import { FieldCell, ShortId } from '@/ui/widgets/display'
 import type { ListPresentationProps } from './listShared'
 import { RowActions } from '../actions/ActionButtons'
 
@@ -110,24 +110,46 @@ export function ListTable({
                 )}
                 {columns.map((col) => (
                   <TableCell key={col.field.name} className={col.align === 'right' ? 'text-right' : undefined}>
-                    <FieldCell record={record} field={col.field} t={t} />
+                    {col.field.name === 'id' && !col.full ? (
+                      <ShortId value={record.id} t={t} />
+                    ) : (
+                      <FieldCell record={record} field={col.field} t={t} />
+                    )}
                   </TableCell>
                 ))}
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className="flex justify-end gap-1">
                     <RowActions model={model} record={record} t={t} />
                     {canShow && (
-                      <Button size="icon" variant="ghost" onClick={() => onShow(record.id)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title={t('action.show')}
+                        aria-label={t('action.show')}
+                        onClick={() => onShow(record.id)}
+                      >
                         <Eye />
                       </Button>
                     )}
                     {canEdit && (
-                      <Button size="icon" variant="ghost" onClick={() => onEdit(record.id)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title={t('action.edit')}
+                        aria-label={t('action.edit')}
+                        onClick={() => onEdit(record.id)}
+                      >
                         <Pencil />
                       </Button>
                     )}
                     {canDelete && (
-                      <Button size="icon" variant="ghost" onClick={() => onDelete(record.id)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title={t('action.delete')}
+                        aria-label={t('action.delete')}
+                        onClick={() => onDelete(record.id)}
+                      >
                         <Trash2 className="text-destructive" />
                       </Button>
                     )}

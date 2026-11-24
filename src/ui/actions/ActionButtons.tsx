@@ -216,6 +216,7 @@ function ActionButton({
           variant={variant ?? 'ghost'}
           className={className}
           title={label}
+          aria-label={label}
           onClick={onClick}
         >
           <Icon />

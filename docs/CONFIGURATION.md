@@ -155,6 +155,7 @@ presentation:
 | `label` | i18n key | Per-view header override (falls back to the field label / `field.<res>.<name>`). |
 | `align` | `'left' \| 'center' \| 'right'` | Column alignment. |
 | `width` | `number` | Column width px. |
+| `full` | `boolean` | The whole value. By default the `id` column shows the last 8 characters of an id longer than 12, with the whole value on hover and a copy button. |
 
 > `columns` present → **only** the listed columns show, in that order (allowlist).
 > Absent → derived: non-heavy, non-write-only fields in declaration order. A column

@@ -51,7 +51,7 @@ function buildColumns(spec: ResourceSpec, byName: Map<string, ResolvedField>): C
       .map((c): ColumnModel | null => {
         const field = byName.get(c.field)
         if (!field) return null
-        return { field, label: c.label, align: c.align, width: c.width }
+        return { field, label: c.label, align: c.align, width: c.width, full: c.full }
       })
       .filter((c): c is ColumnModel => c !== null)
   }

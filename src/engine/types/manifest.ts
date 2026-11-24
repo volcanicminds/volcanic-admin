@@ -264,6 +264,8 @@ export interface ColumnSpec<F extends string = string> {
   label?: I18nKey
   align?: 'left' | 'center' | 'right'
   width?: number
+  /** The whole value. By default an `id` column longer than 12 characters shows its last 8. */
+  full?: boolean
 }
 
 export interface TableViewSpec<F extends string = string> {

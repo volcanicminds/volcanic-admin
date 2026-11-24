@@ -606,7 +606,10 @@ sortable fields except `json`, `image`, `file`.
 - `layouts?: ('table' | 'card')[]` (default `['table']`; more than one shows a toggle).
 - `defaultLayout?` (default the first of `layouts`).
 - `sort?: F[]`: fields of the "sort by" control; a relation tie-breaks by the row title.
-- `table?: { columns?: ColumnSpec<F>[] }`, `ColumnSpec = { field, label?, align?: 'left' | 'center' | 'right', width?: number }`.
+- `table?: { columns?: ColumnSpec<F>[] }`, `ColumnSpec = { field, label?, align?: 'left' | 'center' | 'right', width?: number, full?: boolean }`.
+  The `id` column shows the last 8 characters of an id longer than 12 (whole value on hover, a copy
+  button) unless `full: true`. A `json` value reads as `key: value` pairs and comma-joined lists,
+  one pair per line on the detail page; a false boolean is a grey cross, not a red one.
 - `card?: CardViewSpec<F>`: grid `minWidth`/`maxWidth` (setting `maxWidth` enables fluid
   auto-fill) or fixed `columns`; `align?: 'left' | 'center'`; slots `image?: F`,
   `title?: F | F[]`, `subtitle?: F | F[]`, `badges?: F[]` (enum chips), `body?: { field, label? }[]`,

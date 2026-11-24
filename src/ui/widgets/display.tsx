@@ -5,7 +5,7 @@
  */
 import { useState } from 'react'
 import { useApiUrl } from '@refinedev/core'
-import { Check, X, Minus, Star } from 'lucide-react'
+import { Check, Copy, X, Minus, Star } from 'lucide-react'
 import { Badge } from '@/ui/components/ui/badge'
 import { absoluteUrl, cn } from '@/lib/utils'
 import { ImagePreviewDialog } from '@/ui/components/ImagePreviewDialog'
@@ -92,11 +92,13 @@ export function FieldCell({ record, field, t }: CellProps) {
   const apiUrl = useApiUrl()
   const value = getValue(record, field)
 
-  // Boolean is tri-state: true → green check, false → red cross, undefined → grey dash.
+  // Boolean is tri-state: true → green check, false → grey cross, undefined → grey dash. False is
+  // a state, not a fault: red would make every "no" of a column read as an error.
   if (field.type === 'boolean') {
-    if (value === true) return <Check className="h-4 w-4 text-green-600 dark:text-green-500" />
-    if (value === false) return <X className="h-4 w-4 text-destructive" />
-    return <Minus className="h-4 w-4 text-muted-foreground" />
+    if (value === true)
+      return <Check role="img" aria-label={t('value.yes')} className="h-4 w-4 text-green-600 dark:text-green-500" />
+    if (value === false) return <X role="img" aria-label={t('value.no')} className="h-4 w-4 text-muted-foreground" />
+    return <Minus role="img" aria-label={t('value.unset')} className="h-4 w-4 text-muted-foreground" />
   }
 
   if (value == null || value === '') return <span className="text-muted-foreground">—</span>
@@ -139,8 +141,70 @@ export function FieldCell({ record, field, t }: CellProps) {
     case 'number':
       return <>{Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 })}</>
     default:
-      return <>{String(value)}</>
+      return typeof value === 'object' ? <>{readableJson(value, '; ')}</> : <>{String(value)}</>
   }
+}
+
+/**
+ * A JSON value as a reader sees it: a list joined by commas, a map as `key: value` pairs, so an
+ * object never reaches the screen as "[object Object]". `pairs` separates the map's entries.
+ */
+export function readableJson(value: unknown, pairs: string): string {
+  if (value == null) return '—'
+  if (Array.isArray(value)) return value.length ? value.map((v) => readableJson(v, pairs)).join(', ') : '—'
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+    return entries.length ? entries.map(([k, v]) => `${k}: ${readableJson(v, pairs)}`).join(pairs) : '—'
+  }
+  return String(value)
+}
+
+/** Ids at or under this length stay whole: a progressive number or a short code reads as it is. */
+const SHORT_ID_MAX = 12
+
+/**
+ * An opaque id in a list: its last 8 characters, the whole value on hover and a copy button. The
+ * end and not the start: a UUIDv7 opens with its timestamp, alike across rows created together.
+ */
+export function ShortId({ value, t }: { value: unknown; t: WidgetProps['t'] }) {
+  if (value == null || value === '') return <span className="text-muted-foreground">—</span>
+  const id = String(value)
+  if (id.length <= SHORT_ID_MAX) return <>{id}</>
+  return (
+    <span className="group inline-flex items-center gap-1 whitespace-nowrap">
+      <code className="font-mono text-xs" title={id}>
+        …{id.slice(-8)}
+      </code>
+      <CopyButton value={id} t={t} className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100" />
+    </span>
+  )
+}
+
+/** Copies a value to the clipboard and shows a check for a moment; inert where there is none. */
+export function CopyButton({ value, t, className }: { value: string; t: WidgetProps['t']; className?: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async (e: React.MouseEvent) => {
+    // Inside a clickable row: copying must not open the record.
+    e.stopPropagation()
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      title={t('action.copy')}
+      aria-label={t('action.copy')}
+      className={cn('inline-flex text-muted-foreground transition-colors hover:text-foreground', className)}
+    >
+      {copied ? <Check className="size-3.5 text-green-600 dark:text-green-500" /> : <Copy className="size-3.5" />}
+    </button>
+  )
 }
 
 interface ImageItem {
@@ -258,5 +322,15 @@ export function FieldValue({ record, field, t }: CellProps) {
       <span className="text-muted-foreground">—</span>
     )
   }
+  // A map reads one pair per line on the detail page, where there is room for it.
+  if (field.type === 'json') {
+    const value = record[field.name]
+    return value != null && typeof value === 'object' ? (
+      <span className="whitespace-pre-wrap">{readableJson(value, '\n')}</span>
+    ) : (
+      <FieldCell record={record} field={field} t={t} />
+    )
+  }
+
   return <FieldCell record={record} field={field} t={t} />
 }
