@@ -10,20 +10,23 @@
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    /* Volcanic accent — amber/ember */
-    --primary: 24 95% 53%;
+    /* Volcanic accent, ember. Deeper here than in .dark: white on it and it as text on white both
+       need 4.5:1 (5.66, and 4.7 on hover's /90); the bright 53% gives 2.85. */
+    --primary: 22 92% 36%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
+    /* 44% keeps 4.5:1 on --muted and --accent too (4.74, 5.21 on white): the menu's initials and
+       a hovered nav item sit on them, where 46.1% gives 4.39. */
+    --muted-foreground: 240 3.8% 44%;
     --accent: 240 4.8% 95.9%;
     --accent-foreground: 240 5.9% 10%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 24 95% 53%;
+    --ring: 22 92% 36%;
     --radius: 0.5rem;
   }
 
@@ -34,8 +37,9 @@
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
+    /* The bright ember carries dark text: 6.99:1, where white on it gives 2.85. */
     --primary: 24 95% 53%;
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 240 10% 3.9%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 240 3.7% 15.9%;
